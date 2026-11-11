@@ -2,7 +2,7 @@
 
 App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta, sem dependências. Funciona offline e pode ser instalado no celular como um aplicativo (PWA).
 
-Visual "Orologia": noite violeta, lavanda e âmbar, títulos em Cinzel.
+**[Abrir o app](https://kirarahoshi.github.io/caixinhas-orologias/)**
 
 ## O que ele faz
 
