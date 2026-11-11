@@ -630,6 +630,15 @@ function normalize(o){
 }
 function lsGet(k){ try { const t = localStorage.getItem(k); return t ? JSON.parse(t) : null; } catch(e){ return null; } }
 function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+const LS_BKP = 'caixinhas-orologia-backup';
+function marcaBackup(){ lsSet(LS_BKP, Date.now()); }
+function diasDesdeBackup(){ const t = lsGet(LS_BKP); return typeof t === 'number' ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null; }
+function backupTexto(){ const d = diasDesdeBackup(); return d === null ? 'Você ainda não fez nenhum backup neste aparelho.' : d === 0 ? 'Último backup: hoje.' : `Último backup: há ${d} ${d === 1 ? 'dia' : 'dias'}.`; }
+function backupBanner(exN){
+  if (exN || !hasData(S)) return '';
+  const d = diasDesdeBackup(); if (d !== null && d < 14) return '';
+  return `<div class="banner"><span>${d === null ? 'Você ainda não fez backup dos seus dados.' : 'Seu último backup foi há ' + d + ' dias.'} Se o aparelho for formatado, tudo se perde.</span><button class="ghost" type="button" data-act="exp">Fazer backup</button></div>`;
+}
 
 let S = normalize(lsGet(LS_KEY));
 const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null };
@@ -726,7 +735,7 @@ function renderMes(){
   const k = UI.mes, R = resumoMes(k), dl = daysLeft(k);
   $('mesLabel').textContent = monthLabel(k);
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
-  $('exBanner').innerHTML = exN ? `<div class="banner"><span>Você está vendo dados de exemplo (marcados com “exemplo”).</span><button class="ghost" type="button" data-act="ex-clear">Apagar exemplos</button></div>` : '';
+  $('exBanner').innerHTML = backupBanner(exN) + (exN ? `<div class="banner"><span>Você está vendo dados de exemplo (marcados com “exemplo”).</span><button class="ghost" type="button" data-act="ex-clear">Apagar exemplos</button></div>` : '');
   const porDia = dl > 0 ? R.sobra / dl : 0;
   $('mesResumo').innerHTML = `
     <div class="total">
@@ -1165,7 +1174,7 @@ function renderAjustes(){
     $('ajTaxa').value = numStr(S.taxaRef);
     renderTabelas();
   }
-  $('ajOnde').textContent = Cloud.on ? 'Seus dados ficam salvos na sua conta do Claude (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Exporte um backup de vez em quando para não perder nada se limpar o navegador ou trocar de aparelho.';
+  $('ajOnde').textContent = (Cloud.on ? 'Seus dados ficam salvos na sua conta do Claude (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.') + ' ' + backupTexto();
   $('ver').textContent = 'v' + VERSION;
 }
 function renderTabelas(){
@@ -1238,11 +1247,11 @@ async function exportar(){
   const name = 'caixinhas-backup-' + today() + '.json';
   try {
     const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-    if (dl) { await dl.save({ filename: name, data: txt }); toast('Backup salvo'); return; }
+    if (dl) { await dl.save({ filename: name, data: txt }); marcaBackup(); renderAll(); toast('Backup salvo'); return; }
   } catch (e) { if (e && e.code === 'declined') return; }
   try {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); marcaBackup(); renderAll();
   } catch (e) {}
   mostrarJSON(txt, 'Se o download não começou, copie o texto abaixo e salve num arquivo .json.');
 }
@@ -1316,7 +1325,7 @@ document.addEventListener('click', e => {
     case 'exp-copy': {
       const txt = JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2);
       const fallback = () => { mostrarJSON(txt, 'Selecione o texto abaixo e copie.'); $('expTxt').select(); };
-      try { navigator.clipboard.writeText(txt).then(() => toast('Backup copiado'), fallback); } catch (err) { fallback(); }
+      try { navigator.clipboard.writeText(txt).then(() => { marcaBackup(); renderAll(); toast('Backup copiado. Cole num lugar seguro.'); }, fallback); } catch (err) { fallback(); }
       break;
     }
     case 'imp-ok': { const old = Object.keys(S.meses); S = normalize(UI.imp); UI.imp = null; UI.cxDraft = null; $('impConfirm').innerHTML = ''; persistAll(old); renderAll(); toast('Backup importado'); break; }
