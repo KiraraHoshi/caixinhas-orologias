@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>
 /* Temas do Caixinhas Orologia. Roda antes da página aparecer, para não piscar o tema errado.
-   Mesmo formato de tema do Compasso Player: um tema feito num app funciona no outro. */
+   Mesmo formato de tema do Orolon Player: um tema feito num app funciona no outro. */
 (function(){
 'use strict';
 var LS = 'caixinhas-orologia-tema';
@@ -1589,7 +1589,7 @@ function renderTema(){
   }
   const at = TM.atual();
   box.innerHTML = `<div class="temas">${TM.todos().map(t => cartaoTema(t, t.id === at.id)).join('')}<button type="button" class="tema-card add" data-tm="criar">+ Criar tema</button></div>
-    <p class="hint">O tema fica salvo neste aparelho. O formato é o mesmo do Compasso Player: um tema feito lá funciona aqui, e o contrário também.</p>
+    <p class="hint">O tema fica salvo neste aparelho. O formato é o mesmo do Orolon Player: um tema feito lá funciona aqui, e o contrário também.</p>
     <div class="btns"><button class="ghost" type="button" data-tm="copiar">Copiar tema</button><button class="ghost" type="button" data-tm="baixar">Baixar .json</button>
       <label class="ghost" style="flex-direction:row;color:var(--fg);font-size:.88rem;font-weight:600;cursor:pointer">Abrir .json<input type="file" id="temaFile" accept=".json,application/json" hidden></label>
       <button class="ghost" type="button" data-tm="colar">Colar tema</button></div>
