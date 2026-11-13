@@ -1,4 +1,74 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Caixinhas Orologia</title>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>
+/* Temas do Caixinhas Orologia. Roda antes da página aparecer, para não piscar o tema errado.
+   Mesmo formato de tema do Compasso Player: um tema feito num app funciona no outro. */
+(function(){
+'use strict';
+var LS = 'caixinhas-orologia-tema';
+var BASE = {
+  noite: { id:'noite', nome:'Orologia Noite', fundo:'#110E18', card:'#1C1827', texto:'#EEEAF5', suave:'#A49EB8', destaque:'#9C9BF5', secundaria:'#E3C98A', raio:14, fonte:'padrao', fixo:true,
+    extra:{ '--surface2':'#241F33', '--deep':'#0B0910', '--line':'#34304A', '--track':'#252136', '--faint':'#6F6887', '--accent-ink':'#110E18', '--tint':'#45409C', '--ok':'#8FD3B4', '--warn':'#F2B45A', '--over':'#FF5C7A' } },
+  dia: { id:'dia', nome:'Orologia Dia', fundo:'#F2F0F7', card:'#FFFFFF', texto:'#1E1A2B', suave:'#5E5874', destaque:'#5A50D6', secundaria:'#8C5E14', raio:14, fonte:'padrao', fixo:true,
+    extra:{ '--surface2':'#F6F4FA', '--deep':'#EAE7F2', '--line':'#D6D1E3', '--track':'#E3DFEC', '--faint':'#767090', '--accent-ink':'#FFFFFF', '--tint':'#C8C2F2', '--ok':'#1F7A55', '--warn':'#8F5400', '--over':'#C42848' } }
+};
+var FONTES = {
+  padrao:  { n:'Orologia',   d:'"Cinzel", Constantia, Georgia, serif', b:'"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif' },
+  sistema: { n:'Do sistema', d:'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', b:'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+  serifada:{ n:'Serifada',   d:'Georgia, "Times New Roman", serif', b:'Georgia, "Times New Roman", serif' },
+  mono:    { n:'Mono',       d:'ui-monospace, "Cascadia Mono", Consolas, monospace', b:'ui-monospace, "Cascadia Mono", Consolas, monospace' }
+};
+var CAMPOS = [['fundo','Fundo'],['card','Cartões'],['texto','Texto'],['suave','Texto suave'],['destaque','Destaque'],['secundaria','Secundária (dourado)']];
+var HEX = /^#[0-9a-f]{6}$/i;
+function rgb(h){ return [1,3,5].map(function(i){ return parseInt(h.substr(i,2),16); }); }
+function mix(a,b,t){ var x = rgb(a), y = rgb(b); return '#' + x.map(function(v,i){ return ('0' + Math.round(v + (y[i]-v)*t).toString(16)).slice(-2); }).join('').toUpperCase(); }
+function lum(h){ var c = rgb(h).map(function(v){ v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }); return .2126*c[0] + .7152*c[1] + .0722*c[2]; }
+function contraste(a,b){ var x = lum(a), y = lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
+function escuro(t){ return lum(t.fundo) < .2; }
+function tokens(t){
+  var e = escuro(t), v = {
+    '--bg':t.fundo, '--surface':t.card, '--fg':t.texto, '--muted':t.suave, '--accent':t.destaque, '--gold':t.secundaria,
+    '--surface2':mix(t.card, t.texto, .05), '--deep':e ? mix(t.fundo, '#000000', .35) : mix(t.fundo, t.texto, .05),
+    '--line':mix(t.card, t.texto, e ? .16 : .15), '--track':mix(t.card, t.texto, .09), '--faint':mix(t.suave, t.fundo, .3),
+    '--accent-ink':contraste('#FFFFFF', t.destaque) >= contraste('#110E18', t.destaque) ? '#FFFFFF' : '#110E18',
+    '--tint':mix(t.destaque, t.fundo, e ? .55 : .7),
+    '--ok':e ? '#8FD3B4' : '#1F7A55', '--warn':e ? '#F2B45A' : '#8F5400', '--over':e ? '#FF5C7A' : '#C42848'
+  };
+  if (t.extra) for (var k in t.extra) v[k] = t.extra[k];
+  return v;
+}
+function ler(){ var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ o = {}; } if (!Array.isArray(o.meus)) o.meus = []; return o; }
+var estado = ler();
+function todos(){ return [BASE.noite, BASE.dia].concat(estado.meus); }
+function porId(id){ return todos().filter(function(t){ return t.id === id; })[0]; }
+function atual(){ return porId(estado.atual) || BASE.noite; }
+function salvar(){ try { localStorage.setItem(LS, JSON.stringify({ atual: estado.atual, meus: estado.meus })); } catch(e){} }
+function aplicar(t){
+  var r = document.documentElement, v = tokens(t), f = FONTES[t.fonte] || FONTES.padrao;
+  for (var k in v) r.style.setProperty(k, v[k]);
+  r.style.setProperty('--display', f.d); r.style.setProperty('--body', f.b);
+  r.style.setProperty('color-scheme', escuro(t) ? 'dark' : 'light');
+  if (escuro(t)) r.removeAttribute('data-claro'); else r.setAttribute('data-claro', '');
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t.fundo);
+}
+function validar(o){
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('Esse conteúdo não é um tema.');
+  var t = { nome: String(o.nome || 'Tema importado').trim().slice(0,40) || 'Tema importado' };
+  CAMPOS.forEach(function(c){
+    var v = String(o[c[0]] || '').trim();
+    if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v.slice(1).split('').map(function(x){ return x + x; }).join('');
+    if (!HEX.test(v)) throw new Error('A cor "' + c[1] + '" (campo ' + c[0] + ') precisa estar no formato #RRGGBB.');
+    t[c[0]] = v.toUpperCase();
+  });
+  t.raio = Math.max(0, Math.min(28, Math.round(Number(o.raio) || 14)));
+  t.fonte = FONTES[o.fonte] ? o.fonte : 'padrao';
+  return t;
+}
+function json(t){ return JSON.stringify({ formato:'orologia-tema', versao:1, nome:t.nome, fundo:t.fundo, card:t.card, texto:t.texto, suave:t.suave, destaque:t.destaque, secundaria:t.secundaria, raio:t.raio, fonte:t.fonte }, null, 2); }
+window.TemaCx = { BASE:BASE, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste };
+aplicar(atual());
+})();
+</script>
+</head><body><title>Caixinhas Orologia</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
   Caixinhas Orologia — app de finanças pessoais (caixinhas do mês, cartão e parcelas,
@@ -165,6 +235,31 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 .free{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;width:100%}
 .free div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);font-size:.85rem;color:var(--muted)}
 .free b{display:block;color:var(--fg);font-size:.92rem;margin-bottom:2px}
+/* Aparência (temas) */
+:root[data-claro] .bar i,:root[data-claro] .dot{filter:brightness(.8) saturate(1.35)}
+:root[data-claro] .toast{box-shadow:0 8px 24px rgba(30,26,43,.25)}
+.temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.tema-card{position:relative;border:2px solid var(--line);border-radius:12px;background:var(--surface2);display:flex;flex-direction:column}
+.tema-card.sel{border-color:var(--accent)}
+.tema-use{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:8px;width:100%}
+.tema-prev{display:flex;flex-direction:column;gap:6px;height:66px;border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid rgba(128,128,128,.25);position:relative}
+.tema-prev span{display:flex;flex-direction:column;gap:5px;border-radius:5px;padding:6px;width:72%}
+.tema-prev b{display:block;height:6px;width:80%;border-radius:4px}
+.tema-prev em{display:block;height:5px;width:55%;border-radius:4px}
+.tema-prev i{position:absolute;bottom:8px;width:14px;height:14px;border-radius:50%}
+.tema-prev i:nth-of-type(1){right:26px}.tema-prev i:nth-of-type(2){right:8px}
+.tema-nome{font-weight:600;font-size:.9rem}
+.tema-card .link{position:absolute;top:12px;right:12px;background:var(--surface);border-radius:999px;padding:2px 8px;text-decoration:none;font-weight:600;color:var(--fg)}
+.tema-card.add{align-items:center;justify-content:center;border-style:dashed;color:var(--muted);min-height:120px;font-weight:600;background:none}
+.cor-row{flex-direction:row;align-items:center;justify-content:space-between;color:var(--fg);font-size:.9rem;min-height:40px}
+.cor-in{display:flex;align-items:center;gap:10px}
+.cor-in code{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.cor-in input[type=color]{width:48px;height:34px;padding:2px;cursor:pointer}
+.ctr{display:flex;justify-content:space-between;gap:10px;font-size:.82rem;color:var(--muted)}
+.fontes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fontes button{border:1px solid var(--line);background:var(--deep);border-radius:10px;padding:8px 10px;text-align:left;color:var(--fg)}
+.fontes button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.fontes b{display:block;font-size:1.1rem}
 </style>
 
 <div class="wrap">
@@ -510,6 +605,11 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     </details>
 
     <div class="panel">
+      <h3>Aparência</h3>
+      <div id="temaBox" class="flat"></div>
+    </div>
+
+    <div class="panel">
       <h3>Seus dados</h3>
       <p class="hint" id="ajOnde"></p>
       <div class="btns">
@@ -548,7 +648,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 <script>
 (function(){
 'use strict';
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1461,13 +1561,106 @@ $('impFile').addEventListener('change', e => {
   rd.readAsText(file);
 });
 
+/* ---------- Aparência (temas) ---------- */
+const TM = window.TemaCx;
+const TUI = { edit: null, colar: false, apagar: false };
+function cartaoTema(t, sel){
+  return `<div class="tema-card${sel ? ' sel' : ''}"><button type="button" class="tema-use" data-tm="usar" data-id="${esc(t.id)}" aria-pressed="${sel}">
+    <span class="tema-prev" style="background:${t.fundo}"><span style="background:${t.card}"><b style="background:${t.texto}"></b><em style="background:${t.suave}"></em></span><i style="background:${t.destaque}"></i><i style="background:${t.secundaria}"></i></span>
+    <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${t.fixo ? 'Grátis' : 'Seu tema'}</span></button>
+    ${t.fixo ? '' : `<button type="button" class="link" data-tm="editar" data-id="${esc(t.id)}" aria-label="Editar ${esc(t.nome)}">Editar</button>`}</div>`;
+}
+function linhasContraste(d){
+  const l = (rot, a, b, min) => { const r = TM.contraste(a, b), ok = r >= min; return `<div class="ctr"><span>${rot}</span><span class="pill ${ok ? 'p-ok' : 'p-warn'}">${r.toFixed(1).replace('.', ',')}:1 ${ok ? 'legível' : 'fraco'}</span></div>`; };
+  return l('Texto sobre o fundo', d.texto, d.fundo, 4.5) + l('Texto sobre os cartões', d.texto, d.card, 4.5) + l('Texto suave sobre o fundo', d.suave, d.fundo, 4.5) + l('Destaque sobre o fundo', d.destaque, d.fundo, 3) + l('Dourado sobre o fundo', d.secundaria, d.fundo, 3);
+}
+function renderTema(){
+  const box = $('temaBox'); if (!box || !TM) return;
+  if (TUI.edit) {
+    const d = TUI.edit.rascunho;
+    box.innerHTML = `<p class="hint">${TUI.edit.id ? 'Editando' : 'Novo tema'}: o app inteiro mostra o tema enquanto você mexe.</p>
+      <label>Nome do tema<input id="tmNome" maxlength="40" value="${esc(d.nome)}" autocomplete="off"></label>
+      ${TM.CAMPOS.map(([k, n]) => `<label class="cor-row" for="tm-${k}">${n}<span class="cor-in"><code id="tmx-${k}">${d[k]}</code><input type="color" id="tm-${k}" data-campo="${k}" value="${d[k].toLowerCase()}"></span></label>`).join('')}
+      <div class="flat" id="tmCtr" style="gap:6px">${linhasContraste(d)}</div>
+      <div class="fontes" role="group" aria-label="Fonte">${Object.entries(TM.FONTES).map(([k, f]) => `<button type="button" data-tm="fonte" data-id="${k}" aria-pressed="${d.fonte === k}" style="font-family:${esc(f.b)}"><b style="font-family:${esc(f.d)}">Aa</b>${f.n}</button>`).join('')}</div>
+      <div class="btns"><button class="primary" type="button" data-tm="salvar">Salvar tema</button><button class="ghost" type="button" data-tm="cancelar">Cancelar</button>
+      ${TUI.edit.id ? `<button class="ghost danger${TUI.apagar ? ' armed' : ''}" type="button" data-tm="apagar">${TUI.apagar ? 'Toque de novo para apagar' : 'Apagar tema'}</button>` : ''}</div>`;
+    return;
+  }
+  const at = TM.atual();
+  box.innerHTML = `<div class="temas">${TM.todos().map(t => cartaoTema(t, t.id === at.id)).join('')}<button type="button" class="tema-card add" data-tm="criar">+ Criar tema</button></div>
+    <p class="hint">O tema fica salvo neste aparelho. O formato é o mesmo do Compasso Player: um tema feito lá funciona aqui, e o contrário também.</p>
+    <div class="btns"><button class="ghost" type="button" data-tm="copiar">Copiar tema</button><button class="ghost" type="button" data-tm="baixar">Baixar .json</button>
+      <label class="ghost" style="flex-direction:row;color:var(--fg);font-size:.88rem;font-weight:600;cursor:pointer">Abrir .json<input type="file" id="temaFile" accept=".json,application/json" hidden></label>
+      <button class="ghost" type="button" data-tm="colar">Colar tema</button></div>
+    ${TUI.colar ? `<textarea id="temaCola" aria-label="JSON do tema" placeholder='{ "nome": "Meu tema", "fundo": "#110E18", ... }'></textarea><div class="btns"><button class="primary" type="button" data-tm="importar">Importar tema</button><button class="ghost" type="button" data-tm="colar">Cancelar</button></div>` : ''}
+    <div id="temaOut"></div>`;
+}
+function usarTema(id){ TM.estado.atual = id; TM.salvar(); TM.aplicar(TM.atual()); }
+function importarTema(texto){
+  try {
+    const t = TM.validar(JSON.parse(texto));
+    t.id = 't' + uid(); TM.estado.meus.push(t); usarTema(t.id); TUI.colar = false; renderTema(); toast(`Tema "${t.nome}" importado`);
+  } catch (e) { toast(e instanceof SyntaxError ? 'O texto não é um JSON válido' : e.message); }
+}
+async function baixarTema(){
+  const t = TM.atual(), txt = TM.json(t);
+  const nome = (t.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'tema') + '.json';
+  try {
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (dl) { await dl.save({ filename: nome, data: txt }); toast('Tema salvo'); return; }
+  } catch (e) { if (e && e.code === 'declined') return; }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) {}
+  mostrarTemaJSON(txt, 'Se o download não começou, copie o texto abaixo e salve num arquivo .json.');
+}
+function mostrarTemaJSON(txt, msg){ const o = $('temaOut'); if (!o) return; o.innerHTML = `<p class="hint">${esc(msg)}</p><textarea id="temaTxt" readonly aria-label="Tema em JSON"></textarea>`; $('temaTxt').value = txt; }
+$('temaBox').addEventListener('click', async e => {
+  const b = e.target.closest('[data-tm]'); if (!b) return;
+  const a = b.dataset.tm, id = b.dataset.id;
+  if (a !== 'apagar') TUI.apagar = false;
+  if (a === 'usar') { usarTema(id); renderTema(); }
+  else if (a === 'criar') { const n = TM.estado.meus.length + 1; TUI.edit = { id: null, rascunho: Object.assign({}, TM.atual(), { id: undefined, fixo: undefined, extra: undefined, nome: 'Meu tema ' + n }) }; renderTema(); }
+  else if (a === 'editar') { TUI.edit = { id, rascunho: Object.assign({}, TM.porId(id)) }; renderTema(); TM.aplicar(TUI.edit.rascunho); }
+  else if (a === 'fonte') { TUI.edit.rascunho.fonte = id; b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); TM.aplicar(TUI.edit.rascunho); }
+  else if (a === 'cancelar') { TUI.edit = null; TM.aplicar(TM.atual()); renderTema(); }
+  else if (a === 'salvar') {
+    const d = TUI.edit.rascunho, t = TM.validar(Object.assign({}, d, { nome: (d.nome || '').trim() || 'Meu tema' }));
+    if (TUI.edit.id) { t.id = TUI.edit.id; const i = TM.estado.meus.findIndex(x => x.id === t.id); TM.estado.meus[i] = t; }
+    else { t.id = 't' + uid(); TM.estado.meus.push(t); }
+    TUI.edit = null; usarTema(t.id); renderTema(); toast('Tema salvo');
+  }
+  else if (a === 'apagar') {
+    if (!TUI.apagar) { TUI.apagar = true; renderTema(); return; }
+    const idx = TUI.edit.id; TUI.apagar = false; TUI.edit = null;
+    TM.estado.meus = TM.estado.meus.filter(x => x.id !== idx);
+    if (TM.estado.atual === idx) TM.estado.atual = 'noite';
+    TM.salvar(); TM.aplicar(TM.atual()); renderTema(); toast('Tema apagado');
+  }
+  else if (a === 'copiar') { const txt = TM.json(TM.atual()); try { await navigator.clipboard.writeText(txt); toast('Tema copiado'); } catch (err) { mostrarTemaJSON(txt, 'Selecione o texto abaixo e copie.'); } }
+  else if (a === 'baixar') baixarTema();
+  else if (a === 'colar') { TUI.colar = !TUI.colar; renderTema(); if (TUI.colar) $('temaCola').focus(); }
+  else if (a === 'importar') importarTema($('temaCola').value);
+});
+$('temaBox').addEventListener('input', e => {
+  if (!TUI.edit) return;
+  const t = e.target, d = TUI.edit.rascunho;
+  if (t.id === 'tmNome') { d.nome = t.value; return; }
+  if (t.dataset.campo) { d[t.dataset.campo] = t.value.toUpperCase(); $('tmx-' + t.dataset.campo).textContent = d[t.dataset.campo]; $('tmCtr').innerHTML = linhasContraste(d); TM.aplicar(d); }
+});
+$('temaBox').addEventListener('change', e => {
+  if (e.target.id !== 'temaFile') return;
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (f.size > 100000) { toast('Esse arquivo é grande demais para ser um tema'); return; }
+  const rd = new FileReader(); rd.onload = () => importarTema(String(rd.result || '')); rd.readAsText(f);
+});
+
 /* ---------- Abas ---------- */
 const TABS = ['mes','cartao','metas','calc','apoie','ajustes'];
 function route(){
   const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'mes';
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); }
+  if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);

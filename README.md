@@ -11,6 +11,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 - **Metas e investimentos:** metas com alvo, saldo, aporte mensal e rendimento (prazo calculado com juros compostos), simulador com IR regressivo e inflação, e "quanto guardar por mês" para chegar num valor.
 - **Contas (CLT):** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário (1ª e 2ª parcela), férias com 1/3 e abono, e saque-aniversário do FGTS.
 - **Apoie:** página de apoio pelo GitHub Sponsors.
+- **Aparência:** dois temas grátis (Orologia Noite e Orologia Dia), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Compasso Player](#temas): um tema feito num app funciona no outro.
 - **Ajustes:** caixinhas, formas de pagamento, taxa de referência (Selic/CDI), **tabelas de impostos editáveis** (para atualizar quando o governo mudar), backup em JSON (exportar / importar) e dados de exemplo.
 
 ## Como usar
@@ -22,6 +23,28 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 Os dados ficam no `localStorage` do navegador. **Exporte um backup** de vez em quando (Ajustes → Exportar backup), principalmente antes de limpar o navegador ou trocar de aparelho.
 
 Quando aberto como artifact no Claude, o app salva na conta do Claude (privado para cada pessoa) e sincroniza entre aparelhos.
+
+## Temas
+
+Um tema é um JSON pequeno, com as cores em `#RRGGBB`. Os tons de borda, campos e trilhas são calculados a partir delas.
+
+```json
+{
+  "formato": "orologia-tema",
+  "versao": 1,
+  "nome": "Orologia Noite",
+  "fundo": "#110E18",
+  "card": "#1C1827",
+  "texto": "#EEEAF5",
+  "suave": "#A49EB8",
+  "destaque": "#9C9BF5",
+  "secundaria": "#E3C98A",
+  "raio": 14,
+  "fonte": "padrao"
+}
+```
+
+`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos) é usado só no Compasso Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
 
 ## Atualizando as tabelas
 
