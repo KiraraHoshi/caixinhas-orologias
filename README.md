@@ -11,7 +11,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 - **Metas e investimentos:** metas com alvo, saldo, aporte mensal e rendimento (prazo calculado com juros compostos), simulador com IR regressivo e inflação, e "quanto guardar por mês" para chegar num valor.
 - **Contas (CLT):** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário (1ª e 2ª parcela), férias com 1/3 e abono, e saque-aniversário do FGTS.
 - **Apoie:** página de apoio pelo GitHub Sponsors.
-- **Aparência:** dois temas grátis (Orologia Noite e Orologia Dia), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Compasso Player](https://github.com/KiraraHoshi/compasso-player) ([abrir o player](https://kirarahoshi.github.io/compasso-player/)): um tema feito num app funciona no outro.
+- **Aparência:** dois temas grátis (Orologia Noite e Orologia Dia), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Orolon Player](https://github.com/KiraraHoshi/compasso-player) ([abrir o player](https://kirarahoshi.github.io/compasso-player/)): um tema feito num app funciona no outro.
 - **Ajustes:** caixinhas, formas de pagamento, taxa de referência (Selic/CDI), **tabelas de impostos editáveis** (para atualizar quando o governo mudar), backup em JSON (exportar / importar) e dados de exemplo.
 
 ## Como usar
@@ -44,7 +44,7 @@ Um tema é um JSON pequeno, com as cores em `#RRGGBB`. Os tons de borda, campos 
 }
 ```
 
-`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos) é usado só no Compasso Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
+`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos) é usado só no Orolon Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
 
 ## Atualizando as tabelas
 
