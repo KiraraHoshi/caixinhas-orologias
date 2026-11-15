@@ -939,7 +939,7 @@ html[data-trava] body{overflow:hidden}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.4.1';
+const VERSION = '1.4.2';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -2441,7 +2441,7 @@ function renderPin(){
   : `<p class="hint">Pede um PIN de 4 a 6 números para abrir o app neste aparelho.</p>
     <div class="row tight">${campo('pinNovo', 'Novo PIN (4 a 6 números)')}${campo('pinRep', 'Repita o PIN')}</div>
     <div class="btns"><button class="primary" type="button" data-pin="ativar">Ativar bloqueio</button></div>`) +
-    '<p class="hint">Os dados não são criptografados: o PIN só impede que outra pessoa abra o app. <b>Se esquecer o PIN, só dá para entrar apagando os dados</b>, então mantenha um backup em dia. O PIN não entra no backup.</p>';
+    '<p class="hint">Os dados não são criptografados: o PIN só impede que outra pessoa abra o app. <b style="color:var(--over)">Se esquecer o PIN, só dá para entrar apagando os dados</b>, então mantenha um backup em dia. O PIN não entra no backup.</p>';
 }
 $('pinBox').addEventListener('click', async e => {
   const b = e.target.closest('[data-pin]'); if (!b) return;
