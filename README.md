@@ -6,6 +6,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Guia e ajuda:** um guia rápido ("Como usar") no topo do Início e botões “?” nas seções que mais geram dúvida.
 - **Início:** resumo do mês (sobra, sobra por dia, caixinhas que pedem atenção), fatura do cartão, metas e atalhos. Na primeira abertura, um passo a passo curto (o que são caixinhas, limites, visual).
 - **Mês (caixinhas):** limites por caixinha (Lazer, Dia a dia, Objetivos ou as suas), lançamento rápido de gastos com aviso de "cabe / não cabe", **edição de gastos**, **entradas de dinheiro**, **gastos fixos** que se lançam sozinhos todo mês, sobra por dia, remanejar limite entre caixinhas, limites só do mês ou padrão, e conferência com o saldo real da conta.
 - **Cartão e parcelas:** cartões com dia de fechamento e vencimento, compras parceladas e assinaturas, fatura de cada mês, gastos de outras pessoas no seu cartão (quem te deve e o que já foi recebido) e projeção das próximas 6 faturas.

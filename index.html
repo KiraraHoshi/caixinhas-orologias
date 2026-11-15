@@ -272,6 +272,20 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 .fontes button{border:1px solid var(--line);background:var(--deep);border-radius:10px;padding:8px 10px;text-align:left;color:var(--fg)}
 .fontes button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .fontes b{display:block;font-size:1.1rem}
+.vhead.qh{justify-content:flex-start;align-items:center;gap:6px}
+.qm{position:relative;display:inline-grid;place-items:center;flex:none;width:24px;height:24px;margin-left:6px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--gold);font:700 .78rem/1 var(--display);padding:0;vertical-align:middle;text-transform:none;letter-spacing:0}
+.qm::after{content:"";position:absolute;inset:-9px}
+.qm[aria-expanded="true"]{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.qmtxt{margin:0;padding:10px 12px;border-left:2px solid var(--gold);background:var(--surface);border-radius:0 10px 10px 0;font-size:.84rem;color:var(--muted)}
+.guia-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,var(--surface)),var(--surface));border:1px solid var(--accent);border-radius:14px;padding:14px 16px}
+.guia-card svg{flex:none;width:26px;height:26px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.guia-card b{display:block;font-size:.98rem}
+.guia-card span span{display:block;font-size:.8rem;color:var(--muted)}
+.guia-card .go{margin-left:auto;color:var(--gold);font-size:1.4rem;line-height:1}
+.guia-card.slim{padding:9px 14px;border-color:var(--line);background:var(--surface)}
+.guia-card.slim span span{display:none}
+.guia p{margin:0}
+.guia ol{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:6px}
 .atalhos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .atalho{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:linear-gradient(180deg,var(--surface),color-mix(in srgb,var(--surface) 70%,var(--deep)));border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
 .atalho svg{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -302,6 +316,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 
   <!-- ===================== INÍCIO ===================== -->
   <section class="view" id="v-inicio">
+    <div id="inGuia"></div>
     <div class="vhead">
       <div><p class="eyebrow">Visão geral</p><h2><span class="cap" id="inLabel">—</span></h2></div>
     </div>
@@ -320,6 +335,116 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
   </section>
 
+  <!-- ===================== GUIA ===================== -->
+  <section class="view guia" id="v-guia" hidden>
+    <div class="vhead">
+      <div><p class="eyebrow">Guia rápido</p><h2>Como usar o Caixinhas</h2></div>
+      <button class="ghost" type="button" data-go="inicio">Voltar ao Início</button>
+    </div>
+    <p class="hint">Leva uns 2 minutos. Toque em cada título para abrir. Em qualquer tela, os botões “?” explicam o que você está vendo.</p>
+
+    <details open>
+      <summary>O que são as caixinhas?</summary>
+      <div class="inner">
+        <p>Em vez de anotar tudo sem rumo, você divide o dinheiro do mês em <b>caixinhas</b>, por exemplo Lazer, Dia a dia e Objetivos. Cada uma tem um <b>limite</b>. Quando você lança um gasto, o app diz se ele cabe e quanto sobra por dia até o fim do mês.</p>
+        <p class="hint">Você pode renomear, criar e apagar caixinhas em Ajustes.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Primeiros passos</summary>
+      <div class="inner">
+        <ol>
+          <li>Em <b>Mês → Ajustar limites</b>, defina quanto cabe em cada caixinha. Escolha “Padrão” para valer em todos os meses.</li>
+          <li>Em <b>Mês → Lançar gasto</b>, digite o valor, o que foi e a caixinha. O app avisa se cabe.</li>
+          <li>No <b>Início</b>, acompanhe a sobra do mês, a sobra por dia e as caixinhas que pedem atenção.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>Registrar salário e outras entradas</summary>
+      <div class="inner">
+        <p>Em <b>Mês → Entradas de dinheiro</b>, anote o que entrou (salário, extras, Pix recebido). Elas aparecem no resumo do mês.</p>
+        <p class="hint">Entradas não aumentam os limites das caixinhas: os limites são o seu plano. Se quiser conferir com o saldo do banco, informe o saldo do início do mês em “Conferir com o saldo real”.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Gastos que se repetem todo mês</summary>
+      <div class="inner">
+        <p>Aluguel, internet, mensalidades: cadastre em <b>Mês → Gastos fixos (todo mês)</b>. O app lança sozinho a cada mês, no dia que você escolher.</p>
+        <p class="hint">Se você apagar o lançamento de um mês, ele não volta naquele mês. Para parar de vez, remova o gasto fixo.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Errei um valor. E agora?</summary>
+      <div class="inner">
+        <p>Na lista de lançamentos, toque em <b>Editar</b> ao lado do gasto, corrija e salve. Para apagar, toque em <b>Apagar</b> duas vezes (a segunda confirma).</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Compras no cartão, parcelas e assinaturas</summary>
+      <div class="inner">
+        <ol>
+          <li>Em <b>Cartão → Meus cartões</b>, cadastre o cartão com o dia de fechamento e o de vencimento.</li>
+          <li>Em <b>Nova compra no cartão</b>, informe o valor e as parcelas. Para algo que cobra todo mês, marque “Assinatura”.</li>
+          <li>O app calcula em qual fatura cada parcela cai. Você pode ajustar a “Primeira fatura”.</li>
+          <li>Se a compra é de outra pessoa, preencha “De quem é”. Em “Quem te deve nesta fatura” você marca o que já recebeu.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>Metas e investimentos</summary>
+      <div class="inner">
+        <p>Em <b>Metas → Nova meta</b>, defina o alvo, quanto já tem e quanto vai guardar por mês. O app calcula em quanto tempo você chega lá, com rendimento. Comece pela reserva de emergência.</p>
+        <p class="hint">Os simuladores mostram quanto um valor cresce e quanto guardar por mês. São estimativas.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Calculadoras CLT</summary>
+      <div class="inner">
+        <p>Em <b>Contas</b>: salário líquido, adicional noturno, 13º salário, férias e saque-aniversário do FGTS, com as tabelas de 2026.</p>
+        <p class="hint">Confira com o seu holerite. As tabelas podem ser editadas em Ajustes quando o governo mudar os valores.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Conferir com o saldo do banco</summary>
+      <div class="inner">
+        <p>Em <b>Mês → Conferir com o saldo real</b>, informe o saldo do início do mês e o de agora. O app mostra se algum gasto ficou sem lançar.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Mudar o visual</summary>
+      <div class="inner">
+        <p>Em <b>Ajustes → Aparência</b>, escolha um tema (há claros e escuros) ou crie o seu. Temas podem ser copiados e usados também no Orolon Player.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Backup, privacidade e trocar de celular</summary>
+      <div class="inner">
+        <p>Nada vai para a internet. Seus dados ficam só neste aparelho.</p>
+        <ol>
+          <li>Em <b>Ajustes → Seus dados</b>, toque em “Exportar backup” e guarde o arquivo fora do aparelho.</li>
+          <li>No celular novo, abra o app e use “Importar backup”.</li>
+        </ol>
+        <p class="hint">Importar substitui tudo o que estiver no aparelho. Faça backup de vez em quando.</p>
+      </div>
+    </details>
+
+    <div class="btns">
+      <button class="ghost" type="button" data-act="onb-replay">Rever o passo a passo inicial</button>
+      <button class="primary" type="button" data-go="mes" data-focus="gValor">Lançar meu primeiro gasto</button>
+    </div>
+  </section>
+
   <!-- ===================== MÊS ===================== -->
   <section class="view" id="v-mes" hidden>
     <div class="vhead">
@@ -335,7 +460,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <div class="boxes" id="mesBoxes"></div>
 
     <form class="panel" id="fGasto" autocomplete="off">
-      <h3 id="gHead">Lançar gasto</h3>
+      <div class="vhead qh"><h3 id="gHead">Lançar gasto</h3><button class="qm" type="button" data-act="qm" data-id="gasto" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div class="row">
         <label>Valor (R$)<input id="gValor" inputmode="decimal" placeholder="0,00" required></label>
         <label>O que foi<input id="gDesc" placeholder="Ex.: Uber pro trabalho" required></label>
@@ -441,12 +566,12 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <div class="flat" id="cartFaturas"></div>
     <div class="panel" id="cartTerceiros"></div>
     <div class="panel">
-      <h3>Próximas faturas</h3>
+      <div class="vhead qh"><h3>Próximas faturas</h3><button class="qm" type="button" data-act="qm" data-id="proximas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="cartProj"></div>
     </div>
 
     <form class="panel" id="fCompra" autocomplete="off">
-      <h3>Nova compra no cartão</h3>
+      <div class="vhead qh"><h3>Nova compra no cartão</h3><button class="qm" type="button" data-act="qm" data-id="compra" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div class="row">
         <label>O que foi<input id="cDesc" placeholder="Ex.: Deck de Magic" required></label>
         <label>Cartão<select id="cCartao"></select></label>
@@ -522,7 +647,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     </details>
 
     <div class="panel">
-      <h3>Simulador de juros compostos</h3>
+      <div class="vhead qh"><h3>Simulador de juros compostos</h3><button class="qm" type="button" data-act="qm" data-id="juros" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <form class="row tight" id="fSim" autocomplete="off">
         <label>Começo com (R$)<input id="simIni" inputmode="decimal" value="1000"></label>
         <label>Aporte/mês (R$)<input id="simAp" inputmode="decimal" value="300"></label>
@@ -536,7 +661,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     </div>
 
     <div class="panel">
-      <h3>Quanto guardar por mês?</h3>
+      <div class="vhead qh"><h3>Quanto guardar por mês?</h3><button class="qm" type="button" data-act="qm" data-id="guardar" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <form class="row tight" id="fPmt" autocomplete="off">
         <label>Quero juntar (R$)<input id="pAlvo" inputmode="decimal" value="6000"></label>
         <label>Já tenho (R$)<input id="pAtual" inputmode="decimal" value="0"></label>
@@ -550,7 +675,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
   <!-- ===================== CALCULADORAS ===================== -->
   <section class="view" id="v-calc" hidden>
     <div class="vhead">
-      <div><p class="eyebrow">Calculadoras CLT</p><h2>Faça as contas na mão</h2></div>
+      <div><p class="eyebrow">Calculadoras CLT</p><h2>Faça as contas na mão</h2></div><button class="qm" type="button" data-act="qm" data-id="clt" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button>
     </div>
     <div class="calc-tabs" role="tablist" aria-label="Calculadoras">
       <button type="button" role="tab" data-calc="liq" aria-selected="true">Salário líquido</button>
@@ -654,7 +779,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <div class="vhead"><div><p class="eyebrow">Ajustes</p><h2>Do seu jeito</h2></div></div>
 
     <div class="panel">
-      <h3>Caixinhas</h3>
+      <div class="vhead qh"><h3>Caixinhas</h3><button class="qm" type="button" data-act="qm" data-id="caixinhas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="cxList"></div>
       <div class="btns">
         <button class="ghost" type="button" data-act="cx-add">Nova caixinha</button>
@@ -663,7 +788,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     </div>
 
     <div class="panel">
-      <h3>Pagamento e rendimento</h3>
+      <div class="vhead qh"><h3>Pagamento e rendimento</h3><button class="qm" type="button" data-act="qm" data-id="selic" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div class="row">
         <label>Formas de pagamento (separe por vírgula)<input id="ajFormas"></label>
         <label>Taxa de referência % a.a. (Selic/CDI)<input id="ajTaxa" inputmode="decimal"></label>
@@ -678,12 +803,12 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     </details>
 
     <div class="panel">
-      <h3>Aparência</h3>
+      <div class="vhead qh"><h3>Aparência</h3><button class="qm" type="button" data-act="qm" data-id="temas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="temaBox" class="flat"></div>
     </div>
 
     <div class="panel">
-      <h3>Seus dados</h3>
+      <div class="vhead qh"><h3>Seus dados</h3><button class="qm" type="button" data-act="qm" data-id="backup" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <p class="hint" id="ajOnde"></p>
       <div class="btns">
         <button class="ghost" type="button" data-act="exp">Exportar backup (.json)</button>
@@ -721,10 +846,29 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 <script>
 (function(){
 'use strict';
-const VERSION = '1.3.0';
+const VERSION = '1.3.1';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
+
+/* ---------- Ajuda curta (botões "?") ---------- */
+const AJUDAS = {
+  sobra: 'Sobra do mês é a soma dos limites das caixinhas menos o que você já gastou. O valor “por dia” divide a sobra pelos dias que faltam no mês: é quanto dá para gastar por dia sem estourar.',
+  gasto: 'Digite o valor, o que foi e escolha a caixinha: o app mostra na hora se cabe. Gastos no crédito não saem da conta agora, mas contam no limite do mês. Se uma caixinha estourar, dá para remanejar limite de outra, em “Remanejar entre caixinhas”.',
+  atencao: 'Caixinhas que já usaram 80% ou mais do limite, ou que já estouraram.',
+  fatura: 'Soma das parcelas e assinaturas que caem na fatura deste mês. “Sua parte” não inclui o que é de outras pessoas no seu cartão.',
+  proximas: 'Quanto deve vir nas próximas faturas, com as parcelas e assinaturas que você já cadastrou.',
+  compra: 'Parcelada: informe o valor, o número de parcelas e se o valor é o total ou o da parcela. Assinatura: marque a caixa e ela cobra todo mês até você remover. Se a compra é de outra pessoa, preencha “De quem é” para acompanhar quem te deve.',
+  terceiros: 'Compras no seu cartão que são de outras pessoas. Marque como recebido quando a pessoa te pagar.',
+  juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
+  guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
+  clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
+  caixinhas: 'As caixinhas são as categorias com limite mensal. Você pode renomear, trocar a cor, criar novas e escrever a descrição que aparece no ⓘ.',
+  selic: 'A taxa de referência é usada como rendimento padrão nas metas e nos simuladores. Atualize quando a Selic ou o CDI mudar.',
+  temas: 'Troque o visual do app. Você pode criar o seu e compartilhar com o Orolon Player pelo arquivo .json.',
+  backup: 'Seus dados ficam só neste aparelho. Exporte um backup de vez em quando e guarde fora dele. Importar um backup substitui tudo o que está aqui.'
+};
+const qm = id => `<button class="qm" type="button" data-act="qm" data-id="${id}" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button>`;
 
 /* ---------- Tabelas 2026 (editáveis em Ajustes) ---------- */
 const T2026 = {
@@ -801,6 +945,7 @@ function normalize(o){
   if (!s.limitesPadrao) s.limitesPadrao = {};
   if (!Array.isArray(s.fixos)) s.fixos = [];
   if (typeof s.onboarded !== 'boolean') s.onboarded = hasData(s);
+  if (typeof s.guiaVisto !== 'boolean') s.guiaVisto = false;
   return s;
 }
 function lsGet(k){ try { const t = localStorage.getItem(k); return t ? JSON.parse(t) : null; } catch(e){ return null; } }
@@ -816,7 +961,7 @@ function backupBanner(exN){
 }
 
 let S = normalize(lsGet(LS_KEY));
-const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null };
+const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false };
 
 /* ---------- Armazenamento: conta do ambiente hospedado (db) quando houver, senão este navegador ---------- */
 const Cloud = { on:false, col:null, pend:{}, chain:{}, seeded:false };
@@ -935,7 +1080,7 @@ function renderMes(){
   const porDia = dl > 0 ? R.sobra / dl : 0;
   $('mesResumo').innerHTML = `
     <div class="total">
-      <div><span class="lbl">Sobra do mês</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
+      <div><span class="lbl">Sobra do mês ${qm('sobra')}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
       <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0,porDia))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : (k < thisMonth() ? 'Mês encerrado<br>' : '')}
       gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${totalEntradas(k) ? `<br>entrou <b class="num">${fmt(totalEntradas(k))}</b>` : ''}</div>
     </div>`;
@@ -1097,7 +1242,7 @@ function renderCartao(){
   const pessoas = Object.keys(porPessoa).sort();
   const rec = S.recebidos[k] || {};
   const falta = pessoas.filter(p => !rec[p]).reduce((a,p)=>a+porPessoa[p],0);
-  $('cartTerceiros').innerHTML = `<div class="vhead"><h3>Quem te deve nesta fatura</h3>${pessoas.length ? `<span class="hint">falta receber <b class="num" style="color:var(--fg)">${fmt(falta)}</b></span>` : ''}</div>` +
+  $('cartTerceiros').innerHTML = `<div class="vhead"><h3>Quem te deve nesta fatura</h3>${qm('terceiros')}${pessoas.length ? `<span class="hint">falta receber <b class="num" style="color:var(--fg)">${fmt(falta)}</b></span>` : ''}</div>` +
     (pessoas.length ? `<div class="list">${pessoas.map(p => `<div class="item">
         <span class="dot" style="background:var(--gold)"></span>
         <span class="desc">${esc(p)}</span>
@@ -1484,6 +1629,13 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id;
   switch (act) {
+    case 'qm': {
+      const host = b.closest('.vhead, .total') || b.parentElement, nx = host.nextElementSibling;
+      if (nx && nx.classList.contains('qmtxt') && nx.dataset.for === id) { nx.remove(); b.setAttribute('aria-expanded', 'false'); break; }
+      const t = document.createElement('p'); t.className = 'qmtxt'; t.dataset.for = id; t.setAttribute('role', 'note'); t.textContent = AJUDAS[id] || '';
+      host.insertAdjacentElement('afterend', t); b.setAttribute('aria-expanded', 'true'); break;
+    }
+    case 'onb-replay': UI.onb = 0; UI.onbVals = null; UI.onbReplay = true; go('inicio'); renderInicio(); window.scrollTo(0, 0); break;
     case 'ed-gasto': {
       const a = achaGasto(id); if (!a) break;
       UI.editG = id; UI.mes = a.k; renderMes();
@@ -1509,8 +1661,8 @@ document.addEventListener('click', e => {
       UI.onb = Math.min(2, UI.onb + 1); renderInicio(); break;
     }
     case 'onb-prev': UI.onb = Math.max(0, UI.onb - 1); renderInicio(); break;
-    case 'onb-skip': S.onboarded = true; persist({ estado: true }); renderAll(); break;
-    case 'onb-fim': S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('mes'); toast('Pronto! Lance o primeiro gasto.'); break;
+    case 'onb-skip': UI.onbReplay = false; S.onboarded = true; persist({ estado: true }); renderAll(); break;
+    case 'onb-fim': UI.onbReplay = false; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('mes'); toast('Pronto! Lance o primeiro gasto.'); break;
     case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
     case 'onb-tema': usarTema(id); renderInicio(); break;
     case 'mes-prev': UI.mes = addMonths(UI.mes, -1); renderMes(); break;
@@ -1847,7 +1999,7 @@ $('temaBox').addEventListener('change', e => {
 });
 
 /* ---------- Abas ---------- */
-const TABS = ['inicio','mes','cartao','metas','calc','apoie','ajustes'];
+const TABS = ['inicio','guia','mes','cartao','metas','calc','apoie','ajustes'];
 /* A navegação não depende do endereço da página: dentro de um artefato (iframe isolado) o hash não muda.
    Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
 let TAB = null;
@@ -1861,8 +2013,9 @@ function route(){
   const h = (location.hash || '').slice(1);
   const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
-  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === (t === 'apoie' ? 'ajustes' : t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (t === 'inicio') renderInicio();
+  if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
 }
@@ -1889,14 +2042,14 @@ document.addEventListener('click', e => {
 /* ---------- Render: Início ---------- */
 function renderOnb(){
   const box = $('inOnb');
-  if (S.onboarded || hasData(S)) { box.innerHTML = ''; return; }
+  if ((S.onboarded || hasData(S)) && !UI.onbReplay) { box.innerHTML = ''; return; }
   if ($('inOnb').contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
   const dots = [0,1,2].map(i => `<i class="${i === UI.onb ? 'on' : ''}"></i>`).join('');
   let corpo;
   if (UI.onb === 0) corpo = `<h3>Bem-vindo ao Caixinhas</h3>
     <p>Em vez de anotar cada centavo, você divide o dinheiro do mês em <b>caixinhas</b> (por exemplo Lazer, Dia a dia e Objetivos), cada uma com um limite. Ao lançar um gasto, o app mostra se ele cabe e quanto sobra por dia.</p>
     <p class="hint">Tudo fica só neste aparelho: sem conta, sem internet.</p>
-    <div class="btns"><button class="primary" type="button" data-act="onb-next">Começar</button><button class="ghost" type="button" data-act="onb-exemplo">Ver com dados de exemplo</button><button class="link" type="button" data-act="onb-skip">Pular</button></div>`;
+    <div class="btns"><button class="primary" type="button" data-act="onb-next">Começar</button>${UI.onbReplay ? '' : '<button class="ghost" type="button" data-act="onb-exemplo">Ver com dados de exemplo</button>'}<button class="link" type="button" data-act="onb-skip">${UI.onbReplay ? 'Fechar' : 'Pular'}</button></div>`;
   else if (UI.onb === 1) {
     UI.onbVals = UI.onbVals || {}; S.caixinhas.forEach(c => { if (UI.onbVals[c.id] === undefined) UI.onbVals[c.id] = numStr(numOr(S.limitesPadrao[c.id], 0)); });
     corpo = `<h3>Quanto cabe em cada caixinha?</h3>
@@ -1912,21 +2065,24 @@ function renderOnb(){
 function renderInicio(){
   const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
   $('inLabel').textContent = monthLabel(k);
+  $('inGuia').innerHTML = `<button class="guia-card${S.guiaVisto ? ' slim' : ''}" type="button" data-go="guia">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+    <span style="flex:1;min-width:0"><b>${S.guiaVisto ? 'Como usar o app' : 'Novo por aqui? Veja como usar o app'}</b><span>Guia rápido, de 2 minutos, sem pressa</span></span><span class="go" aria-hidden="true">›</span></button>`;
   renderOnb();
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
   $('inBanner').innerHTML = backupBanner(exN);
   const w = R.limite > 0 ? Math.min(100, R.gasto / R.limite * 100) : (R.gasto > 0 ? 100 : 0);
   $('inResumo').innerHTML = `<div class="total">
-      <div><span class="lbl">Sobra do mês</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
+      <div><span class="lbl">Sobra do mês ${qm('sobra')}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
       <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0, R.sobra / dl))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : ''}gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${ent ? `<br>entrou <b class="num">${fmt(ent)}</b>` : ''}</div>
     </div><div class="bar"><i style="width:${w}%;background:${R.sobra < 0 ? 'var(--over)' : 'var(--accent)'}"></i></div>`;
   const alertas = S.caixinhas.map(c => ({ c, p: R.por[c.id] })).filter(x => x.p && ['p-over','p-warn'].includes(status(x.p)[0]));
-  $('inAtencao').innerHTML = alertas.length ? `<h3>Pede atenção</h3><div class="list">${alertas.map(({ c, p }) => { const st = status(p); return `<div class="item">
+  $('inAtencao').innerHTML = alertas.length ? `<div class="vhead qh"><h3>Pede atenção</h3>${qm('atencao')}</div><div class="list">${alertas.map(({ c, p }) => { const st = status(p); return `<div class="item">
       <span class="dot" style="background:${esc(c.cor)}"></span><span class="desc">${esc(c.nome)}</span>
       <span class="val num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
       <span class="sub">${fmt(p.gasto)} de ${fmt(p.limite)} · <span class="pill ${st[0]}">${st[1]}</span></span></div>`; }).join('')}</div>` : '';
   const F = fatura(k);
-  $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura de ${esc(monthLabel(k, true))}</h3><button class="link" type="button" data-go="cartao">Ver cartão</button></div>
+  $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura de ${esc(monthLabel(k, true))}</h3>${qm('fatura')}<button class="link" type="button" data-go="cartao">Ver cartão</button></div>
       <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`
     : `<div class="vhead"><h3>Cartão</h3><button class="link" type="button" data-go="cartao">Cadastrar</button></div><p class="hint">Cadastre um cartão para acompanhar parcelas e assinaturas.</p>`;
   const ms = S.metas.slice(0, 3);
