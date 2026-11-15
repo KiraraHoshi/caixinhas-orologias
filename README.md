@@ -6,6 +6,8 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Busca, gráficos e planilha:** busca e filtros nos lançamentos (inclusive em todos os meses), comparação com o mês anterior por caixinha (no mês atual, até o mesmo dia), total dos últimos 6 meses, e exportação em CSV para Excel ou Google Planilhas.
+- **Bloqueio por PIN:** PIN de 4 a 6 números para abrir o app neste aparelho, com tempo para bloquear de novo. Os dados não são criptografados e o PIN não entra no backup; quem esquece o PIN só entra apagando os dados.
 - **Caixinhas à sua maneira:** criar, renomear, reordenar, trocar a cor (paleta ou cor livre) e remover; ao remover uma caixinha com gastos, o app leva os gastos para outra. No primeiro uso há modelos prontos (Simples, Detalhada, Enxuta).
 - **Guia e ajuda:** um guia rápido ("Como usar") no topo do Início e botões “?” nas seções que mais geram dúvida.
 - **Início:** resumo do mês (sobra, sobra por dia, caixinhas que pedem atenção), fatura do cartão, metas e atalhos. Na primeira abertura, um passo a passo curto (o que são caixinhas, limites, visual).
