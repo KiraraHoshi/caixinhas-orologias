@@ -11,6 +11,18 @@ var BASE = {
   dia: { id:'dia', nome:'Orologia Dia', fundo:'#F2F0F7', card:'#FFFFFF', texto:'#1E1A2B', suave:'#5E5874', destaque:'#5A50D6', secundaria:'#8C5E14', raio:14, fonte:'padrao', fixo:true,
     extra:{ '--surface2':'#F6F4FA', '--deep':'#EAE7F2', '--line':'#D6D1E3', '--track':'#E3DFEC', '--faint':'#767090', '--accent-ink':'#FFFFFF', '--tint':'#C8C2F2', '--ok':'#1F7A55', '--warn':'#8F5400', '--over':'#C42848' } }
 };
+/* Galeria: os mesmos temas da galeria do Orolon Player (pasta temas/ de lá), embutidos para funcionar offline. */
+function G(id, nome, fundo, card, texto, suave, destaque, secundaria, raio, fonte){
+  return { id:'g-' + id, nome:nome, fundo:fundo, card:card, texto:texto, suave:suave, destaque:destaque, secundaria:secundaria, raio:raio, fonte:fonte, fixo:true, galeria:true };
+}
+var GALERIA = [
+  G('brasa', 'Brasa', '#17100C', '#241812', '#F7EBDD', '#B59E8A', '#FF8A3D', '#F2D7A6', 12, 'padrao'),
+  G('entardecer', 'Entardecer', '#0E1119', '#1A1F2B', '#F4EEE6', '#A9A39A', '#EDA36D', '#F7D9A5', 16, 'padrao'),
+  G('folha', 'Folha', '#F1F4EA', '#FFFFFF', '#1C2414', '#5F6B52', '#3F7A14', '#B5560F', 18, 'padrao'),
+  G('mare', 'Maré', '#0A1418', '#12222A', '#E6F4F6', '#8FB0B8', '#4FD1E0', '#F06A86', 20, 'padrao'),
+  G('meia-noite', 'Meia-noite', '#000000', '#101014', '#F2F2F5', '#9A9AA8', '#7C9BFF', '#E3C98A', 14, 'sistema'),
+  G('papel', 'Papel', '#F3F1EC', '#FFFEFB', '#22201C', '#6B665C', '#2F5FA8', '#9A4B2F', 6, 'serifada')
+];
 var FONTES = {
   padrao:  { n:'Orologia',   d:'"Cinzel", Constantia, Georgia, serif', b:'"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif' },
   sistema: { n:'Do sistema', d:'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', b:'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
@@ -38,7 +50,7 @@ function tokens(t){
 }
 function ler(){ var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ o = {}; } if (!Array.isArray(o.meus)) o.meus = []; return o; }
 var estado = ler();
-function todos(){ return [BASE.noite, BASE.dia].concat(estado.meus); }
+function todos(){ return [BASE.noite, BASE.dia].concat(GALERIA, estado.meus); }
 function porId(id){ return todos().filter(function(t){ return t.id === id; })[0]; }
 function atual(){ return porId(estado.atual) || BASE.noite; }
 function salvar(){ try { localStorage.setItem(LS, JSON.stringify({ atual: estado.atual, meus: estado.meus })); } catch(e){} }
@@ -52,6 +64,7 @@ function aplicar(t){
 }
 function validar(o){
   if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('Esse conteúdo não é um tema.');
+  if (o.formato && o.formato !== 'orologia-tema') throw new Error('Esse arquivo não é um tema Orologia (formato "' + o.formato + '").');
   var t = { nome: String(o.nome || 'Tema importado').trim().slice(0,40) || 'Tema importado' };
   CAMPOS.forEach(function(c){
     var v = String(o[c[0]] || '').trim();
@@ -59,12 +72,12 @@ function validar(o){
     if (!HEX.test(v)) throw new Error('A cor "' + c[1] + '" (campo ' + c[0] + ') precisa estar no formato #RRGGBB.');
     t[c[0]] = v.toUpperCase();
   });
-  t.raio = Math.max(0, Math.min(28, Math.round(Number(o.raio) || 14)));
+  t.raio = Math.max(0, Math.min(28, Math.round(Number(o.raio) || 16)));
   t.fonte = FONTES[o.fonte] ? o.fonte : 'padrao';
   return t;
 }
 function json(t){ return JSON.stringify({ formato:'orologia-tema', versao:1, nome:t.nome, fundo:t.fundo, card:t.card, texto:t.texto, suave:t.suave, destaque:t.destaque, secundaria:t.secundaria, raio:t.raio, fonte:t.fonte }, null, 2); }
-window.TemaCx = { BASE:BASE, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste };
+window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste };
 aplicar(atual());
 })();
 </script>
@@ -259,6 +272,15 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 .fontes button{border:1px solid var(--line);background:var(--deep);border-radius:10px;padding:8px 10px;text-align:left;color:var(--fg)}
 .fontes button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .fontes b{display:block;font-size:1.1rem}
+.atalhos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.atalho{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:linear-gradient(180deg,var(--surface),color-mix(in srgb,var(--surface) 70%,var(--deep)));border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.atalho svg{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.atalho b{font-size:.95rem}
+.atalho span{font-size:.78rem;color:var(--muted)}
+.onb p{margin:0}
+.onb .onb-dots{display:flex;gap:6px}
+.onb .onb-dots i{width:22px;height:4px;border-radius:2px;background:var(--track)}
+.onb .onb-dots i.on{background:var(--gold)}
 </style>
 
 <div class="wrap">
@@ -278,8 +300,28 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
   </header>
   <hr class="rule">
 
+  <!-- ===================== INÍCIO ===================== -->
+  <section class="view" id="v-inicio">
+    <div class="vhead">
+      <div><p class="eyebrow">Visão geral</p><h2><span class="cap" id="inLabel">—</span></h2></div>
+    </div>
+    <div id="inOnb"></div>
+    <div id="inBanner"></div>
+    <div class="panel" id="inResumo"></div>
+    <div class="atalhos">
+      <button class="atalho" type="button" data-go="mes" data-focus="gValor"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><b>Lançar gasto</b><span>Vê se cabe na caixinha</span></button>
+      <button class="atalho" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b><span>Salário, extras, Pix</span></button>
+      <button class="atalho" type="button" data-go="cartao"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg><b>Cartão</b><span>Fatura e parcelas</span></button>
+      <button class="atalho" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Contas CLT</b><span>Salário, 13º, férias</span></button>
+    </div>
+    <div class="flat" id="inAtencao"></div>
+    <div class="panel" id="inFatura"></div>
+    <div class="panel" id="inMetas"></div>
+    <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
+  </section>
+
   <!-- ===================== MÊS ===================== -->
-  <section class="view" id="v-mes">
+  <section class="view" id="v-mes" hidden>
     <div class="vhead">
       <div><p class="eyebrow">Caixinhas do mês</p><h2><span class="cap" id="mesLabel">—</span></h2></div>
       <div class="month">
@@ -293,7 +335,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <div class="boxes" id="mesBoxes"></div>
 
     <form class="panel" id="fGasto" autocomplete="off">
-      <h3>Lançar gasto</h3>
+      <h3 id="gHead">Lançar gasto</h3>
       <div class="row">
         <label>Valor (R$)<input id="gValor" inputmode="decimal" placeholder="0,00" required></label>
         <label>O que foi<input id="gDesc" placeholder="Ex.: Uber pro trabalho" required></label>
@@ -304,13 +346,45 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
         <label>Data<input id="gData" type="date"></label>
       </div>
       <p class="hint" id="gPrev">Digite o valor para ver se cabe.</p>
-      <button class="primary" type="submit">Lançar</button>
+      <div class="btns"><button class="primary" type="submit" id="gBtn">Lançar</button><button class="ghost" type="button" id="gCancel" data-act="gasto-cancel" hidden>Cancelar edição</button></div>
     </form>
 
     <div class="flat">
       <div class="vhead"><h3>Lançamentos</h3><span class="hint" id="mesCount"></span></div>
       <div class="list" id="mesLista"></div>
     </div>
+
+    <details id="dEnt">
+      <summary>Entradas de dinheiro</summary>
+      <form class="inner" id="fEnt" autocomplete="off">
+        <p class="hint">Registre o que entrou (salário, extras, Pix recebido). Aparece no resumo do mês.</p>
+        <div class="row">
+          <label>Valor (R$)<input id="eValor" inputmode="decimal" placeholder="0,00"></label>
+          <label>De onde veio<input id="eDesc" placeholder="Ex.: Salário"></label>
+          <label>Data<input id="eData" type="date"></label>
+        </div>
+        <button class="primary" type="submit">Registrar entrada</button>
+        <div class="list" id="entLista"></div>
+      </form>
+    </details>
+
+    <details id="dFixos">
+      <summary>Gastos fixos (todo mês)</summary>
+      <form class="inner" id="fFixo" autocomplete="off">
+        <p class="hint">Aluguel, internet, mensalidades: o app lança sozinho, todo mês, a partir deste mês. Se apagar o lançamento de um mês, ele não volta naquele mês.</p>
+        <div class="row">
+          <label>Valor (R$)<input id="xValor" inputmode="decimal" placeholder="0,00"></label>
+          <label>O que é<input id="xDesc" placeholder="Ex.: Internet"></label>
+        </div>
+        <div class="row">
+          <label>Caixinha<select id="xCx"></select></label>
+          <label>Forma<select id="xForma"></select></label>
+          <label>Dia do mês<input id="xDia" inputmode="numeric" placeholder="5"></label>
+        </div>
+        <button class="primary" type="submit">Adicionar gasto fixo</button>
+        <div class="list" id="fixosLista"></div>
+      </form>
+    </details>
 
     <details id="dRem">
       <summary>Remanejar entre caixinhas</summary>
@@ -343,7 +417,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <details id="dSaldo">
       <summary>Conferir com o saldo real</summary>
       <form class="inner" id="fSaldo">
-        <p class="hint">Compara o dinheiro nas contas com a sobra esperada. Gastos no crédito não saem da conta agora, então não entram na conta.</p>
+        <p class="hint">Compara o dinheiro nas contas com a sobra esperada. Gastos no crédito não saem da conta agora, então não entram na conta. As entradas do mês só são somadas quando você informa o saldo do início do mês.</p>
         <div class="row">
           <label>Saldo no início do mês (opcional)<input id="sInicial" inputmode="decimal" placeholder="Usa a soma dos limites"></label>
           <label>Saldo agora (pode somar: 10,64 + 490,32)<input id="sAgora" inputmode="decimal" placeholder="0,00"></label>
@@ -627,18 +701,18 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
     <div class="panel">
       <h3>Sobre</h3>
       <p class="hint">Caixinhas Orologia <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho, ou na sua conta quando aberto num ambiente hospedado. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
-      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a></p>
+      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a> · <a href="#apoie">Apoie o projeto</a></p>
     </div>
   </section>
 </div>
 
 <div class="tabs">
   <nav aria-label="Seções">
+    <a href="#inicio" data-tab="inicio"><svg viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></svg>Início</a>
     <a href="#mes" data-tab="mes"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Mês</a>
     <a href="#cartao" data-tab="cartao"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg>Cartão</a>
     <a href="#metas" data-tab="metas"><svg viewBox="0 0 24 24"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg>Metas</a>
     <a href="#calc" data-tab="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"/></svg>Contas</a>
-    <a href="#apoie" data-tab="apoie"><svg viewBox="0 0 24 24"><path d="M12 20.5 4.2 12.7a4.6 4.6 0 0 1 0-6.5 4.6 4.6 0 0 1 6.5 0L12 7.5l1.3-1.3a4.6 4.6 0 0 1 6.5 0 4.6 4.6 0 0 1 0 6.5z"/></svg>Apoie</a>
     <a href="#ajustes" data-tab="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Ajustes</a>
   </nav>
 </div>
@@ -647,7 +721,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 <script>
 (function(){
 'use strict';
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -710,7 +784,7 @@ function defaults(){
     ],
     limitesPadrao: { lazer:700, diaadia:500, objetivos:300 },
     formas: ['Pix','Débito','Crédito','Dinheiro'],
-    cartoes: [], compras: [], recebidos: {},
+    cartoes: [], compras: [], recebidos: {}, fixos: [],
     metas: [], taxaRef: 13.75,
     tabelas: clone(T2026),
     meses: {}
@@ -725,6 +799,8 @@ function normalize(o){
   if (!s.meses || typeof s.meses !== 'object') s.meses = {};
   if (!s.recebidos || typeof s.recebidos !== 'object') s.recebidos = {};
   if (!s.limitesPadrao) s.limitesPadrao = {};
+  if (!Array.isArray(s.fixos)) s.fixos = [];
+  if (typeof s.onboarded !== 'boolean') s.onboarded = hasData(s);
   return s;
 }
 function lsGet(k){ try { const t = localStorage.getItem(k); return t ? JSON.parse(t) : null; } catch(e){ return null; } }
@@ -740,7 +816,7 @@ function backupBanner(exN){
 }
 
 let S = normalize(lsGet(LS_KEY));
-const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null };
+const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null };
 
 /* ---------- Armazenamento: conta do ambiente hospedado (db) quando houver, senão este navegador ---------- */
 const Cloud = { on:false, col:null, pend:{}, chain:{}, seeded:false };
@@ -771,7 +847,7 @@ function persistAll(oldKeys){
   Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
   (oldKeys || []).filter(k => !S.meses[k]).forEach(k => cloudWrite('mes-' + k, null, true));
 }
-function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length) || s.compras.length || s.metas.length; }
+function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length || (m.entradas||[]).length) || s.compras.length || s.metas.length || (s.fixos||[]).length; }
 
 async function connectCloud(){
   if (!window.hospedeiro || typeof window.hospedeiro.use !== 'function') { setSync('ok', 'Salvo neste aparelho'); return; }
@@ -811,6 +887,27 @@ async function connectCloud(){
 /* ---------- Regras do mês ---------- */
 function limites(k){ return Object.assign({}, S.limitesPadrao, (S.meses[k] && S.meses[k].limites) || {}); }
 function gastos(k){ return (S.meses[k] && S.meses[k].gastos) || []; }
+function entradas(k){ return (S.meses[k] && S.meses[k].entradas) || []; }
+function totalEntradas(k){ return r2(entradas(k).reduce((a,e) => a + e.valor, 0)); }
+function achaGasto(id){
+  for (const k of Object.keys(S.meses)) { const g = (S.meses[k].gastos || []).find(x => x.id === id); if (g) return { k, g }; }
+  return null;
+}
+/* Gastos fixos: lança sozinho, uma vez por mês, do mês de criação até o mês atual. Sem duplicar. */
+function aplicarFixos(){
+  const cur = thisMonth(), mudados = new Set();
+  S.fixos.forEach(f => {
+    if (!/^\d{4}-\d{2}$/.test(f.desde || '')) return;
+    for (let k = f.desde, i = 0; k <= cur && i < 600; k = addMonths(k, 1), i++) {
+      if ((f.pulados || []).includes(k)) continue;
+      if (S.meses[k] && (S.meses[k].gastos || []).some(g => g.fixoId === f.id)) continue;
+      const data = k + '-' + pad(Math.min(daysInMonth(k), Math.max(1, f.dia || 1)));
+      ensureMes(k).gastos.push({ id: uid(), valor: f.valor, descricao: f.desc, caixinha: f.caixinha, forma: f.forma, data, criado: Date.now(), fixoId: f.id });
+      mudados.add(k);
+    }
+  });
+  if (mudados.size) persist({ meses: [...mudados] });
+}
 function cx(id){ return S.caixinhas.find(c => c.id === id) || { id, nome: 'Sem caixinha', cor: '#6F6887', ajuda: '' }; }
 function resumoMes(k){
   const lim = limites(k), gs = gastos(k);
@@ -840,7 +937,7 @@ function renderMes(){
     <div class="total">
       <div><span class="lbl">Sobra do mês</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
       <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0,porDia))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : (k < thisMonth() ? 'Mês encerrado<br>' : '')}
-      gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span></div>
+      gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${totalEntradas(k) ? `<br>entrou <b class="num">${fmt(totalEntradas(k))}</b>` : ''}</div>
     </div>`;
   $('mesBoxes').innerHTML = S.caixinhas.map(c => {
     const p = R.por[c.id], st = status(p), w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
@@ -874,10 +971,10 @@ function renderMes(){
     if (g.data !== lastDay) { lastDay = g.data; head = `<div class="daygroup">${esc(dayLabel(g.data))}</div>`; }
     return head + `<div class="item">
       <span class="dot" style="background:${esc(c.cor)}"></span>
-      <span class="desc">${esc(g.descricao)}${g.ex ? '<span class="ex">exemplo</span>' : ''}</span>
+      <span class="desc">${esc(g.descricao)}${g.ex ? '<span class="ex">exemplo</span>' : ''}${g.fixoId ? '<span class="ex">fixo</span>' : ''}</span>
       <span class="val num">${fmt(g.valor)}</span>
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
-      <span class="act"><button class="link ${UI.armed === 'g:' + g.id ? 'armed' : ''}" type="button" data-act="del-gasto" data-id="${esc(g.id)}">${UI.armed === 'g:' + g.id ? 'Toque de novo' : 'Apagar'}</button></span>
+      <span class="act"><button class="link" type="button" data-act="ed-gasto" data-id="${esc(g.id)}">Editar</button><button class="link ${UI.armed === 'g:' + g.id ? 'armed' : ''}" type="button" data-act="del-gasto" data-id="${esc(g.id)}">${UI.armed === 'g:' + g.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`;
   }).join('') : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Lance o primeiro no formulário acima${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 
@@ -893,7 +990,31 @@ function renderMes(){
   }
   const m = S.meses[k];
   if (!$('fSaldo').contains(document.activeElement)) $('sInicial').value = m && Number.isFinite(m.saldoInicial) ? numStr(m.saldoInicial) : '';
+  renderEntradas(k); renderFixos();
   renderSaldo();
+}
+function renderEntradas(k){
+  const es = entradas(k).slice().sort((a,b) => (b.data || '').localeCompare(a.data || '') || (b.criado || 0) - (a.criado || 0));
+  $('entLista').innerHTML = es.length ? es.map(e => `<div class="item">
+      <span class="dot" style="background:var(--ok)"></span>
+      <span class="desc">${esc(e.descricao)}</span>
+      <span class="val num" style="color:var(--ok)">+ ${fmt(e.valor)}</span>
+      <span class="sub">${esc(dayLabel(e.data))}</span>
+      <span class="act"><button class="link ${UI.armed === 'e:' + e.id ? 'armed' : ''}" type="button" data-act="del-ent" data-id="${esc(e.id)}">${UI.armed === 'e:' + e.id ? 'Toque de novo' : 'Apagar'}</button></span>
+    </div>`).join('') + `<p class="hint">Total de entradas em ${esc(monthLabel(k))}: <b class="num">${fmt(totalEntradas(k))}</b></p>` : `<p class="empty">Nenhuma entrada registrada em ${esc(monthLabel(k))}.</p>`;
+  if (!$('fEnt').contains(document.activeElement) && (!$('eData').value || monthOf($('eData').value) !== k)) $('eData').value = k === thisMonth() ? today() : k + '-01';
+}
+function renderFixos(){
+  const cxSel = $('xCx').value, fSel = $('xForma').value;
+  $('xCx').innerHTML = S.caixinhas.map(c => `<option value="${esc(c.id)}" ${c.id === cxSel ? 'selected' : ''}>${esc(c.nome)}</option>`).join('');
+  $('xForma').innerHTML = S.formas.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
+  $('fixosLista').innerHTML = S.fixos.length ? S.fixos.map(f => `<div class="item">
+      <span class="dot" style="background:${esc(cx(f.caixinha).cor)}"></span>
+      <span class="desc">${esc(f.desc)}</span>
+      <span class="val num">${fmt(f.valor)}</span>
+      <span class="sub">todo dia ${f.dia} · ${esc(cx(f.caixinha).nome)} · ${esc(f.forma || '')}</span>
+      <span class="act"><button class="link ${UI.armed === 'f:' + f.id ? 'armed' : ''}" type="button" data-act="del-fixo" data-id="${esc(f.id)}">${UI.armed === 'f:' + f.id ? 'Toque de novo' : 'Remover'}</button></span>
+    </div>`).join('') : `<p class="empty">Nenhum gasto fixo cadastrado.</p>`;
 }
 function previewGasto(){
   const v = parseNum($('gValor').value), id = (document.querySelector('input[name="gCx"]:checked') || {}).value;
@@ -901,7 +1022,9 @@ function previewGasto(){
   if (!Number.isFinite(v) || v <= 0 || !id) { el.className = 'hint'; el.textContent = 'Digite o valor para ver se cabe.'; return; }
   const k = monthOf($('gData').value || today());
   const p = resumoMes(k).por[id] || { sobra: 0 };
-  const depois = r2(p.sobra - v);
+  const orig = UI.editG ? achaGasto(UI.editG) : null;
+  const volta = orig && orig.g.caixinha === id && orig.k === k ? orig.g.valor : 0;
+  const depois = r2(p.sobra + volta - v);
   if (depois >= 0) { el.className = 'hint good'; el.textContent = `Cabe. ${cx(id).nome} fica com ${fmt(depois)}.`; }
   else { el.className = 'hint bad'; el.textContent = `Não cabe: ${cx(id).nome} estoura em ${fmt(-depois)}. Dá para remanejar de outra caixinha.`; }
 }
@@ -912,7 +1035,8 @@ function renderSaldo(){
   const m = S.meses[k] || {}, R = resumoMes(k);
   const inicio = Number.isFinite(m.saldoInicial) ? m.saldoInicial : R.limite;
   const avista = gastos(k).filter(g => g.forma !== 'Crédito').reduce((a,g)=>a+g.valor,0);
-  const esperado = r2(inicio - avista), dif = r2(esperado - agora);
+  const entrou = Number.isFinite(m.saldoInicial) ? totalEntradas(k) : 0;
+  const esperado = r2(inicio + entrou - avista), dif = r2(esperado - agora);
   const cxOpts = S.caixinhas.map(c => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('');
   out.innerHTML = `<div class="out">
       <div class="r"><span>Esperado na conta</span><span class="num">${fmt(esperado)}</span></div>
@@ -1360,6 +1484,35 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id;
   switch (act) {
+    case 'ed-gasto': {
+      const a = achaGasto(id); if (!a) break;
+      UI.editG = id; UI.mes = a.k; renderMes();
+      $('gValor').value = numStr(a.g.valor); $('gDesc').value = a.g.descricao; $('gData').value = a.g.data;
+      if (![...$('gForma').options].some(o => o.value === a.g.forma)) $('gForma').add(new Option(a.g.forma, a.g.forma));
+      $('gForma').value = a.g.forma;
+      const r = [...document.querySelectorAll('input[name="gCx"]')].find(x => x.value === a.g.caixinha); if (r) r.checked = true;
+      $('gHead').textContent = 'Editar gasto'; $('gBtn').textContent = 'Salvar alterações'; $('gCancel').hidden = false;
+      previewGasto(); $('fGasto').scrollIntoView({ block: 'start', behavior: 'smooth' }); $('gValor').focus(); break;
+    }
+    case 'gasto-cancel': sairEdicaoGasto(); break;
+    case 'del-ent': {
+      if (UI.armed !== 'e:' + id) { arm('e:' + id); renderMes(); break; }
+      disarm(); const m = S.meses[UI.mes]; if (m) { m.entradas = (m.entradas || []).filter(e => e.id !== id); persist({ meses: [UI.mes] }); toast('Entrada apagada'); }
+      renderMes(); break;
+    }
+    case 'del-fixo': {
+      if (UI.armed !== 'f:' + id) { arm('f:' + id); renderMes(); break; }
+      disarm(); S.fixos = S.fixos.filter(f => f.id !== id); persist({ estado: true }); renderMes(); toast('Gasto fixo removido. Os lançamentos já feitos ficam.'); break;
+    }
+    case 'onb-next': {
+      if (UI.onb === 1 && UI.onbVals) { const lim = {}; S.caixinhas.forEach(c => { lim[c.id] = r2(numOr(UI.onbVals[c.id], 0)); }); S.limitesPadrao = Object.assign({}, S.limitesPadrao, lim); persist({ estado: true }); }
+      UI.onb = Math.min(2, UI.onb + 1); renderInicio(); break;
+    }
+    case 'onb-prev': UI.onb = Math.max(0, UI.onb - 1); renderInicio(); break;
+    case 'onb-skip': S.onboarded = true; persist({ estado: true }); renderAll(); break;
+    case 'onb-fim': S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('mes'); toast('Pronto! Lance o primeiro gasto.'); break;
+    case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
+    case 'onb-tema': usarTema(id); renderInicio(); break;
     case 'mes-prev': UI.mes = addMonths(UI.mes, -1); renderMes(); break;
     case 'mes-next': UI.mes = addMonths(UI.mes, 1); renderMes(); break;
     case 'mes-hoje': UI.mes = thisMonth(); renderMes(); break;
@@ -1370,7 +1523,12 @@ document.addEventListener('click', e => {
     case 'del-gasto': {
       if (UI.armed !== 'g:' + id) { arm('g:' + id); renderMes(); break; }
       disarm(); const k = Object.keys(S.meses).find(k => (S.meses[k].gastos || []).some(g => g.id === id));
-      if (k) { S.meses[k].gastos = S.meses[k].gastos.filter(g => g.id !== id); persist({ meses: [k] }); toast('Gasto apagado'); }
+      if (k) {
+        const g = S.meses[k].gastos.find(g => g.id === id), f = g && g.fixoId ? S.fixos.find(f => f.id === g.fixoId) : null;
+        if (f) { (f.pulados = f.pulados || []).push(k); }
+        S.meses[k].gastos = S.meses[k].gastos.filter(g => g.id !== id);
+        persist({ meses: [k], estado: !!f }); toast(f ? 'Gasto apagado (o fixo não volta neste mês)' : 'Gasto apagado');
+      }
       renderMes(); break;
     }
     case 'lim-reset': { const m = S.meses[UI.mes]; if (m) { delete m.limites; persist({ meses: [UI.mes] }); } renderMes(); toast('Este mês voltou aos limites padrão'); break; }
@@ -1446,12 +1604,43 @@ $('fGasto').addEventListener('submit', e => {
   if (!Number.isFinite(v) || v <= 0) { toast('Digite um valor maior que zero'); $('gValor').focus(); return; }
   if (!desc) { toast('Diga o que foi'); $('gDesc').focus(); return; }
   const data = $('gData').value || today(), k = monthOf(data);
+  const edit = UI.editG ? achaGasto(UI.editG) : null;
+  if (edit) {
+    Object.assign(edit.g, { valor: r2(v), descricao: desc, caixinha: c, forma: $('gForma').value, data }); delete edit.g.ex;
+    if (edit.k !== k) { S.meses[edit.k].gastos = S.meses[edit.k].gastos.filter(x => x.id !== edit.g.id); ensureMes(k).gastos.push(edit.g); }
+    persist({ meses: [...new Set([edit.k, k])] });
+    sairEdicaoGasto(); UI.mes = k; renderMes(); toast('Gasto atualizado'); return;
+  }
   ensureMes(k).gastos.push({ id: uid(), valor: r2(v), descricao: desc, caixinha: c, forma: $('gForma').value, data, criado: Date.now() });
   persist({ meses: [k] });
   $('gValor').value = ''; $('gDesc').value = '';
   UI.mes = k; renderMes();
   const p = resumoMes(k).por[c];
   toast(`Lançado. ${cx(c).nome}: sobra ${fmt(p.sobra)}`);
+});
+function sairEdicaoGasto(){
+  UI.editG = null; $('gHead').textContent = 'Lançar gasto'; $('gBtn').textContent = 'Lançar'; $('gCancel').hidden = true;
+  $('gValor').value = ''; $('gDesc').value = ''; previewGasto();
+}
+$('fEnt').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum($('eValor').value), desc = $('eDesc').value.trim(), data = $('eData').value || today(), k = monthOf(data);
+  if (!Number.isFinite(v) || v <= 0) { toast('Digite um valor maior que zero'); $('eValor').focus(); return; }
+  if (!desc) { toast('Diga de onde veio'); $('eDesc').focus(); return; }
+  const m = ensureMes(k); (m.entradas = m.entradas || []).push({ id: uid(), valor: r2(v), descricao: desc, data, criado: Date.now() });
+  persist({ meses: [k] }); $('eValor').value = ''; $('eDesc').value = ''; UI.mes = k; renderMes(); toast(`Entrada de ${fmt(v)} registrada`);
+});
+$('fFixo').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum($('xValor').value), desc = $('xDesc').value.trim(), dia = Math.min(31, Math.max(1, Math.round(numOr($('xDia').value, 1))));
+  if (!Number.isFinite(v) || v <= 0) { toast('Digite um valor maior que zero'); $('xValor').focus(); return; }
+  if (!desc) { toast('Diga o que é'); $('xDesc').focus(); return; }
+  S.fixos.push({ id: uid(), desc, valor: r2(v), caixinha: $('xCx').value, forma: $('xForma').value, dia, desde: thisMonth(), pulados: [] });
+  persist({ estado: true }); aplicarFixos(); ['xValor','xDesc','xDia'].forEach(id => $(id).value = ''); renderAll(); toast('Gasto fixo criado e lançado neste mês');
+});
+$('inOnb').addEventListener('input', e => {
+  const t = e.target; if (!t.dataset.onb) return;
+  UI.onbVals = UI.onbVals || {}; UI.onbVals[t.dataset.cx] = t.value;
 });
 ['gValor','gData'].forEach(id => $(id).addEventListener('input', previewGasto));
 $('gCats').addEventListener('change', previewGasto);
@@ -1566,7 +1755,7 @@ const TUI = { edit: null, colar: false, apagar: false };
 function cartaoTema(t, sel){
   return `<div class="tema-card${sel ? ' sel' : ''}"><button type="button" class="tema-use" data-tm="usar" data-id="${esc(t.id)}" aria-pressed="${sel}">
     <span class="tema-prev" style="background:${t.fundo}"><span style="background:${t.card}"><b style="background:${t.texto}"></b><em style="background:${t.suave}"></em></span><i style="background:${t.destaque}"></i><i style="background:${t.secundaria}"></i></span>
-    <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${t.fixo ? 'Grátis' : 'Seu tema'}</span></button>
+    <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${t.galeria ? 'Galeria' : t.fixo ? 'Grátis' : 'Seu tema'}</span></button>
     ${t.fixo ? '' : `<button type="button" class="link" data-tm="editar" data-id="${esc(t.id)}" aria-label="Editar ${esc(t.nome)}">Editar</button>`}</div>`;
 }
 function linhasContraste(d){
@@ -1587,7 +1776,11 @@ function renderTema(){
     return;
   }
   const at = TM.atual();
-  box.innerHTML = `<div class="temas">${TM.todos().map(t => cartaoTema(t, t.id === at.id)).join('')}<button type="button" class="tema-card add" data-tm="criar">+ Criar tema</button></div>
+  const meus = TM.todos().filter(t => !t.galeria), gal = TM.todos().filter(t => t.galeria);
+  box.innerHTML = `<div class="temas">${meus.map(t => cartaoTema(t, t.id === at.id)).join('')}<button type="button" class="tema-card add" data-tm="criar">+ Criar tema</button></div>
+    <h3 style="margin-top:6px">Galeria</h3>
+    <div class="temas">${gal.map(t => cartaoTema(t, t.id === at.id)).join('')}</div>
+    <p class="hint">Temas da galeria do Orolon Player, prontos e offline. Para mudar um, toque em “Criar tema”: ele começa com as cores do tema ativo.</p>
     <p class="hint">O tema fica salvo neste aparelho. O formato é o mesmo do Orolon Player: um tema feito lá funciona aqui, e o contrário também.</p>
     <div class="btns"><button class="ghost" type="button" data-tm="copiar">Copiar tema</button><button class="ghost" type="button" data-tm="baixar">Baixar .json</button>
       <label class="ghost" style="flex-direction:row;color:var(--fg);font-size:.88rem;font-weight:600;cursor:pointer">Abrir .json<input type="file" id="temaFile" accept=".json,application/json" hidden></label>
@@ -1654,17 +1847,94 @@ $('temaBox').addEventListener('change', e => {
 });
 
 /* ---------- Abas ---------- */
-const TABS = ['mes','cartao','metas','calc','apoie','ajustes'];
+const TABS = ['inicio','mes','cartao','metas','calc','apoie','ajustes'];
+/* A navegação não depende do endereço da página: dentro de um artefato (iframe isolado) o hash não muda.
+   Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
+let TAB = null;
+function go(t){
+  if (!TABS.includes(t)) t = 'inicio';
+  TAB = t;
+  try { if (location.hash !== '#' + t) history.pushState(null, '', '#' + t); } catch (e) {}
+  route();
+}
 function route(){
-  const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'mes';
+  const h = (location.hash || '').slice(1);
+  const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
-  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === (t === 'apoie' ? 'ajustes' : t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (t === 'inicio') renderInicio();
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
 }
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', () => { TAB = null; route(); });
+window.addEventListener('popstate', () => { TAB = null; route(); });
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]'); if (!a) return;
+  const t = a.getAttribute('href').slice(1); if (!TABS.includes(t)) return;
+  e.preventDefault(); go(t);
+});
 
-function renderAll(){ renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
+function renderAll(){ aplicarFixos(); renderInicio(); renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
+
+/* ---------- Atalhos (data-go) ---------- */
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if (!g) return;
+  e.preventDefault();
+  const alvo = g.dataset.go;
+  if (g.dataset.open && $(g.dataset.open)) $(g.dataset.open).open = true;
+  go(alvo);
+  if (g.dataset.focus) setTimeout(() => { const el = $(g.dataset.focus); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } }, 120);
+});
+
+/* ---------- Render: Início ---------- */
+function renderOnb(){
+  const box = $('inOnb');
+  if (S.onboarded || hasData(S)) { box.innerHTML = ''; return; }
+  if ($('inOnb').contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
+  const dots = [0,1,2].map(i => `<i class="${i === UI.onb ? 'on' : ''}"></i>`).join('');
+  let corpo;
+  if (UI.onb === 0) corpo = `<h3>Bem-vindo ao Caixinhas</h3>
+    <p>Em vez de anotar cada centavo, você divide o dinheiro do mês em <b>caixinhas</b> (por exemplo Lazer, Dia a dia e Objetivos), cada uma com um limite. Ao lançar um gasto, o app mostra se ele cabe e quanto sobra por dia.</p>
+    <p class="hint">Tudo fica só neste aparelho: sem conta, sem internet.</p>
+    <div class="btns"><button class="primary" type="button" data-act="onb-next">Começar</button><button class="ghost" type="button" data-act="onb-exemplo">Ver com dados de exemplo</button><button class="link" type="button" data-act="onb-skip">Pular</button></div>`;
+  else if (UI.onb === 1) {
+    UI.onbVals = UI.onbVals || {}; S.caixinhas.forEach(c => { if (UI.onbVals[c.id] === undefined) UI.onbVals[c.id] = numStr(numOr(S.limitesPadrao[c.id], 0)); });
+    corpo = `<h3>Quanto cabe em cada caixinha?</h3>
+    <p class="hint">Limites mensais. Dá para mudar a qualquer momento em Mês → Ajustar limites.</p>
+    <div class="row">${S.caixinhas.map(c => `<label><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${esc(c.cor)};margin-right:6px"></span>${esc(c.nome)}</span><input data-onb="lim" data-cx="${esc(c.id)}" inputmode="decimal" value="${esc(UI.onbVals[c.id])}"></label>`).join('')}</div>
+    <div class="btns"><button class="primary" type="button" data-act="onb-next">Continuar</button><button class="ghost" type="button" data-act="onb-prev">Voltar</button></div>`;
+  } else corpo = `<h3>Escolha o visual</h3>
+    <p class="hint">Você pode criar o seu próprio tema depois, em Ajustes → Aparência.</p>
+    <div class="temas">${TM.todos().filter(t => t.fixo && !t.galeria).map(t => cartaoTema(t, t.id === TM.atual().id).replace('data-tm="usar"', 'data-act="onb-tema"')).join('')}</div>
+    <div class="btns"><button class="primary" type="button" data-act="onb-fim">Concluir</button><button class="ghost" type="button" data-act="onb-prev">Voltar</button></div>`;
+  box.innerHTML = `<div class="panel onb"><div class="onb-dots" aria-hidden="true">${dots}</div>${corpo}</div>`;
+}
+function renderInicio(){
+  const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
+  $('inLabel').textContent = monthLabel(k);
+  renderOnb();
+  const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
+  $('inBanner').innerHTML = backupBanner(exN);
+  const w = R.limite > 0 ? Math.min(100, R.gasto / R.limite * 100) : (R.gasto > 0 ? 100 : 0);
+  $('inResumo').innerHTML = `<div class="total">
+      <div><span class="lbl">Sobra do mês</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
+      <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0, R.sobra / dl))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : ''}gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${ent ? `<br>entrou <b class="num">${fmt(ent)}</b>` : ''}</div>
+    </div><div class="bar"><i style="width:${w}%;background:${R.sobra < 0 ? 'var(--over)' : 'var(--accent)'}"></i></div>`;
+  const alertas = S.caixinhas.map(c => ({ c, p: R.por[c.id] })).filter(x => x.p && ['p-over','p-warn'].includes(status(x.p)[0]));
+  $('inAtencao').innerHTML = alertas.length ? `<h3>Pede atenção</h3><div class="list">${alertas.map(({ c, p }) => { const st = status(p); return `<div class="item">
+      <span class="dot" style="background:${esc(c.cor)}"></span><span class="desc">${esc(c.nome)}</span>
+      <span class="val num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
+      <span class="sub">${fmt(p.gasto)} de ${fmt(p.limite)} · <span class="pill ${st[0]}">${st[1]}</span></span></div>`; }).join('')}</div>` : '';
+  const F = fatura(k);
+  $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura de ${esc(monthLabel(k, true))}</h3><button class="link" type="button" data-go="cartao">Ver cartão</button></div>
+      <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`
+    : `<div class="vhead"><h3>Cartão</h3><button class="link" type="button" data-go="cartao">Cadastrar</button></div><p class="hint">Cadastre um cartão para acompanhar parcelas e assinaturas.</p>`;
+  const ms = S.metas.slice(0, 3);
+  $('inMetas').innerHTML = `<div class="vhead"><h3>Metas</h3><button class="link" type="button" data-go="metas">${S.metas.length ? 'Ver todas' : 'Criar'}</button></div>` + (ms.length ? ms.map(m => {
+    const p = m.alvo > 0 ? Math.min(100, m.atual / m.alvo * 100) : 0;
+    return `<div class="flat" style="gap:6px"><div class="vhead" style="align-items:baseline"><b>${esc(m.nome)}</b><span class="num hint">${pct(p)}</span></div><div class="bar"><i style="width:${p}%;background:${p >= 100 ? 'var(--ok)' : 'var(--accent)'}"></i></div></div>`;
+  }).join('') : `<p class="hint">Nenhuma meta ainda. Comece pela reserva de emergência.</p>`);
+}
 
 /* ---------- Início ---------- */
 (function ticks(){ const g = $('ticks'); let s = ''; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, r1 = i % 3 ? 20 : 18; s += `<line x1="${32 + Math.sin(a) * r1}" y1="${32 - Math.cos(a) * r1}" x2="${32 + Math.sin(a) * 22.5}" y2="${32 - Math.cos(a) * 22.5}"/>`; } g.innerHTML = s; })();

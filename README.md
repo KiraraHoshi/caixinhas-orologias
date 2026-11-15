@@ -6,12 +6,13 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
-- **Mês (caixinhas):** limites por caixinha (Lazer, Dia a dia, Objetivos ou as suas), lançamento rápido de gastos com aviso de "cabe / não cabe", sobra por dia, remanejar limite entre caixinhas, limites só do mês ou padrão, e conferência com o saldo real da conta.
+- **Início:** resumo do mês (sobra, sobra por dia, caixinhas que pedem atenção), fatura do cartão, metas e atalhos. Na primeira abertura, um passo a passo curto (o que são caixinhas, limites, visual).
+- **Mês (caixinhas):** limites por caixinha (Lazer, Dia a dia, Objetivos ou as suas), lançamento rápido de gastos com aviso de "cabe / não cabe", **edição de gastos**, **entradas de dinheiro**, **gastos fixos** que se lançam sozinhos todo mês, sobra por dia, remanejar limite entre caixinhas, limites só do mês ou padrão, e conferência com o saldo real da conta.
 - **Cartão e parcelas:** cartões com dia de fechamento e vencimento, compras parceladas e assinaturas, fatura de cada mês, gastos de outras pessoas no seu cartão (quem te deve e o que já foi recebido) e projeção das próximas 6 faturas.
 - **Metas e investimentos:** metas com alvo, saldo, aporte mensal e rendimento (prazo calculado com juros compostos), simulador com IR regressivo e inflação, e "quanto guardar por mês" para chegar num valor.
 - **Contas (CLT):** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário (1ª e 2ª parcela), férias com 1/3 e abono, e saque-aniversário do FGTS.
-- **Apoie:** página de apoio pelo GitHub Sponsors.
-- **Aparência:** dois temas grátis (Orologia Noite e Orologia Dia), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Orolon Player](https://github.com/KiraraHoshi/compasso-player) ([abrir o player](https://kirarahoshi.github.io/compasso-player/)): um tema feito num app funciona no outro.
+- **Apoie:** página de apoio pelo GitHub Sponsors (link no Início e em Ajustes).
+- **Aparência:** dois temas principais (Orologia Noite e Orologia Dia), a **galeria** do Orolon embutida (Brasa, Entardecer, Folha, Maré, Meia-noite e Papel), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Orolon Player](https://github.com/KiraraHoshi/compasso-player) ([abrir o player](https://kirarahoshi.github.io/compasso-player/)): um tema feito num app funciona no outro.
 - **Ajustes:** caixinhas, formas de pagamento, taxa de referência (Selic/CDI), **tabelas de impostos editáveis** (para atualizar quando o governo mudar), backup em JSON (exportar / importar) e dados de exemplo.
 
 ## Como usar
@@ -44,7 +45,9 @@ Um tema é um JSON pequeno, com as cores em `#RRGGBB`. Os tons de borda, campos 
 }
 ```
 
-`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos) é usado só no Orolon Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
+`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos, de 0 a 28, padrão 16) é usado só no Orolon Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
+
+O formato está descrito em [`tema.schema.json`](tema.schema.json) (JSON Schema), o mesmo contrato usado pelo Orolon. Arquivos com outro `formato` são recusados; campos desconhecidos são ignorados.
 
 ## Atualizando as tabelas
 
@@ -58,6 +61,7 @@ Os valores de 2026 vêm de fábrica (INSS até R$ 8.475,55; IRRF com isenção a
 | `manifest.webmanifest` | Nome, cores e ícones para instalar |
 | `sw.js` | Guarda o app para abrir sem internet |
 | `icon.svg`, `icon-192.png`, `icon-512.png` | Ícones |
+| `tema.schema.json` | Descrição do formato de tema (compartilhado com o Orolon Player) |
 | `privacy.html` | Política de privacidade (exigida pela Google Play) |
 
 ## Privacidade e segurança
