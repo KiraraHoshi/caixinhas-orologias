@@ -142,6 +142,7 @@ h3{font-family:var(--display);font-weight:700;font-size:.82rem;letter-spacing:.1
 .flat{display:flex;flex-direction:column;gap:10px;min-width:0}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row>*{flex:1 1 130px;min-width:0}
+.row>label:not(.check){justify-content:flex-end} /* campos alinhados pela base mesmo quando um rótulo quebra linha */
 .row.tight>*{flex:1 1 90px}
 label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);font-weight:500;letter-spacing:.02em}
 input,select{font:inherit;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
@@ -735,7 +736,7 @@ html[data-trava] body{overflow:hidden}
     <div class="panel">
       <div class="vhead qh"><h3>Simulador de juros compostos</h3><button class="qm" type="button" data-act="qm" data-id="juros" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <form class="row tight" id="fSim" autocomplete="off">
-        <label>Começo com (R$)<input id="simIni" inputmode="decimal" value="1000"></label>
+        <label>Começo (R$)<input id="simIni" inputmode="decimal" value="1000"></label>
         <label>Aporte/mês (R$)<input id="simAp" inputmode="decimal" value="300"></label>
         <label>Rende % a.a.<input id="simTaxa" inputmode="decimal"></label>
         <label>Anos<input id="simAnos" inputmode="numeric" value="5"></label>
@@ -938,7 +939,7 @@ html[data-trava] body{overflow:hidden}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
