@@ -444,6 +444,12 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .cxl .bar i{transition:none}
 .cxl b small{font-weight:600;font-size:.72rem;color:var(--over);margin-left:8px}
 .dialbox .dial{transform-origin:50% 50%}
+.metabox{position:relative}
+.metabox .bar{position:relative}
+.brilho{position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-120%);pointer-events:none}
+.faisca{position:absolute;right:0;top:2px;width:6px;height:6px;border-radius:2px;pointer-events:none}
+.check{display:inline-block;width:14px;height:14px;fill:none;stroke:var(--ok);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px}
+.meta-card .facts b.batida{color:var(--ok);transform-origin:left center}
 .ficha{position:absolute;left:50%;bottom:4%;transform:translate(-50%,0);opacity:0;font-weight:700;font-size:.95rem;color:var(--gold);pointer-events:none;white-space:nowrap}
 </style>
 
@@ -1816,11 +1822,12 @@ function renderMetas(){
     const p = m.alvo > 0 ? Math.min(100, m.atual / m.alvo * 100) : 0;
     const t = mesesAte(m.alvo, m.atual, m.aporte, m.taxa);
     const i = taxaMes(m.taxa), rendeMes = m.atual * i;
-    return `<div class="meta-card">
+    const batida = m.alvo > 0 && m.atual >= m.alvo;
+    return `<div class="meta-card" data-meta="${esc(m.id)}">
       <div class="hd"><b>${esc(m.nome)}${m.ex ? '<span class="ex">exemplo</span>' : ''}</b><span class="num">${fmt(m.atual)} <span style="color:var(--muted)">de ${fmt(m.alvo)}</span></span></div>
-      <div class="bar"><i style="width:${p}%;background:${p >= 100 ? 'var(--ok)' : 'var(--accent)'}"></i></div>
+      <div class="metabox"><div class="bar"><i style="width:${p}%;background:${p >= 100 ? 'var(--ok)' : 'var(--accent)'}"></i>${batida ? '<span class="brilho"></span>' : ''}</div></div>
       <div class="facts">
-        <span>Progresso<b class="num">${pct(p)}</b></span>
+        <span>Progresso${batida ? '<b class="batida"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5"/></svg>Meta batida</b>' : `<b class="num">${pct(p)}</b>`}</span>
         <span>Falta<b class="num">${fmt(Math.max(0, m.alvo - m.atual))}</b></span>
         <span>Aporte/mês<b class="num">${fmt(m.aporte)}</b></span>
         <span>Rende ${pct(m.taxa)} a.a.<b class="num">≈ ${fmt(rendeMes)}/mês</b></span>
@@ -2225,7 +2232,10 @@ document.addEventListener('click', e => {
       const m = S.metas.find(m => m.id === id), v = parseNum($('apv-' + id).value);
       if (!m || !Number.isFinite(v) || v <= 0) { toast('Digite um valor'); break; }
       if (act === 'meta-retirar' && v > m.atual + 0.004) { toast(`Só há ${fmt(m.atual)} nesta meta`); break; }
-      m.atual = r2(m.atual + (act === 'meta-aportar' ? v : -v)); persist({ estado: true }); renderMetas(); toast(act === 'meta-aportar' ? 'Aporte registrado' : 'Retirada registrada'); break;
+      const pAntes = m.alvo > 0 ? Math.min(100, m.atual / m.alvo * 100) : 0, faltava = m.alvo > 0 && m.atual < m.alvo;
+      m.atual = r2(m.atual + (act === 'meta-aportar' ? v : -v)); persist({ estado: true }); renderMetas(); renderInicio();
+      const bateu = faltava && m.atual >= m.alvo; if (bateu) celebrarMeta(id, pAntes);
+      toast(bateu ? 'Meta batida!' : act === 'meta-aportar' ? 'Aporte registrado' : 'Retirada registrada'); break;
     }
     case 'meta-edit': {
       const m = S.metas.find(m => m.id === id); if (!m) break;
@@ -2785,6 +2795,26 @@ function reagirGasto(id, valor, antes, depois, k){
     anima(box.querySelector('.left'), PISCA, 700);
     if (estourou) setTimeout(() => { if (box.isConnected) anima(box, TREMIDA, { duration: 380, easing: 'ease-out' }); }, 300);
   }
+}
+/* Meta batida: a barra completa, fica verde, passa um brilho, o "certo" se desenha e saem poucas faíscas da ponta. */
+function celebrarMeta(id, pAntes){
+  if (!movLigado()) return;
+  const card = [...document.querySelectorAll('#metasLista .meta-card')].find(c => c.dataset.meta === id); if (!card) return;
+  const box = card.querySelector('.metabox'), bar = box.querySelector('.bar i'), selo = card.querySelector('.facts b.batida'), certo = card.querySelector('.check path');
+  anima(bar, [{ width: n2(pAntes) + '%', background: 'var(--accent)' }, { width: '100%', background: 'var(--accent)', offset: .92 }, { width: '100%', background: 'var(--ok)' }], { duration: 900, easing: 'cubic-bezier(.25,1,.5,1)' });
+  if (selo) anima(selo, [{ opacity: 0 }, { opacity: 0 }], 900);
+  setTimeout(() => {
+    if (!box.isConnected) return;
+    anima(box.querySelector('.brilho'), [{ transform: 'translateX(-120%)' }, { transform: 'translateX(260%)' }], { duration: 800, easing: 'ease-in-out' });
+    anima(certo, [{ strokeDasharray: 16, strokeDashoffset: 16 }, { strokeDasharray: 16, strokeDashoffset: 0 }], { duration: 380, easing: 'ease-out' });
+    anima(selo, [{ transform: 'scale(.9)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], 360);
+    for (let i = 0; i < 12; i++) {
+      const f = document.createElement('i'); f.className = 'faisca'; f.style.background = i % 3 ? 'var(--ok)' : 'var(--gold)'; box.appendChild(f);
+      const ang = -Math.PI / 2 + (Math.random() - .5) * 2.6, dist = 26 + Math.random() * 34;
+      const a = anima(f, [{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: 'translate(' + n2(Math.cos(ang) * dist) + 'px,' + n2(Math.sin(ang) * dist + 14) + 'px) rotate(' + Math.round(Math.random() * 240) + 'deg)', opacity: 0 }], { duration: 650 + Math.random() * 350, easing: 'cubic-bezier(.1,.7,.3,1)' });
+      if (a) a.onfinish = a.oncancel = () => f.remove(); else f.remove();
+    }
+  }, 900);
 }
 function inicioVisivel(){ return !$('v-inicio').hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){

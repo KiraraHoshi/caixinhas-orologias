@@ -95,6 +95,9 @@ const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
 const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
 const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a.playState === "running").length);
+// aporta na meta cujo cartão contém o nome dado
+const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
+const cartaoMeta = (p, nome) => p.avaliar((nome) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); return c ? c.textContent.replace(/s+/g, " ") : ""; }, nome);
 const comExemplo = async (p) => { await p.clicar('[data-act="onb-exemplo"]'); await p.espera(200); };
 
 const TESTES = {
@@ -313,6 +316,26 @@ const TESTES = {
     await p.espera(1600);
     igual(await p.texto("#inResumo .big"), "R$ 1.170,70", "sobra depois de três lançamentos");
     igual(await animando(p), 0, "animações que não terminaram");
+  } },
+  "Meta batida aparece como batida": async (p) => {
+    await comExemplo(p); await p.aba("metas");
+    certo(!(await cartaoMeta(p, "Viagem")).includes("Meta batida"), "a meta ainda não foi batida");
+    await aportar(p, "Viagem", 2500); await p.espera(200);
+    certo((await cartaoMeta(p, "Viagem")).includes("Meta batida"), "o cartão devia dizer Meta batida: " + await cartaoMeta(p, "Viagem"));
+    igual(await p.avaliar(() => document.querySelectorAll(".faisca").length), 0, "faíscas com movimento desligado");
+    await p.aba("inicio"); await p.aba("metas");
+    certo((await cartaoMeta(p, "Viagem")).includes("Meta batida"), "continua batida ao reabrir a tela");
+  },
+  "Meta batida solta faíscas e limpa depois": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("metas");
+    await aportar(p, "Viagem", 2500);
+    await p.espera(1150);
+    certo((await p.avaliar(() => document.querySelectorAll(".faisca").length)) > 0, "nenhuma faísca saiu quando a barra completou");
+    await p.espera(1700);
+    igual(await p.avaliar(() => document.querySelectorAll(".faisca").length), 0, "faíscas que ficaram na tela");
+    igual(await animando(p), 0, "animações que não terminaram");
+    await aportar(p, "Viagem", 10); await p.espera(1300);
+    igual(await p.avaliar(() => document.querySelectorAll(".faisca").length), 0, "não comemora de novo uma meta que já estava batida");
   } },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
