@@ -337,11 +337,34 @@ const TESTES = {
     await aportar(p, "Viagem", 10); await p.espera(1300);
     igual(await p.avaliar(() => document.querySelectorAll(".faisca").length), 0, "não comemora de novo uma meta que já estava batida");
   } },
+  "Gráfico de faturas anima ao entrar e termina igual": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("cartao");
+    const nasBarras = () => p.avaliar(() => [...document.querySelectorAll("#cartProj .gb")].reduce((a, g) => a + g.getAnimations().length, 0));
+    certo((await nasBarras()) > 0, "as barras das próximas faturas não se moveram");
+    await p.espera(1700);
+    igual(await nasBarras(), 0, "animações que não terminaram");
+    const alturas = await p.avaliar(() => [...document.querySelectorAll("#cartProj .gb")].map((g) => Math.round(g.getBoundingClientRect().height)));
+    certo(alturas.length === 6 && alturas.every((h) => h > 0), "barras sem altura no fim: " + alturas.join(","));
+  } },
+  "Simulador se desenha ao entrar, mas não a cada tecla": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("metas");
+    const naCurva = () => p.avaliar(() => [...document.querySelectorAll("#simChart .ga-tot, #simChart .ga-bola")].reduce((a, g) => a + g.getAnimations().length, 0));
+    certo((await naCurva()) > 0, "a curva do simulador não se desenhou");
+    await p.espera(2000);
+    igual(await naCurva(), 0, "animações que não terminaram");
+    await p.digitar("#simAnos", "8"); await p.espera(100);
+    igual(await naCurva(), 0, "mudar um campo não devia animar de novo");
+  } },
+  "Gráfico do mês anima ao abrir a seção": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("mes");
+    await p.clicar("#dGraf summary"); await p.espera(60);
+    certo((await p.avaliar(() => [...document.querySelectorAll("#grafBox .gb")].reduce((a, g) => a + g.getAnimations().length, 0))) > 0, "as barras dos 6 meses não se moveram");
+  } },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
     for (const t of ["inicio", "cartao", "metas", "mes"]) {
-      await p.aba(t);
+      await p.aba(t); if (t === "mes") await p.clicar("#dGraf summary");
       igual(await p.avaliar(() => document.getAnimations().filter((a) => !a.animationName || !a.animationName.startsWith("fl-")).length), 0, "animações na aba " + t);
     }
   },

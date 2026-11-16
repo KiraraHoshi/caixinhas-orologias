@@ -444,6 +444,8 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .cxl .bar i{transition:none}
 .cxl b small{font-weight:600;font-size:.72rem;color:var(--over);margin-left:8px}
 .dialbox .dial{transform-origin:50% 50%}
+.gb{transform-box:fill-box;transform-origin:50% 100%}
+.ga-bola{transform-box:fill-box;transform-origin:center}
 .metabox{position:relative}
 .metabox .bar{position:relative}
 .brilho{position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-120%);pointer-events:none}
@@ -1768,10 +1770,12 @@ function barChart(labels, stacks, aria){
   [0, .5, 1].forEach(f => { const v = max * f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-dasharray="${f ? '3 4' : ''}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`; });
   stacks.forEach((s, i) => {
     const x = L + i * bw + bw * .2, w = bw * .6, tot = s[0] + s[1];
+    g += `<g class="gb" data-i="${i}">`;
     if (s[0] > 0) g += `<rect x="${x}" y="${y(s[0])}" width="${w}" height="${y(0)-y(s[0])}" rx="3" style="fill:var(--accent)"/>`;
     if (s[1] > 0) g += `<rect x="${x}" y="${y(tot)}" width="${w}" height="${y(s[0])-y(tot)}" rx="3" style="fill:var(--gold)"/>`;
+    g += '</g>';
     g += `<text x="${x + w/2}" y="${H-8}" text-anchor="middle" style="text-transform:capitalize">${esc(labels[i])}</text>`;
-    if (tot > 0) g += `<text x="${x + w/2}" y="${y(tot)-6}" text-anchor="middle" style="fill:var(--fg);font-weight:600">${kfmt(tot)}</text>`;
+    if (tot > 0) g += `<text class="gbt" data-i="${i}" x="${x + w/2}" y="${y(tot)-6}" text-anchor="middle" style="fill:var(--fg);font-weight:600">${kfmt(tot)}</text>`;
   });
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria || 'Faturas dos próximos meses')}">${g}</svg>`;
 }
@@ -1785,11 +1789,11 @@ function areaChart(points){ // points: [{x:ano, total, aportado}]
   [0, .25, .5, .75, 1].forEach(f => { const v = max * f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-dasharray="${f ? '3 4' : ''}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`; });
   const step = Math.max(1, Math.ceil(xMax / 6));
   for (let a = 0; a <= xMax; a += step) g += `<text x="${x(a)}" y="${H-8}" text-anchor="middle">${a === 0 ? 'hoje' : a + (a === 1 ? ' ano' : ' anos')}</text>`;
-  g += `<path d="${line('total')}L${x(xMax)},${y(0)}L${x(0)},${y(0)}Z" style="fill:color-mix(in srgb,var(--accent) 22%,transparent)"/>`;
-  g += `<path d="${line('total')}" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>`;
-  g += `<path d="${line('aportado')}" style="fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:5 4"/>`;
+  g += `<path class="ga-area" d="${line('total')}L${x(xMax)},${y(0)}L${x(0)},${y(0)}Z" style="fill:color-mix(in srgb,var(--accent) 22%,transparent)"/>`;
+  g += `<path class="ga-tot" pathLength="1" d="${line('total')}" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>`;
+  g += `<path class="ga-ap" d="${line('aportado')}" style="fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:5 4"/>`;
   const last = points[points.length-1];
-  g += `<circle cx="${x(last.x)}" cy="${y(last.total)}" r="4.5" style="fill:var(--accent);stroke:var(--bg);stroke-width:2"/>`;
+  g += `<circle class="ga-bola" cx="${x(last.x)}" cy="${y(last.total)}" r="4.5" style="fill:var(--accent);stroke:var(--bg);stroke-width:2"/>`;
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Crescimento do investimento">${g}</svg>
     <div class="legend"><span><i class="dot" style="background:var(--accent)"></i>Total com rendimento</span><span><i class="dot" style="background:var(--gold)"></i>Só o que você colocou</span></div>`;
 }
@@ -2406,7 +2410,7 @@ $('inOnb').addEventListener('input', e => {
 ['gValor','gData'].forEach(id => $(id).addEventListener('input', previewGasto));
 ['fBusca','fCx','fForma','fTodos'].forEach(id => $(id).addEventListener(id === 'fBusca' ? 'input' : 'change', () => renderLista(UI.mes)));
 $('fBusca').addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
-$('dGraf').addEventListener('toggle', () => renderGraf(UI.mes));
+$('dGraf').addEventListener('toggle', () => { renderGraf(UI.mes); if ($('dGraf').open) animarGraficos($('grafBox')); });
 $('gCats').addEventListener('change', previewGasto);
 
 $('fRem').addEventListener('submit', e => {
@@ -2629,6 +2633,7 @@ function route(){
     renderInicio();
     if (trocou && Vis.abriu && !Mov.fila.size && Date.now() - Vis.ultima > 2000) { const a = JSON.parse(Vis.alvo || '{}'), d = Vis.dia; abertura(false, a, d); }
   }
+  if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'metas' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
@@ -2815,6 +2820,16 @@ function celebrarMeta(id, pAntes){
       if (a) a.onfinish = a.oncancel = () => f.remove(); else f.remove();
     }
   }, 900);
+}
+/* Gráficos: as barras sobem em sequência com leve passada do ponto; a curva do simulador se desenha e a bolinha "pinga". */
+function animarGraficos(raiz){
+  if (!raiz || !movLigado()) return;
+  raiz.querySelectorAll('.gb').forEach(g => anima(g, [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 700, delay: (+g.dataset.i || 0) * 75, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'backwards' }));
+  raiz.querySelectorAll('.gbt').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, delay: (+x.dataset.i || 0) * 75 + 450, fill: 'backwards' }));
+  raiz.querySelectorAll('.ga-tot').forEach(x => anima(x, [{ strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDasharray: 1, strokeDashoffset: 0 }], { duration: 1300, easing: 'cubic-bezier(.3,.6,.2,1)' }));
+  raiz.querySelectorAll('.ga-area').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 600, fill: 'backwards' }));
+  raiz.querySelectorAll('.ga-ap').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 200, fill: 'backwards' }));
+  raiz.querySelectorAll('.ga-bola').forEach(x => anima(x, [{ transform: 'scale(0)' }, { transform: 'scale(1.5)' }, { transform: 'scale(1)' }], { duration: 380, delay: 1200, fill: 'backwards' }));
 }
 function inicioVisivel(){ return !$('v-inicio').hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){
