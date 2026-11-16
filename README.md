@@ -1,4 +1,4 @@
-# Caixinhas Orologia
+# Orolon Caixinhas
 
 App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta, sem dependências. Funciona offline e pode ser instalado no celular como um aplicativo (PWA).
 
@@ -6,6 +6,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Backup automático (1.7):** o app guarda sozinho uma cópia por dia neste aparelho (7 dias) e mais uma antes de importar ou apagar tudo, para desfazer um erro. Onde o navegador deixa (Chrome e Edge no computador), dá para escolher uma pasta e ele grava ali um arquivo por dia, mantendo os 7 mais recentes; numa pasta que sincroniza com a nuvem, o backup sai do aparelho sem conta nem servidor. No celular, "Enviar backup" abre o compartilhamento do sistema.
 - **Visual novo (1.6):** no Início, um mostrador grande em que cada pedaço do anel é uma caixinha (o tamanho é o limite, a parte acesa é o gasto) e o fio dourado em volta mostra quanto do mês já passou. Telas mais limpas, títulos sem caixa alta e ícone novo, irmão do ícone do Orolon.
 - **Lançar de qualquer tela (1.5):** o botão "Lançar" fica sempre à mão e abre uma folha com valor, caixinha e o aviso de "cabe / não cabe"; editar um gasto usa a mesma folha. No celular, o botão voltar fecha só a folha.
 - **Início mais direto (1.5):** a sobra do mês, todas as caixinhas com a sobra de cada uma, fatura, metas e atalhos.

@@ -170,6 +170,45 @@ const TESTES = {
     await p.clicar('[data-act="cx-save"]');
     igual(await p.avaliar(() => JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).caixinhas[0].icone), "pet", "ícone salvo");
   },
+  "Cópia automática neste aparelho desfaz um apagar tudo": async (p) => {
+    await p.clicar('[data-act="onb-skip"]');
+    await p.clicar("#fab"); await p.digitar("#gValor", "50"); await p.digitar("#gDesc", "Cinema"); await p.clicar("#gBtn");
+    await p.espera(1900);
+    await p.aba("ajustes");
+    igual(await p.texto("#bkpCopias summary"), "Cópias neste aparelho (1)", "cópia do dia");
+    await p.clicar('[data-act="wipe"]'); await p.clicar('[data-act="wipe"]');
+    await p.espera(400);
+    igual(await p.avaliar(() => Object.keys(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses).length), 0, "dados depois de apagar tudo");
+    igual(await p.texto("#bkpCopias summary"), "Cópias neste aparelho (2)", "cópia de antes de apagar");
+    certo((await p.texto("#bkpCopias .copia span")).startsWith("Antes de apagar tudo"), "a cópia mais recente devia ser a de antes de apagar");
+    await p.avaliar(() => { document.querySelector("#bkpCopias").open = true; document.querySelector("#bkpBox").scrollIntoView(); });
+    await p.espera(3600); // deixa o aviso sumir da frente
+    await p.print("06-backup");
+    await p.clicar('[data-act="bkp-rest"]');
+    await p.clicar('[data-act="imp-ok"]');
+    igual(await p.avaliar(() => Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses)[0].gastos[0].descricao), "Cinema", "gasto de volta depois de restaurar");
+  },
+  "Backup automático grava um arquivo por dia na pasta escolhida": async (p) => {
+    // a janela de escolher pasta não abre sem pessoa: usamos a pasta particular do navegador, que tem os mesmos comandos
+    await p.avaliar(() => { window.showDirectoryPicker = () => navigator.storage.getDirectory(); });
+    await p.clicar('[data-act="onb-skip"]');
+    await p.clicar("#fab"); await p.digitar("#gValor", "50"); await p.digitar("#gDesc", "Cinema"); await p.clicar("#gBtn");
+    await p.aba("ajustes");
+    await p.clicar('[data-act="bkp-pasta"]');
+    await p.espera(600);
+    const hoje = await p.avaliar(() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
+    const ler = () => p.avaliar(async (nome) => { const d = await navigator.storage.getDirectory(); try { return await (await (await d.getFileHandle(nome)).getFile()).text(); } catch (e) { return null; } }, "caixinhas-backup-" + hoje + ".json");
+    certo((await ler() || "").includes("Cinema"), "o arquivo do dia não foi gravado na pasta");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta"), "o estado da pasta não apareceu");
+    await p.clicar("#fab"); await p.digitar("#gValor", "20"); await p.digitar("#gDesc", "Pipoca"); await p.clicar("#gBtn");
+    await p.espera(1900);
+    certo((await ler() || "").includes("Pipoca"), "o arquivo não foi atualizado depois de um novo gasto");
+    // arquivos antigos: sobram só os 7 mais recentes
+    await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); for (let i = 1; i <= 9; i++) { const w = await (await d.getFileHandle("caixinhas-backup-2020-01-0" + i + ".json", { create: true })).createWritable(); await w.write("{}"); await w.close(); } });
+    await p.clicar("#fab"); await p.digitar("#gValor", "5"); await p.digitar("#gDesc", "Bala"); await p.clicar("#gBtn");
+    await p.espera(1900);
+    igual(await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); let n = 0; for await (const k of d.keys()) if (k.startsWith("caixinhas-backup-")) n++; return n; }), 7, "arquivos de backup na pasta");
+  },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);

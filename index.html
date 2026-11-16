@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>/* Bloqueio por PIN: esconde o app antes de aparecer */try{var pn=JSON.parse(localStorage.getItem('caixinhas-orologia-pin')||'null');if(pn&&pn.h)document.documentElement.setAttribute('data-trava','');}catch(e){}</script>
 <script>
-/* Temas do Caixinhas Orologia. Roda antes da página aparecer, para não piscar o tema errado.
+/* Temas do Orolon Caixinhas. Roda antes da página aparecer, para não piscar o tema errado.
    Mesmo formato de tema do Orolon Player: um tema feito num app funciona no outro. */
 (function(){
 'use strict';
@@ -82,9 +82,9 @@ window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, esta
 aplicar(atual());
 })();
 </script>
-</head><body><title>Caixinhas Orologia</title>
+</head><body><title>Orolon Caixinhas</title>
 <!--
-  Caixinhas Orologia — app de finanças pessoais (caixinhas do mês, cartão e parcelas,
+  Orolon Caixinhas — app de finanças pessoais (caixinhas do mês, cartão e parcelas,
   metas e investimentos, calculadoras CLT). Arquivo único, sem dependências.
   Licença MIT. Tema visual "Orologia", inspirado no Automagod Archives.
 -->
@@ -436,6 +436,11 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .fatos b{display:block;font-weight:600;font-size:.9rem;white-space:nowrap}
 #mesResumo .total{flex-direction:column;align-items:flex-start;gap:6px}
 #mesResumo .total .side{text-align:left}
+.copia{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.copia:last-of-type{border-bottom:0}
+.copia small{display:block;color:var(--muted);font-size:.78rem}
+.bkp{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px}
+.bkp>b{font-family:var(--display);font-size:1rem}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -464,7 +469,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
         <path d="M20.77 56.75A30 30 0 0 1 41.23 21.31" stroke="var(--track)"/>
         <g fill="var(--fg)" stroke="none"><rect x="38" y="39.6" width="24" height="5.2" rx="2.6"/><rect x="38" y="47.4" width="16" height="5.2" rx="2.6"/><rect x="38" y="55.2" width="9.5" height="5.2" rx="2.6"/></g>
       </svg>
-      <h1>Caixinhas</h1>
+      <h1>Orolon Caixinhas</h1>
     </div>
     <span class="sync" id="sync" data-s="wait"><i></i><span id="syncTxt">Abrindo…</span></span>
   </header>
@@ -995,8 +1000,10 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
     <div class="panel">
       <div class="vhead qh"><h3>Seus dados</h3><button class="qm" type="button" data-act="qm" data-id="backup" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <p class="hint" id="ajOnde"></p>
+      <div class="bkp" id="bkpBox"></div>
       <div class="btns">
         <button class="ghost" type="button" data-act="exp">Exportar backup (.json)</button>
+        <button class="ghost" type="button" data-act="exp-share" id="expShare" hidden>Enviar backup</button>
         <button class="ghost" type="button" data-act="exp-copy">Copiar backup</button>
         <button class="ghost" type="button" data-act="csv-tudo">Exportar planilha (.csv)</button>
         <label class="ghost" style="flex-direction:row;color:var(--fg);font-size:.88rem;font-weight:600;cursor:pointer">Importar backup<input type="file" id="impFile" accept=".json,application/json" hidden></label>
@@ -1011,7 +1018,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 
     <div class="panel">
       <h3>Sobre</h3>
-      <p class="hint">Caixinhas Orologia <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
+      <p class="hint">Orolon Caixinhas <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a> · <a href="#apoie">Apoie o projeto</a></p>
     </div>
   </section>
@@ -1048,7 +1055,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.6.0';
+const VERSION = '1.7.0';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1071,7 +1078,7 @@ const AJUDAS = {
   filtros: 'Procure por descrição, caixinha, forma de pagamento ou valor (por exemplo “uber” ou “50”). Marque “todos os meses” para procurar no histórico inteiro. A lista filtrada pode ser exportada para planilha.',
   graf: 'Compara o que você gastou em cada caixinha com o mês anterior. No mês atual, a comparação é até o mesmo dia do mês, para ser justa. Embaixo, o total gasto nos últimos 6 meses.',
   pin: 'Pede um PIN para abrir o app neste aparelho. Os dados não são criptografados: o PIN só impede que outra pessoa abra o app. Se esquecer o PIN, só dá para entrar apagando os dados, então mantenha um backup.',
-  backup: 'Seus dados ficam só neste aparelho. Exporte um backup de vez em quando e guarde fora dele. Importar um backup substitui tudo o que está aqui.'
+  backup: 'Seus dados ficam só neste aparelho. O app guarda sozinho uma cópia por dia aqui dentro, para desfazer um erro, mas essas cópias somem se o navegador for limpo ou o aparelho se perder. Para ficar seguro de verdade, escolha uma pasta para o backup automático (onde o navegador deixa) ou exporte um backup de vez em quando e guarde fora do aparelho. Importar um backup substitui tudo o que está aqui.'
 };
 const corOk = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : PALETA[0];
 
@@ -1226,11 +1233,103 @@ function diasDesdeBackup(){ const t = lsGet(LS_BKP); return typeof t === 'number
 function backupTexto(){ const d = diasDesdeBackup(); return d === null ? 'Você ainda não fez nenhum backup neste aparelho.' : d === 0 ? 'Último backup: hoje.' : `Último backup: há ${d} ${d === 1 ? 'dia' : 'dias'}.`; }
 function backupBanner(exN){
   if (exN || !hasData(S)) return '';
-  const d = diasDesdeBackup(); if (d !== null && d < 14) return '';
-  return `<div class="banner"><span>${d === null ? 'Você ainda não fez backup dos seus dados.' : 'Seu último backup foi há ' + d + ' dias.'} Se o aparelho for formatado, tudo se perde.</span><button class="ghost" type="button" data-act="exp">Fazer backup</button></div>`;
+  if (Bkp.pasta && Bkp.perm === 'granted' && !Bkp.erro) return '';
+  if (Bkp.pasta && Bkp.perm !== 'granted') return '<div class="banner"><span>O backup automático na pasta está parado: o navegador pede a sua permissão de novo.</span><button class="ghost" type="button" data-act="bkp-perm">Permitir</button></div>';
+  const d = diasDesdeBackup(); if (d !== null && d < 7) return '';
+  return `<div class="banner"><span>${d === null ? 'Você ainda não fez backup dos seus dados.' : 'Seu último backup foi há ' + d + ' dias.'} Se o navegador for limpo ou o aparelho se perder, tudo se perde.</span><button class="ghost" type="button" data-act="exp">Fazer backup</button></div>`;
 }
 
 let S = normalize(lsGet(LS_KEY));
+
+/* ---------- Cópias de segurança automáticas ----------
+   1) Neste aparelho (IndexedDB, separado dos dados): uma cópia por dia e uma antes de importar ou apagar tudo.
+   2) Numa pasta escolhida pela pessoa, onde o navegador deixa: um arquivo por dia, os 7 mais recentes.
+   Nada disso usa rede: a pasta é do próprio aparelho (se ela sincroniza com a nuvem, é o sistema que faz). */
+const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
+  podePasta: typeof window.showDirectoryPicker === 'function' };
+const BKP_DIAS = 7, BKP_ANTES = 3, BKP_ARQ = /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/, LS_BKP_PASTA = 'caixinhas-orologia-backup-pasta';
+function bkpTxt(){ return JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2); }
+function contaLanc(s){ return Object.values(s.meses || {}).reduce((a, m) => a + (m.gastos || []).length + (m.entradas || []).length, 0); }
+function temExemplo(){ return Object.values(S.meses).some(m => (m.gastos || []).some(g => g.ex)) || S.compras.some(c => c.ex) || S.metas.some(m => m.ex); }
+function bkpAbrir(){
+  if (Bkp.db || !Bkp.ok) return Promise.resolve(Bkp.db);
+  return new Promise(ok => {
+    let rq; try { rq = indexedDB.open('caixinhas-orologia-copias', 1); } catch (e) { Bkp.ok = false; return ok(null); }
+    rq.onupgradeneeded = () => { rq.result.createObjectStore('copias', { keyPath: 'id' }); rq.result.createObjectStore('cfg'); };
+    rq.onsuccess = () => { Bkp.db = rq.result; ok(Bkp.db); };
+    rq.onerror = rq.onblocked = () => { Bkp.ok = false; ok(null); };
+  });
+}
+function bkpOp(loja, modo, fn){
+  return bkpAbrir().then(db => !db ? undefined : new Promise(ok => {
+    try { const tx = db.transaction(loja, modo), r = fn(tx.objectStore(loja)); tx.oncomplete = () => ok(r && r.result); tx.onerror = tx.onabort = () => ok(undefined); }
+    catch (e) { ok(undefined); }
+  }));
+}
+async function bkpListar(){ const l = await bkpOp('copias', 'readonly', s => s.getAll()); Bkp.copias = (l || []).sort((a, b) => b.quando - a.quando); return Bkp.copias; }
+/* tipo: 'dia' (uma por dia, a de hoje vai sendo atualizada) ou o motivo de uma cópia "antes de…" */
+async function bkpGuardar(tipo){
+  if (!Bkp.ok || !hasData(S) || temExemplo()) return;
+  const agora = Date.now(), dia = tipo === 'dia';
+  const reg = { id: dia ? 'dia-' + today() : 'antes-' + agora, tipo: dia ? 'dia' : 'antes', rotulo: dia ? '' : tipo, quando: agora, n: contaLanc(S), txt: bkpTxt() };
+  await bkpOp('copias', 'readwrite', s => s.put(reg));
+  const l = await bkpListar();
+  const sobra = l.filter(c => c.tipo === 'dia').slice(BKP_DIAS).concat(l.filter(c => c.tipo === 'antes').slice(BKP_ANTES));
+  if (sobra.length) { await bkpOp('copias', 'readwrite', s => { sobra.forEach(c => s.delete(c.id)); }); await bkpListar(); }
+}
+async function bkpPerm(pedir){
+  if (!Bkp.pasta) return (Bkp.perm = null);
+  try {
+    let p = await Bkp.pasta.queryPermission({ mode: 'readwrite' });
+    if (p !== 'granted' && pedir) p = await Bkp.pasta.requestPermission({ mode: 'readwrite' });
+    Bkp.perm = p;
+  } catch (e) { Bkp.perm = 'denied'; }
+  return Bkp.perm;
+}
+async function bkpNaPasta(){
+  if (!Bkp.pasta || Bkp.perm !== 'granted' || !hasData(S) || temExemplo()) return false;
+  try {
+    const arq = await Bkp.pasta.getFileHandle('caixinhas-backup-' + today() + '.json', { create: true }), w = await arq.createWritable();
+    await w.write(bkpTxt()); await w.close();
+    const nomes = []; for await (const n of Bkp.pasta.keys()) if (BKP_ARQ.test(n)) nomes.push(n);
+    for (const velho of nomes.sort().reverse().slice(BKP_DIAS)) { try { await Bkp.pasta.removeEntry(velho); } catch (e) {} }
+    Bkp.erro = false; Bkp.ultimo = Date.now(); lsSet(LS_BKP_PASTA, Bkp.ultimo); marcaBackup(); return true;
+  } catch (e) { Bkp.erro = true; return false; }
+}
+function bkpAgendar(){
+  if (!Bkp.ok) return;
+  clearTimeout(Bkp.t);
+  Bkp.t = setTimeout(async () => { await bkpGuardar('dia'); await bkpNaPasta(); renderBkp(); }, 1200);
+}
+function bkpQuando(ms){ const iso = isoDate(new Date(ms)), h = new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return (iso === today() ? 'hoje' : dayLabel(iso, true)) + ' às ' + h; }
+function renderBkp(){
+  const box = $('bkpBox'); if (!box) return;
+  const nome = Bkp.pasta ? esc(Bkp.pasta.name || 'escolhida') : '';
+  let pasta;
+  if (!Bkp.podePasta) pasta = '<p class="hint">Este navegador não deixa o app gravar numa pasta sozinho. Use “Enviar backup” ou “Exportar backup” de vez em quando e guarde o arquivo fora do aparelho.</p>';
+  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
+  else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
+  else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p><div class="btns"><button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
+  const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
+      ${Bkp.copias.length ? Bkp.copias.map(c => `<div class="copia"><span>${esc(c.rotulo || 'Cópia do dia')}<small>${esc(bkpQuando(c.quando))}, ${c.n} ${c.n === 1 ? 'lançamento' : 'lançamentos'}</small></span>
+        <span class="btns"><button class="link" type="button" data-act="bkp-rest" data-id="${esc(c.id)}">Restaurar</button><button class="link" type="button" data-act="bkp-baixar" data-id="${esc(c.id)}">Baixar</button></span></div>`).join('') : '<p class="hint">Nenhuma cópia ainda. A primeira aparece depois do seu primeiro lançamento.</p>'}
+      <p class="hint">O app guarda uma cópia por dia (${BKP_DIAS} dias) e uma antes de importar ou apagar tudo. Elas servem para desfazer um erro. Se o navegador for limpo ou o aparelho se perder, elas somem junto.</p></div></details>`;
+  box.innerHTML = '<b>Backup automático</b>' + pasta + copias;
+}
+async function bkpIniciar(){
+  try { const f = new File(['{}'], 'caixinhas-backup.json', { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [f] })) $('expShare').hidden = false; } catch (e) {}
+  await bkpListar();
+  if (Bkp.podePasta) { Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
+  try { if (hasData(S) && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+  renderBkp(); renderInicio(); renderMes();
+  if (hasData(S)) bkpAgendar();
+}
+function baixarJSON(nome, txt){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+function confirmarImport(o){
+  UI.imp = o;
+  const ng = Object.values(o.meses || {}).reduce((a,m)=>a+((m.gastos||[]).length),0);
+  $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${(o.compras||[]).length} compras e ${(o.metas||[]).length} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
+}
 const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
 /* ---------- Armazenamento: conta do ambiente que hospeda a página (db) quando houver, senão este navegador ---------- */
@@ -1250,13 +1349,13 @@ function cloudWrite(id, data, del){
 }
 function persist(opts){
   opts = opts || {};
-  lsSet(LS_KEY, S);
+  lsSet(LS_KEY, S); bkpAgendar();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   if (opts.estado) cloudWrite('estado', estadoDoc());
   (opts.meses || []).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
 }
 function persistAll(oldKeys){
-  lsSet(LS_KEY, S);
+  lsSet(LS_KEY, S); bkpAgendar();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   cloudWrite('estado', estadoDoc());
   Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
@@ -1886,6 +1985,7 @@ function renderAjustes(){
   }
   $('ajOnde').textContent = (Cloud.on ? 'Seus dados ficam salvos na sua conta (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.') + ' ' + backupTexto();
   $('ver').textContent = 'v' + VERSION;
+  renderBkp();
   renderPin();
 }
 function renderTabelas(){
@@ -2146,20 +2246,40 @@ document.addEventListener('click', e => {
     case 'tab-save': S.tabelas = lerTabelas(); persist({ estado: true }); renderAjustes(); renderCalc(); toast('Tabelas salvas'); break;
     case 'tab-reset': S.tabelas = clone(T2026); persist({ estado: true }); renderAjustes(); renderCalc(); toast('Tabelas de 2026 restauradas'); break;
     case 'exp': exportar(); break;
+    case 'exp-share': {
+      const f = new File([bkpTxt()], 'caixinhas-backup-' + today() + '.json', { type: 'application/json' });
+      navigator.share({ files: [f], title: 'Backup do Orolon Caixinhas' }).then(() => { marcaBackup(); renderAll(); toast('Backup enviado'); }, () => {});
+      break;
+    }
+    case 'bkp-pasta': (async () => {
+      let h; try { h = await window.showDirectoryPicker({ id: 'caixinhas-backup', mode: 'readwrite' }); } catch (e) { return; }
+      Bkp.pasta = h; Bkp.ultimo = null; Bkp.erro = false; await bkpOp('cfg', 'readwrite', s => s.put(h, 'pasta'));
+      await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
+      toast(Bkp.perm !== 'granted' ? 'Sem permissão para gravar nessa pasta' : gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');
+    })(); break;
+    case 'bkp-perm': (async () => { await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll(); if (gravou) toast('Backup gravado na pasta'); })(); break;
+    case 'bkp-parar': (async () => { await bkpOp('cfg', 'readwrite', s => s.delete('pasta')); Bkp.pasta = null; Bkp.perm = null; Bkp.erro = false; renderBkp(); renderAll(); toast('O app parou de gravar na pasta. Os arquivos que já estão lá ficam.'); })(); break;
+    case 'bkp-rest': case 'bkp-baixar': {
+      const c = Bkp.copias.find(x => x.id === id); if (!c) break;
+      if (act === 'bkp-baixar') { baixarJSON('caixinhas-backup-' + isoDate(new Date(c.quando)) + '.json', c.txt); break; }
+      try { confirmarImport(JSON.parse(c.txt)); $('impConfirm').scrollIntoView({ block: 'center' }); } catch (e) { toast('Essa cópia não pôde ser lida'); }
+      break;
+    }
     case 'exp-copy': {
       const txt = JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2);
       const fallback = () => { mostrarJSON(txt, 'Selecione o texto abaixo e copie.'); $('expTxt').select(); };
       try { navigator.clipboard.writeText(txt).then(() => { marcaBackup(); renderAll(); toast('Backup copiado. Cole num lugar seguro.'); }, fallback); } catch (err) { fallback(); }
       break;
     }
-    case 'imp-ok': { const old = Object.keys(S.meses); S = normalize(UI.imp); UI.imp = null; UI.cxDraft = null; $('impConfirm').innerHTML = ''; persistAll(old); renderAll(); toast('Backup importado'); break; }
+    case 'imp-ok': { bkpGuardar('Antes de importar'); const old = Object.keys(S.meses); S = normalize(UI.imp); UI.imp = null; UI.cxDraft = null; $('impConfirm').innerHTML = ''; persistAll(old); renderAll(); toast('Backup importado'); break; }
     case 'imp-no': UI.imp = null; $('impConfirm').innerHTML = ''; break;
     case 'exemplo': carregarExemplo(); break;
     case 'ex-clear': apagarExemplos(); break;
     case 'wipe': {
       if (UI.armed !== 'w') { arm('w'); b.textContent = 'Toque de novo para apagar tudo'; b.classList.add('armed'); break; }
       disarm(); b.textContent = 'Apagar tudo'; b.classList.remove('armed');
-      const old = Object.keys(S.meses); S = defaults(); UI.cxDraft = null; persistAll(old); renderAll(); toast('Tudo apagado'); break;
+      bkpGuardar('Antes de apagar tudo').then(renderBkp);
+      const old = Object.keys(S.meses); S = defaults(); UI.cxDraft = null; persistAll(old); renderAll(); toast(Bkp.ok ? 'Tudo apagado. Dá para desfazer em Cópias neste aparelho.' : 'Tudo apagado'); break;
     }
   }
 });
@@ -2187,6 +2307,7 @@ function fecharFolha(peloVoltar){
   try { if (Folha.antes && document.contains(Folha.antes)) Folha.antes.focus({ preventScroll: true }); } catch (e) {}
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && folhaAberta()) fecharFolha(); });
+$('bkpBox').addEventListener('toggle', e => { if (e.target.id === 'bkpCopias') Bkp.aberto = e.target.open; }, true);
 
 /* Formulários */
 $('fGasto').addEventListener('submit', e => {
@@ -2338,9 +2459,7 @@ $('impFile').addEventListener('change', e => {
     try {
       const o = JSON.parse(rd.result);
       if (!o || typeof o !== 'object' || !Array.isArray(o.caixinhas)) throw new Error('formato');
-      UI.imp = o;
-      const ng = Object.values(o.meses || {}).reduce((a,m)=>a+((m.gastos||[]).length),0);
-      $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${(o.compras||[]).length} compras e ${(o.metas||[]).length} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
+      confirmarImport(o);
     } catch (err) { $('impConfirm').innerHTML = '<p class="hint bad">Esse arquivo não é um backup do Caixinhas. Escolha o .json exportado por este app.</p>'; }
     e.target.value = '';
   };
@@ -2492,7 +2611,7 @@ function renderOnb(){
   if ($('inOnb').contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
   const dots = [0,1,2].map(i => `<i class="${i === UI.onb ? 'on' : ''}"></i>`).join('');
   let corpo;
-  if (UI.onb === 0) corpo = `<h3>Bem-vindo ao Caixinhas</h3>
+  if (UI.onb === 0) corpo = `<h3>Bem-vindo ao Orolon Caixinhas</h3>
     <p>Em vez de anotar cada centavo, você divide o dinheiro do mês em <b>caixinhas</b> (por exemplo Lazer, Dia a dia e Objetivos), cada uma com um limite. Ao lançar um gasto, o app mostra se ele cabe e quanto sobra por dia.</p>
     <p class="hint">Tudo fica só neste aparelho: sem conta, sem internet.</p>
     <div class="btns"><button class="primary" type="button" data-act="onb-next">Começar</button>${UI.onbReplay ? '' : '<button class="ghost" type="button" data-act="onb-exemplo">Ver com dados de exemplo</button>'}<button class="link" type="button" data-act="onb-skip">${UI.onbReplay ? 'Fechar' : 'Pular'}</button></div>`;
@@ -2629,6 +2748,7 @@ $('trava').addEventListener('click', e => {
   else if (a === 'zerar') {
     if (!Trava.zerar) { Trava.zerar = true; b.textContent = 'Toque de novo para apagar tudo'; b.classList.add('armed'); return; }
     try { localStorage.removeItem(LS_PIN); } catch (err) {}
+    bkpGuardar('Antes de apagar pelo PIN esquecido');
     const old = Object.keys(S.meses); S = defaults(); UI.cxDraft = null; UI.editG = null; persistAll(old);
     destravar(); renderAll(); go('inicio'); toast('Dados apagados. Recomece ou importe um backup.');
   }
@@ -2678,6 +2798,7 @@ loadCalcInputs();
 renderAll(); route();
 if (pinCfg()) travar(); else document.documentElement.removeAttribute('data-trava');
 connectCloud();
+bkpIniciar();
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
