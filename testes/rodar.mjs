@@ -259,13 +259,15 @@ const TESTES = {
     await p.espera(1900);
     igual(await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); let n = 0; for await (const k of d.keys()) if (k.startsWith("caixinhas-backup-")) n++; return n; }), 7, "arquivos de backup na pasta");
   },
-  "Abertura longa toca uma vez por dia": { movimento: true, fn: async (p) => {
+  "Abertura longa toca toda vez que o app abre; ao voltar para o Início, a curta": { movimento: true, fn: async (p) => {
     await comExemplo(p);
     await p.espera(2200);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "primeira abertura do dia");
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura longa");
-    await p.recarregar(); await p.espera(1000);
-    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "curta", "segunda abertura do dia");
+    await p.recarregar(); await p.espera(300);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "abrir o app de novo no mesmo dia");
+    await p.espera(2200); await p.aba("mes"); await p.aba("inicio"); await p.espera(700);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "curta", "voltar para o Início sem fechar o app");
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura curta");
   } },
   "Durante a abertura a sobra conta até o valor": { movimento: true, fn: async (p) => {
@@ -353,8 +355,8 @@ const TESTES = {
     igual(await p.texto('#inCx .cxl[data-cx="lazer"] .v'), "R$ 470,10", "sobra do Lazer");
   } },
   "Abertura curta: só o anel e as barras contam, os números já vêm certos": { movimento: true, fn: async (p) => {
-    await comExemplo(p); await p.espera(2200); // a longa do dia já tocou
-    await p.avaliar(() => { location.reload(); }).catch(() => {});
+    await comExemplo(p); await p.espera(2300); // a longa já tocou
+    await p.aba("mes"); await p.avaliar(() => { location.hash = "#inicio"; }); // voltar para o Início toca a curta
     const vistos = [];
     for (let i = 0; i < 12; i++) { await p.espera(30); const v = await p.avaliar(() => { const b = document.querySelector("#inResumo .big"), l = document.querySelector('#inCx .cxl[data-cx="lazer"] .v'); return b && l && b.textContent ? (b.textContent + " | " + l.textContent).replace(/\s/g, " ") : null; }).catch(() => null); if (v) vistos.push(v); }
     certo(vistos.length >= 3, "poucas amostras: " + vistos.length);

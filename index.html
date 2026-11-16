@@ -2996,7 +2996,7 @@ function renderOnb(){
    O mostrador e as linhas das caixinhas são montados uma vez (montarInicio) e só os números mudam (desenharInicio).
    Vis.g é o gasto "visto" de cada caixinha: anda até o gasto real por tween(). */
 const Vis = { chave: null, fixo: null, fin: 0, abreDe: 0, abreAte: 0, g: {}, ent: {}, dia: 0, seg: {}, linhas: {}, lim: {}, ids: [], limTotal: 0, orfaos: 0, dl: 0, alvo: '', abriu: false, ultima: 0, el: {} };
-const LS_ABERTURA = 'caixinhas-orologia-abertura', DIAL_R = 92, DIAL_VOLTA = 2 * Math.PI * DIAL_R, DIAL_RF = 112, DIAL_VF = 2 * Math.PI * DIAL_RF;
+const DIAL_R = 92, DIAL_VOLTA = 2 * Math.PI * DIAL_R, DIAL_RF = 112, DIAL_VF = 2 * Math.PI * DIAL_RF;
 const n2 = v => Math.round(v * 100) / 100;
 /* Mostrador do mês: cada pedaço do anel é uma caixinha (tamanho = limite; parte acesa = gasto).
    O fio de fora, em âmbar, mostra quanto do mês já passou. */
@@ -3069,13 +3069,12 @@ function desenharInicio(){
   E.fio.setAttribute('stroke-dasharray', n2(d / 100 * DIAL_VF) + ' ' + n2(DIAL_VF));
   E.ponto.setAttribute('cx', n2(120 + Math.sin(a) * DIAL_RF)); E.ponto.setAttribute('cy', n2(120 - Math.cos(a) * DIAL_RF));
 }
-/* Abertura: a longa (mostrador gira, fio corre, pedaços e linhas em sequência) toca uma vez por dia; depois, só a curta. */
+/* Abertura: a longa (mostrador gira, fio corre, pedaços e linhas em sequência) toca cada vez que o app abre; ao voltar para o Início, só a curta. */
 function abertura(longa, alvo, diaPct){
   pararMov();
   Vis.abriu = true; Vis.ultima = Date.now();
   Vis.fixo = longa ? null : Object.assign({}, alvo); Vis.abreDe = Date.now(); Vis.abreAte = longa ? Vis.abreDe + 1500 : 0;
   $('inResumo').dataset.abertura = longa ? 'longa' : 'curta';
-  if (longa) lsSet(LS_ABERTURA, today());
   Vis.ids.forEach(id => { Vis.g[id] = 0; Vis.ent[id] = longa ? 0 : 1; });
   Vis.dia = longa ? 0 : diaPct; desenharInicio();
   if (longa) {
@@ -3170,7 +3169,7 @@ function renderInicio(){
   if (Vis.el.dial) Vis.el.dial.setAttribute('aria-label', (R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0) + '% do limite do mês gasto, com ' + Math.round(diaPct) + '% do mês passado');
   if (!Vis.abriu) {
     // a abertura espera o Início estar à vista e haver dados; até lá, tudo aparece pronto
-    if (inicioVisivel() && hasData(S)) abertura(movLigado() && lsGet(LS_ABERTURA) !== today(), alvo, diaPct);
+    if (inicioVisivel() && hasData(S)) abertura(movLigado(), alvo, diaPct); // a longa toca a cada vez que o app abre; voltar para o Início sem fechar toca a curta
     else { Vis.ids.forEach(id => { Vis.g[id] = alvo[id]; Vis.ent[id] = 1; }); Vis.dia = diaPct; desenharInicio(); }
   } else if (alvoTxt !== Vis.alvo) {
     // uma mudança nova interrompe a animação em curso e parte do valor final dela; na abertura longa só as contagens são trocadas, o giro e o fio seguem
