@@ -1,5 +1,5 @@
 // Testes do Caixinhas: abre o app de verdade num Chrome sem janela e confere o que cada teste pede.
-// Uso: node testes/rodar.mjs        (prints em testes/prints/)
+// Uso: node testes/rodar.mjs ["parte do nome"]        (prints em testes/prints/)
 // Não usa nenhuma biblioteca: fala com o Chrome pelo protocolo DevTools com o WebSocket do próprio Node.
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile, mkdtemp, rm } from "node:fs/promises";
@@ -94,6 +94,7 @@ async function novaPagina(cr, base, movimento = false, largura = 360, altura = 7
 const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${JSON.stringify(b)}, veio ${JSON.stringify(a)}`); };
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
 const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
+const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-calc="' + qual + '"]'); };
 const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a.playState === "running").length);
 // aporta na meta cujo cartão contém o nome dado
 const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
@@ -398,7 +399,7 @@ const TESTES = {
     certo(alturas.length === 6 && alturas.every((h) => h > 0), "barras sem altura no fim: " + alturas.join(","));
   } },
   "Simulador se desenha ao entrar, mas não a cada tecla": { movimento: true, fn: async (p) => {
-    await comExemplo(p); await p.aba("metas");
+    await comExemplo(p); await calc(p, "sim");
     const naCurva = () => p.avaliar(() => [...document.querySelectorAll("#simChart .ga-tot, #simChart .ga-bola")].reduce((a, g) => a + g.getAnimations().length, 0));
     certo((await naCurva()) > 0, "a curva do simulador não se desenhou");
     await p.espera(2000);
@@ -452,13 +453,13 @@ const TESTES = {
   "Caixas de marcar mostram o texto em linha, sem espremer": async (p) => {
     await comExemplo(p);
     await p.tamanho(700, 900);
-    for (const [aba, id] of [["metas", "simIR"], ["mes", "fTodos"], ["cartao", "cAss"]]) {
-      await p.aba(aba);
+    for (const [aba, id] of [["calc", "simIR"], ["mes", "fTodos"], ["cartao", "cAss"]]) {
+      await p.aba(aba); if (aba === "calc") await p.clicar('[data-calc="sim"]');
       const m = await p.avaliar((id) => { const e = document.getElementById(id); if (!e) return null; const r = e.closest("label").getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; }, id);
       certo(m, "não achei a caixa " + id);
       certo(m.w > 150 && m.h < 60, "o texto da caixa " + id + " está espremido: " + m.w + "x" + m.h);
     }
-    await p.aba("metas");
+    await calc(p, "sim");
     const fora = await p.avaliar(() => { const s = document.querySelector("#simChart svg").getBoundingClientRect(); return [...document.querySelectorAll("#simChart svg text")].filter((x) => { const r = x.getBoundingClientRect(); return r.right > s.right + 0.5 || r.left < s.left - 0.5; }).map((x) => x.textContent); });
     igual(fora.join(","), "", "textos do gráfico cortados na borda");
     await p.avaliar(() => document.querySelector("#fSim").scrollIntoView()); await p.espera(3600);
@@ -481,6 +482,71 @@ const TESTES = {
       igual(await p.avaliar(() => document.getAnimations().filter((a) => !a.animationName || !a.animationName.startsWith("fl-")).length), 0, "animações na aba " + t);
     }
   },
+  "Calculadoras: financiamento compara SAC e PRICE": async (p) => {
+    await comExemplo(p); await calc(p, "fin");
+    igual(await p.texto("#v-calc .eyebrow"), "Calculadoras", "nome da tela");
+    // 12,682503% ao ano = 1% ao mês; R$ 200.000 em 240 meses
+    await p.digitar("#iValor", "250000"); await p.digitar("#iEntrada", "50000"); await p.digitar("#iJuros", "12,682503"); await p.digitar("#iAnos", "20");
+    await p.digitar("#iCorr", "0"); await p.digitar("#iRenda", ""); await p.digitar("#iExtra", "");
+    const sac = await p.texto("#finSac"), price = await p.texto("#finPrice");
+    certo(sac.includes("R$ 2.833,33") && sac.includes("R$ 841,67") && sac.includes("R$ 441.000,00") && sac.includes("20 anos"), "SAC: " + sac);
+    certo(price.includes("R$ 2.202,17") && price.includes("R$ 528.521,") && price.includes("20 anos"), "PRICE: " + price);
+    igual(await p.texto("#finAviso"), "", "sem renda não há aviso");
+    await p.digitar("#iRenda", "5000");
+    certo((await p.texto("#finAviso")).includes("57% no SAC"), "aviso de parcela acima de 30% da renda: " + await p.texto("#finAviso"));
+    await p.digitar("#iRenda", "20000");
+    igual(await p.texto("#finAviso"), "", "parcela dentro de 30% da renda não avisa");
+    await p.digitar("#iExtra", "500");
+    const sac2 = await p.texto("#finSac");
+    certo(!sac2.includes("20 anos") && sac2.includes("economiza"), "amortização extra devia encurtar o prazo e dizer a economia: " + sac2);
+    certo((await p.texto("#finPrice")).includes("economiza"), "PRICE com extra: " + await p.texto("#finPrice"));
+    await p.digitar("#iValor", "0"); // entradas vazias ou absurdas não quebram a conta
+    certo(!/NaN|Infinity|undefined/.test(await p.texto("#c-fin")), "conta quebrada: " + await p.texto("#c-fin"));
+    await p.digitar("#iValor", "250000"); await p.digitar("#iJuros", "0"); await p.digitar("#iExtra", "");
+    certo((await p.texto("#finPrice")).includes("R$ 833,33"), "sem juros a parcela é o valor dividido pelo prazo: " + await p.texto("#finPrice"));
+    await p.print("12-financiamento");
+    await p.tamanho(900, 800); await p.espera(150); await p.print("12-financiamento-pc");
+    const sobra = await p.avaliar(() => document.documentElement.scrollWidth - window.innerWidth);
+    certo(sobra <= 0, "a tela passa " + sobra + "px da largura no PC");
+  },
+  "Financiamento com correção: a parcela acompanha o índice e a dívida fecha no prazo": async (p) => {
+    await comExemplo(p); await calc(p, "fin");
+    await p.digitar("#iValor", "250000"); await p.digitar("#iEntrada", "50000"); await p.digitar("#iJuros", "12,682503"); await p.digitar("#iAnos", "20");
+    await p.digitar("#iCorr", "5"); await p.digitar("#iRenda", ""); await p.digitar("#iExtra", "");
+    const sac = await p.texto("#finSac"), price = await p.texto("#finPrice");
+    certo(sac.includes("20 anos") && price.includes("20 anos"), "com correção e sem extra o prazo continua o contratado: " + sac + " | " + price);
+    certo(!sac.includes("R$ 441.000,00"), "a correção devia aumentar o total pago: " + sac);
+  },
+  "Simuladores ficam em Calculadoras e Metas leva até eles": async (p) => {
+    await comExemplo(p); await p.aba("metas");
+    igual(await p.avaliar(() => !!document.querySelector("#v-metas #simChart, #v-metas #fPmt")), false, "os simuladores ainda estão em Metas");
+    await p.clicar('#v-metas [data-act="simular"]');
+    igual(await p.abaAtual(), "calc", "o atalho abre Calculadoras");
+    certo(await p.visivel("#simChart svg"), "o simulador de juros devia estar à vista");
+    certo((await p.texto("#simOut")).includes("Total em 5 anos"), "resultado do simulador: " + await p.texto("#simOut"));
+    await p.clicar('[data-calc="pmt"]');
+    certo((await p.texto("#pmtOut")).includes("Guardar por mês"), "quanto guardar: " + await p.texto("#pmtOut"));
+    igual(await p.visivel("#simChart svg"), false, "só uma calculadora por vez");
+  },
+  "Mês mostra os 8 lançamentos mais recentes e o resto a pedido": async (p) => {
+    await comExemplo(p);
+    for (let i = 1; i <= 9; i++) await lancar(p, i, "Teste " + i);
+    await p.aba("mes");
+    const itens = () => p.avaliar(() => document.querySelectorAll("#mesLista .item").length);
+    const total = await p.avaliar(() => { const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); return JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses[k].gastos.length; });
+    certo(total > 8, "o exemplo devia ter mais de 8 gastos: " + total);
+    igual(await itens(), 8, "lançamentos à vista");
+    certo((await p.texto("#mesLista")).includes("Teste 9"), "os mais recentes ficam à vista");
+    igual(await p.texto('[data-act="lista-toda"]'), "Mostrar todos (" + total + ")", "botão de mostrar todos");
+    await p.digitar("#fBusca", "Teste"); await p.espera(100);
+    igual(await itens(), 9, "a busca mostra todos os resultados");
+    await p.digitar("#fBusca", ""); await p.espera(100);
+    await p.clicar('[data-act="lista-toda"]');
+    igual(await itens(), total, "todos os lançamentos depois de pedir");
+    igual(await p.texto('[data-act="lista-toda"]'), "Mostrar só os mais recentes", "botão de recolher");
+    await p.aba("inicio"); await p.aba("mes");
+    igual(await itens(), 8, "ao voltar para a tela, a lista está curta de novo");
+  },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);
@@ -500,7 +566,8 @@ const base = `http://127.0.0.1:${srv.address().port}`;
 const cr = await abrirChrome();
 let falhas = 0;
 // um teste é uma função (movimento desligado) ou { movimento: true, fn } para testar as animações
-for (const [nome, t] of Object.entries(TESTES)) {
+const SO = process.argv[2]; // opcional: roda só os testes cujo nome contém este texto
+for (const [nome, t] of Object.entries(TESTES).filter(([n]) => !SO || n.includes(SO))) {
   const fn = typeof t === "function" ? t : t.fn;
   const p = await novaPagina(cr, base, typeof t !== "function" && !!t.movimento);
   try {

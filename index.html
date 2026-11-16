@@ -216,6 +216,9 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .out .r.key span:first-child{color:var(--fg)}
 .out .r.key span:last-child{color:var(--accent);font-family:var(--display);font-size:1.25rem}
 .out .r.sub{font-size:.8rem;padding:4px 0 4px 12px}
+.fin-lado{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.fin-lado h4{margin:0 0 6px;font-size:.95rem}.fin-lado h4 small{font-weight:500;color:var(--muted);font-size:.74rem;margin-left:6px}
+.aviso-fin{margin:0;color:var(--warn);font-weight:600;font-size:.88rem}.aviso-fin:empty{display:none}
 .calc-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .calc-tabs button{flex:none;border:1px solid var(--line);background:var(--deep);border-radius:999px;padding:7px 13px;font-size:.85rem;font-weight:600;color:var(--muted)}
 .calc-tabs button[aria-selected="true"]{color:var(--accent-ink);background:var(--gold);border-color:var(--gold)}
@@ -846,36 +849,13 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       </form>
     </details>
 
-    <div class="panel">
-      <div class="vhead qh"><h3>Simulador de juros compostos</h3><button class="qm" type="button" data-act="qm" data-id="juros" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
-      <form class="row tight" id="fSim" autocomplete="off">
-        <label>Começo (R$)<input id="simIni" inputmode="decimal" value="1000"></label>
-        <label>Aporte/mês (R$)<input id="simAp" inputmode="decimal" value="300"></label>
-        <label>Rende % a.a.<input id="simTaxa" inputmode="decimal"></label>
-        <label>Anos<input id="simAnos" inputmode="numeric" value="5"></label>
-        <label>Inflação % a.a.<input id="simInf" inputmode="decimal" value="4,5"></label>
-      </form>
-      <label class="check"><input type="checkbox" id="simIR" checked> Descontar IR no resgate (tabela regressiva de CDB/Tesouro)</label>
-      <div id="simChart"></div>
-      <div class="out" id="simOut"></div>
-    </div>
-
-    <div class="panel">
-      <div class="vhead qh"><h3>Quanto guardar por mês?</h3><button class="qm" type="button" data-act="qm" data-id="guardar" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
-      <form class="row tight" id="fPmt" autocomplete="off">
-        <label>Quero juntar (R$)<input id="pAlvo" inputmode="decimal" value="6000"></label>
-        <label>Já tenho (R$)<input id="pAtual" inputmode="decimal" value="0"></label>
-        <label>Em quantos meses<input id="pMeses" inputmode="numeric" value="24"></label>
-        <label>Rende % a.a.<input id="pTaxa" inputmode="decimal"></label>
-      </form>
-      <div class="out" id="pmtOut"></div>
-    </div>
+    <button class="ghost" type="button" data-act="simular">Simular juros e quanto guardar por mês</button>
   </section>
 
   <!-- ===================== CALCULADORAS ===================== -->
   <section class="view" id="v-calc" hidden>
     <div class="vhead">
-      <div><p class="eyebrow">Calculadoras CLT</p><h2>Faça as contas na mão <button class="qm" type="button" data-act="qm" data-id="clt" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></h2></div><button class="ghost" type="button" data-go="inicio">Voltar ao Início</button>
+      <div><p class="eyebrow">Calculadoras</p><h2>Faça as contas na mão <button class="qm" type="button" data-act="qm" data-id="clt" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></h2></div><button class="ghost" type="button" data-go="inicio">Voltar ao Início</button>
     </div>
     <div class="calc-tabs" role="tablist" aria-label="Calculadoras">
       <button type="button" role="tab" data-calc="liq" aria-selected="true">Salário líquido</button>
@@ -883,6 +863,9 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <button type="button" role="tab" data-calc="dec" aria-selected="false">13º salário</button>
       <button type="button" role="tab" data-calc="fer" aria-selected="false">Férias</button>
       <button type="button" role="tab" data-calc="fgts" aria-selected="false">FGTS saque-aniversário</button>
+      <button type="button" role="tab" data-calc="fin" aria-selected="false">Financiamento</button>
+      <button type="button" role="tab" data-calc="sim" aria-selected="false">Juros compostos</button>
+      <button type="button" role="tab" data-calc="pmt" aria-selected="false">Quanto guardar</button>
     </div>
 
     <form class="panel calc" id="c-liq" autocomplete="off">
@@ -946,7 +929,51 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <div class="out" id="fgtsOut"></div>
       <p class="hint">Quem opta pelo saque-aniversário não saca o saldo inteiro se for demitido sem justa causa (recebe só a multa de 40%). Voltar ao saque-rescisão leva 25 meses.</p>
     </form>
-    <p class="hint">As tabelas de INSS e IR ficam em Ajustes e podem ser atualizadas quando mudarem. Os resultados são estimativas: arredondamentos e verbas da empresa podem mudar alguns centavos.</p>
+    <form class="panel calc" id="c-fin" autocomplete="off" hidden>
+      <div class="vhead qh"><h3>Financiamento de imóvel</h3><button class="qm" type="button" data-act="qm" data-id="fin" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <div class="row tight">
+        <label>Valor do imóvel (R$)<input id="iValor" inputmode="decimal" value="300000"></label>
+        <label>Entrada (R$)<input id="iEntrada" inputmode="decimal" value="60000"></label>
+        <label>Juros % a.a.<input id="iJuros" inputmode="decimal" value="10,5"></label>
+        <label>Prazo (anos)<input id="iAnos" inputmode="numeric" value="30"></label>
+      </div>
+      <div class="row tight">
+        <label>Correção % a.a. (TR, IPCA)<input id="iCorr" inputmode="decimal" value="0"></label>
+        <label>Sua renda mensal (R$)<input id="iRenda" inputmode="decimal" placeholder="opcional"></label>
+        <label>Amortização extra/mês (R$)<input id="iExtra" inputmode="decimal" placeholder="opcional"></label>
+      </div>
+      <p class="aviso-fin" id="finAviso" role="status"></p>
+      <div class="fin-lado">
+        <div><h4>SAC <small>parcela começa maior e cai</small></h4><div class="out" id="finSac"></div></div>
+        <div><h4>PRICE <small>parcela igual do começo ao fim</small></h4><div class="out" id="finPrice"></div></div>
+      </div>
+      <p class="hint">É uma estimativa para comparar os dois sistemas. O banco ainda soma seguros e taxas à parcela, e a correção real muda mês a mês.</p>
+    </form>
+    <div class="panel" id="c-sim" hidden>
+      <div class="vhead qh"><h3>Simulador de juros compostos</h3><button class="qm" type="button" data-act="qm" data-id="juros" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <form class="row tight" id="fSim" autocomplete="off">
+        <label>Começo (R$)<input id="simIni" inputmode="decimal" value="1000"></label>
+        <label>Aporte/mês (R$)<input id="simAp" inputmode="decimal" value="300"></label>
+        <label>Rende % a.a.<input id="simTaxa" inputmode="decimal"></label>
+        <label>Anos<input id="simAnos" inputmode="numeric" value="5"></label>
+        <label>Inflação % a.a.<input id="simInf" inputmode="decimal" value="4,5"></label>
+      </form>
+      <label class="check"><input type="checkbox" id="simIR" checked> Descontar IR no resgate (tabela regressiva de CDB/Tesouro)</label>
+      <div id="simChart"></div>
+      <div class="out" id="simOut"></div>
+    </div>
+
+    <div class="panel" id="c-pmt" hidden>
+      <div class="vhead qh"><h3>Quanto guardar por mês?</h3><button class="qm" type="button" data-act="qm" data-id="guardar" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <form class="row tight" id="fPmt" autocomplete="off">
+        <label>Quero juntar (R$)<input id="pAlvo" inputmode="decimal" value="6000"></label>
+        <label>Já tenho (R$)<input id="pAtual" inputmode="decimal" value="0"></label>
+        <label>Em quantos meses<input id="pMeses" inputmode="numeric" value="24"></label>
+        <label>Rende % a.a.<input id="pTaxa" inputmode="decimal"></label>
+      </form>
+      <div class="out" id="pmtOut"></div>
+    </div>
+    <p class="hint" id="calcNota">As tabelas de INSS e IR ficam em Ajustes e podem ser atualizadas quando mudarem. Os resultados são estimativas: arredondamentos e verbas da empresa podem mudar alguns centavos.</p>
   </section>
 
 
@@ -1086,6 +1113,7 @@ const AJUDAS = {
   terceiros: 'Compras no seu cartão que são de outras pessoas. Marque como recebido quando a pessoa te pagar.',
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
+  fin: 'Compara os dois sistemas de financiamento. No SAC a parcela começa maior e vai caindo; no PRICE ela é igual do começo ao fim e o total pago é maior. A amortização extra é um valor a mais pago todo mês, que encurta o prazo.',
   clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
   caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca o ícone e a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
   selic: 'A taxa de referência é usada como rendimento padrão nas metas e nos simuladores. Atualize quando a Selic ou o CDI mudar.',
@@ -1560,7 +1588,9 @@ function renderLista(k){
   const limpar = '<button class="link" type="button" data-act="filtro-limpar">Limpar filtros</button>';
   $('fResumo').innerHTML = gs.length ? `${filtrando ? `Total encontrado: <b class="num">${fmt(tot)}</b> · ` : ''}<button class="link" type="button" data-act="csv-lista">Exportar esta lista (.csv)</button>${filtrando ? ' · ' + limpar : ''}` : (filtrando ? limpar : '');
   let lastDay = '';
-  $('mesLista').innerHTML = gs.length ? gs.map(g => {
+  const CURTA = 8, toda = filtrando || UI.listaToda || gs.length <= CURTA; // sem busca nem filtro, só os mais recentes; o resto a pedido
+  const mais = !filtrando && gs.length > CURTA ? `<button class="ghost" type="button" data-act="lista-toda">${UI.listaToda ? 'Mostrar só os mais recentes' : `Mostrar todos (${gs.length})`}</button>` : '';
+  $('mesLista').innerHTML = gs.length ? (toda ? gs : gs.slice(0, CURTA)).map(g => {
     const c = cx(g.caixinha); let head = '';
     if (g.data !== lastDay) { lastDay = g.data; head = `<div class="daygroup">${esc(dayLabel(g.data, todos))}</div>`; }
     return head + `<div class="item">
@@ -1570,7 +1600,7 @@ function renderLista(k){
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
       <span class="act"><button class="link" type="button" data-act="ed-gasto" data-id="${esc(g.id)}">Editar</button><button class="link ${UI.armed === 'g:' + g.id ? 'armed' : ''}" type="button" data-act="del-gasto" data-id="${esc(g.id)}">${UI.armed === 'g:' + g.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`;
-  }).join('') : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
+  }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
 function renderGraf(k){
   if (!$('dGraf').open) return;
@@ -1853,8 +1883,7 @@ function renderMetas(){
     </div>`;
   }).join('') : `<p class="empty">Nenhuma meta ainda. Crie a primeira em “Nova meta” (comece pela reserva de emergência: uns 6 meses de gastos).</p>`;
   if (!ms.length && !UI.editMeta) $('dMeta').open = true;
-  ['mTaxa','simTaxa','pTaxa'].forEach(id => { if (!$(id).value) $(id).value = numStr(S.taxaRef); });
-  renderSim(); renderPmt();
+  ['mTaxa'].forEach(id => { if (!$(id).value) $(id).value = numStr(S.taxaRef); });
 }
 function renderSim(){
   const ini = numOr($('simIni').value), ap = numOr($('simAp').value), aa = numOr($('simTaxa').value), anos = Math.min(60, Math.max(1, Math.round(numOr($('simAnos').value, 1))));
@@ -1976,10 +2005,53 @@ function calcFgts(){
     { k: 'Fica no FGTS', v: fmt(s - v) }
   ]);
 }
-const CALCS = { liq: calcLiq, not: calcNot, dec: calcDec, fer: calcFer, fgts: calcFgts };
+/* Financiamento: SAC (amortização fixa) e PRICE (parcela fixa). A correção reajusta saldo, amortização e parcela todo mês;
+   a amortização extra abate o saldo e encurta o prazo. Devolve os números de um sistema. */
+function financiar(sistema, P, aa, meses, corr, extra){
+  const i = taxaMes(aa), c = taxaMes(corr);
+  let saldo = P, am = P / meses, parc = i > 0 ? P * i / (1 - Math.pow(1 + i, -meses)) : P / meses;
+  let total = 0, juros = 0, primeira = 0, ultima = 0, m = 0;
+  while (saldo > 0.005 && m < 1200) {
+    m++; saldo *= 1 + c; am *= 1 + c; parc *= 1 + c;
+    const j = saldo * i; let a = sistema === 'sac' ? am : parc - j;
+    if (a <= 0) return null; // a parcela não cobre nem os juros
+    if (a > saldo || (m === meses && extra <= 0)) a = saldo;
+    const paga = a + j; saldo -= a; juros += j;
+    const e = Math.min(Math.max(0, extra), saldo); saldo -= e;
+    total += paga + e; if (m === 1) primeira = paga; ultima = paga;
+  }
+  return { primeira, ultima, total, custo: total - P, meses: m };
+}
+function prazoTxt(m){ const a = Math.floor(m / 12), r = m % 12; return [a ? a + (a === 1 ? ' ano' : ' anos') : '', r ? r + (r === 1 ? ' mês' : ' meses') : ''].filter(Boolean).join(' e ') || '0 meses'; }
+function calcFin(){
+  const valor = Math.max(0, numOr($('iValor').value)), P = Math.max(0, valor - Math.max(0, numOr($('iEntrada').value)));
+  const aa = Math.min(200, Math.max(0, numOr($('iJuros').value))), meses = Math.min(50, Math.max(1, Math.round(numOr($('iAnos').value, 1)))) * 12;
+  const corr = Math.min(100, Math.max(0, numOr($('iCorr').value))), renda = Math.max(0, numOr($('iRenda').value)), extra = Math.max(0, numOr($('iExtra').value));
+  const lado = sis => {
+    if (P <= 0) return '<p class="hint">Informe o valor do imóvel e a entrada.</p>';
+    const f = financiar(sis, P, aa, meses, corr, extra), base = extra > 0 ? financiar(sis, P, aa, meses, corr, 0) : null;
+    if (!f) return '<p class="hint">Com esses números a parcela não cobre os juros.</p>';
+    return `<div class="r key"><span>Primeira parcela</span><span class="num">${fmt(f.primeira)}</span></div>
+      <div class="r"><span>Última parcela</span><span class="num">${fmt(f.ultima)}</span></div>
+      <div class="r"><span>Total pago</span><span class="num">${fmt(f.total)}</span></div>
+      <div class="r minus"><span>${corr > 0 ? 'Juros e correção' : 'Juros'}</span><span class="num">${fmt(f.custo)}</span></div>
+      <div class="r"><span>Prazo</span><span class="num">${prazoTxt(f.meses)}</span></div>
+      ${base ? `<div class="r sub"><span>A amortização extra economiza</span><span class="num">${fmt(Math.max(0, base.total - f.total))} e ${prazoTxt(Math.max(0, base.meses - f.meses))}</span></div>` : ''}`;
+  };
+  $('finSac').innerHTML = lado('sac'); $('finPrice').innerHTML = lado('price');
+  const s1 = P > 0 ? financiar('sac', P, aa, meses, corr, 0) : null, p1 = P > 0 ? financiar('price', P, aa, meses, corr, 0) : null;
+  const acima = renda > 0 ? [['SAC', s1], ['PRICE', p1]].filter(x => x[1] && x[1].primeira > renda * 0.3) : [];
+  $('finAviso').textContent = acima.length ? 'A primeira parcela passa de 30% da sua renda: ' + acima.map(x => Math.round(x[1].primeira / renda * 100) + '% no ' + x[0]).join(' e ') + '. Bancos costumam recusar acima disso.' : '';
+}
+const CALCS = { liq: calcLiq, not: calcNot, dec: calcDec, fer: calcFer, fgts: calcFgts, fin: calcFin, sim: renderSim, pmt: renderPmt };
 function renderCalc(){
   document.querySelectorAll('.calc-tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.calc === UI.calc)));
+  if (!CALCS[UI.calc]) UI.calc = 'liq';
+  const sel = document.querySelector('.calc-tabs [data-calc="' + UI.calc + '"]'), fx = sel && sel.parentNode; // a aba escolhida fica à vista na fila que rola
+  if (fx && !$('v-calc').hidden) fx.scrollLeft = Math.max(0, sel.offsetLeft - fx.offsetLeft - (fx.clientWidth - sel.offsetWidth) / 2);
   Object.keys(CALCS).forEach(k => { $('c-' + k).hidden = k !== UI.calc; });
+  ['simTaxa','pTaxa'].forEach(id => { if (!$(id).value) $(id).value = numStr(S.taxaRef); });
+  $('calcNota').hidden = ['fin','sim','pmt'].includes(UI.calc);
   CALCS[UI.calc]();
 }
 function saveCalcInputs(){
@@ -2151,6 +2223,7 @@ document.addEventListener('click', e => {
       if (!gs.length) { toast('A lista está vazia'); break; }
       baixarArquivo('caixinhas-lista-' + today() + '.csv', gerarCSV(gs.map(linhaGasto)), 'text/csv;charset=utf-8', 'csvBoxLista'); break;
     }
+    case 'lista-toda': UI.listaToda = !UI.listaToda; renderLista(UI.mes); break;
     case 'filtro-limpar': $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false; renderLista(UI.mes); break;
     case 'qm': {
       const host = b.closest('.vhead, .total, .hero, .folha-topo') || b.parentElement, nx = host.nextElementSibling;
@@ -2256,6 +2329,7 @@ document.addEventListener('click', e => {
       if (UI.armed !== 'm:' + id) { arm('m:' + id); renderMetas(); break; }
       disarm(); S.metas = S.metas.filter(m => m.id !== id); persist({ estado: true }); renderMetas(); toast('Meta apagada'); break;
     }
+    case 'simular': UI.calc = 'sim'; go('calc'); break;
     case 'not-usar': { if (UI.not) { $('lSal').value = numStr(UI.not.sal); $('lNot').value = numStr(UI.not.adic); $('lDsr').value = numStr(UI.not.dsr); UI.calc = 'liq'; saveCalcInputs(); renderCalc(); toast('Valores levados para o salário líquido'); } break; }
     case 'cx-add': UI.cxDraft.push({ id: 'cx' + uid(), nome: 'Nova caixinha', cor: PALETA[UI.cxDraft.length % PALETA.length], ajuda: '', limite: 0 }); disarm(); renderAjustes(); break;
     case 'cx-cor': UI.cxDraft[+b.dataset.i].cor = b.dataset.cor; renderAjustes(); break;
@@ -2499,7 +2573,7 @@ $('fSim').addEventListener('input', renderSim); $('simIR').addEventListener('cha
 $('fPmt').addEventListener('input', renderPmt);
 ['fSim','fPmt'].forEach(id => $(id).addEventListener('submit', e => e.preventDefault()));
 
-document.querySelector('.calc-tabs').addEventListener('click', e => { const b = e.target.closest('[data-calc]'); if (!b) return; UI.calc = b.dataset.calc; renderCalc(); });
+document.querySelector('.calc-tabs').addEventListener('click', e => { const b = e.target.closest('[data-calc]'); if (!b) return; UI.calc = b.dataset.calc; renderCalc(); if (UI.calc === 'sim') animarGraficos($('simChart')); });
 document.querySelectorAll('form.calc').forEach(f => {
   f.addEventListener('input', () => { CALCS[UI.calc](); clearTimeout(UI.cT); UI.cT = setTimeout(saveCalcInputs, 500); });
   f.addEventListener('submit', e => e.preventDefault());
@@ -2634,11 +2708,13 @@ function route(){
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio', calc: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   const trocou = UI.abaVista !== t; UI.abaVista = t;
+  if (trocou && UI.listaToda) { UI.listaToda = false; renderLista(UI.mes); }
   if (t === 'inicio') {
     renderInicio();
     if (trocou && Vis.abriu && !Mov.fila.size && Date.now() - Vis.ultima > 2000) { const a = JSON.parse(Vis.alvo || '{}'), d = Vis.dia; abertura(false, a, d); }
   }
-  if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'metas' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
+  if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
+  if (t === 'calc') renderCalc();
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
