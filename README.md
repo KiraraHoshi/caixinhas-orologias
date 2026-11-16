@@ -17,7 +17,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 - **Mês (caixinhas):** limites por caixinha (Lazer, Dia a dia, Objetivos ou as suas), lançamento rápido de gastos com aviso de "cabe / não cabe", **edição de gastos**, **entradas de dinheiro**, **gastos fixos** que se lançam sozinhos todo mês, sobra por dia, remanejar limite entre caixinhas, limites só do mês ou padrão, e conferência com o saldo real da conta.
 - **Cartão e parcelas:** cartões com dia de fechamento e vencimento, compras parceladas e assinaturas, fatura de cada mês, gastos de outras pessoas no seu cartão (quem te deve e o que já foi recebido) e projeção das próximas 6 faturas.
 - **Metas e investimentos:** metas com alvo, saldo, aporte mensal e rendimento (prazo calculado com juros compostos), simulador com IR regressivo e inflação, e "quanto guardar por mês" para chegar num valor.
-- **Contas (CLT):** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário (1ª e 2ª parcela), férias com 1/3 e abono, e saque-aniversário do FGTS.
+- **Calculadoras (CLT), no Início:** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário (1ª e 2ª parcela), férias com 1/3 e abono, e saque-aniversário do FGTS.
 - **Apoie:** página de apoio pelo GitHub Sponsors (link no Início e em Ajustes).
 - **Aparência:** dois temas principais (Orologia Noite e Orologia Dia), a **galeria** do Orolon embutida (Brasa, Entardecer, Folha, Maré, Meia-noite e Papel), editor para criar o seu com verificação de contraste, e temas para copiar, baixar ou importar em JSON. O formato é o mesmo do [Orolon Player](https://github.com/KiraraHoshi/compasso-player) ([abrir o player](https://kirarahoshi.github.io/compasso-player/)): um tema feito num app funciona no outro.
 - **Ajustes:** caixinhas, formas de pagamento, taxa de referência (Selic/CDI), **tabelas de impostos editáveis** (para atualizar quando o governo mudar), backup em JSON (exportar / importar) e dados de exemplo.
@@ -29,8 +29,6 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 3. Para instalar no celular, publique a pasta num endereço `https` (por exemplo, **GitHub Pages**: Settings → Pages → Deploy from branch → `main` / root). Abra o endereço no celular e escolha **Adicionar à tela inicial**.
 
 Os dados ficam no `localStorage` do navegador. **Exporte um backup** de vez em quando (Ajustes → Exportar backup), principalmente antes de limpar o navegador ou trocar de aparelho.
-
-Quando aberto num ambiente hospedado com conta, o app salva na conta de lá (privado para cada pessoa) e sincroniza entre aparelhos.
 
 ## Temas
 

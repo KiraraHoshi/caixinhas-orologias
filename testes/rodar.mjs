@@ -153,6 +153,15 @@ const TESTES = {
     await p.espera(250);
     igual(await p.abaAtual(), "cartao", "fechar no × não devia trocar de aba");
   },
+  "Barra com 5 abas e Calculadoras pelo Início": async (p) => {
+    await comExemplo(p);
+    igual(await p.avaliar(() => document.querySelectorAll(".tabs a").length), 5, "abas na barra");
+    await p.clicar('.atalho[data-go="calc"]');
+    igual(await p.abaAtual(), "calc", "atalho das calculadoras");
+    igual(await p.avaliar(() => document.querySelector('.tabs a[aria-current="page"]').dataset.tab), "inicio", "aba acesa nas calculadoras");
+    await p.clicar('#v-calc [data-go="inicio"]');
+    igual(await p.abaAtual(), "inicio", "voltar ao Início");
+  },
   "Ícone escolhido em Ajustes fica salvo": async (p) => {
     await comExemplo(p);
     await p.aba("ajustes");

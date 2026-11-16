@@ -125,7 +125,7 @@ h1{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.1;
 
 /* Abas */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--deep) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-.tabs nav{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);height:var(--tabh)}
+.tabs nav{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
 .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:var(--muted);font-size:.68rem;font-weight:600;letter-spacing:.03em;border-radius:10px}
 .tabs a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .tabs a[aria-current="page"]{color:var(--gold)}
@@ -433,7 +433,7 @@ html[data-trava] .folha{visibility:hidden}
     <div class="atalhos">
       <button class="atalho linha" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
       <button class="atalho linha" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
-      <button class="atalho linha" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Contas CLT</b></button>
+      <button class="atalho linha" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Calculadoras</b></button>
       <button class="atalho linha" type="button" data-go="guia"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg><b>Como usar</b></button>
     </div>
     <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
@@ -521,7 +521,7 @@ html[data-trava] .folha{visibility:hidden}
     <details>
       <summary>Calculadoras CLT</summary>
       <div class="inner">
-        <p>Em <b>Contas</b>: salário líquido, adicional noturno, 13º salário, férias e saque-aniversário do FGTS, com as tabelas de 2026.</p>
+        <p>Em <b>Início → Calculadoras</b>: salário líquido, adicional noturno, 13º salário, férias e saque-aniversário do FGTS, com as tabelas de 2026.</p>
         <p class="hint">Confira com o seu holerite. As tabelas podem ser editadas em Ajustes quando o governo mudar os valores.</p>
       </div>
     </details>
@@ -806,7 +806,7 @@ html[data-trava] .folha{visibility:hidden}
   <!-- ===================== CALCULADORAS ===================== -->
   <section class="view" id="v-calc" hidden>
     <div class="vhead">
-      <div><p class="eyebrow">Calculadoras CLT</p><h2>Faça as contas na mão</h2></div><button class="qm" type="button" data-act="qm" data-id="clt" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button>
+      <div><p class="eyebrow">Calculadoras CLT</p><h2>Faça as contas na mão <button class="qm" type="button" data-act="qm" data-id="clt" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></h2></div><button class="ghost" type="button" data-go="inicio">Voltar ao Início</button>
     </div>
     <div class="calc-tabs" role="tablist" aria-label="Calculadoras">
       <button type="button" role="tab" data-calc="liq" aria-selected="true">Salário líquido</button>
@@ -962,7 +962,7 @@ html[data-trava] .folha{visibility:hidden}
 
     <div class="panel">
       <h3>Sobre</h3>
-      <p class="hint">Caixinhas Orologia <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho, ou na sua conta quando aberto num ambiente hospedado. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
+      <p class="hint">Caixinhas Orologia <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a> · <a href="#apoie">Apoie o projeto</a></p>
     </div>
   </section>
@@ -974,7 +974,6 @@ html[data-trava] .folha{visibility:hidden}
     <a href="#mes" data-tab="mes"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Mês</a>
     <a href="#cartao" data-tab="cartao"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg>Cartão</a>
     <a href="#metas" data-tab="metas"><svg viewBox="0 0 24 24"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg>Metas</a>
-    <a href="#calc" data-tab="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"/></svg>Contas</a>
     <a href="#ajustes" data-tab="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Ajustes</a>
   </nav>
 </div>
@@ -1000,7 +999,7 @@ html[data-trava] .folha{visibility:hidden}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1185,7 +1184,7 @@ function backupBanner(exN){
 let S = normalize(lsGet(LS_KEY));
 const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
-/* ---------- Armazenamento: conta do ambiente hospedado (db) quando houver, senão este navegador ---------- */
+/* ---------- Armazenamento: conta do ambiente que hospeda a página (db) quando houver, senão este navegador ---------- */
 const Cloud = { on:false, col:null, pend:{}, chain:{}, seeded:false };
 function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; $('sync').title = txt; }
 function mesDoc(k){ return S.meses[k] || { gastos: [] }; }
@@ -1836,7 +1835,7 @@ function renderAjustes(){
     $('ajTaxa').value = numStr(S.taxaRef);
     renderTabelas();
   }
-  $('ajOnde').textContent = (Cloud.on ? 'Seus dados ficam salvos na sua conta do ambiente hospedado (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.') + ' ' + backupTexto();
+  $('ajOnde').textContent = (Cloud.on ? 'Seus dados ficam salvos na sua conta (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.') + ' ' + backupTexto();
   $('ver').textContent = 'v' + VERSION;
   renderPin();
 }
@@ -2398,7 +2397,7 @@ $('temaBox').addEventListener('change', e => {
 
 /* ---------- Abas ---------- */
 const TABS = ['inicio','guia','mes','cartao','metas','calc','apoie','ajustes'];
-/* A navegação não depende do endereço da página: dentro de um artefato (iframe isolado) o hash não muda.
+/* A navegação não depende do endereço da página: dentro de uma página embutida (iframe isolado) o hash não muda.
    Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
 let TAB = null;
 function go(t){
@@ -2411,7 +2410,7 @@ function route(){
   const h = (location.hash || '').slice(1);
   const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
-  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio', calc: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (t === 'inicio') renderInicio();
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
