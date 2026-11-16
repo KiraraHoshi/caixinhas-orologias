@@ -793,8 +793,9 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <summary>Meus cartões</summary>
       <div class="inner">
         <div class="list" id="cartList"></div>
+        <p class="hint" id="ktAviso">Aqui vai só um apelido e os dias de fechamento e vencimento. O app nunca pede número, validade nem código de segurança do cartão: não digite esses dados em lugar nenhum daqui.</p>
         <form class="row tight" id="fCartao" autocomplete="off">
-          <label>Nome<input id="ktNome" placeholder="Ex.: Nubank" required></label>
+          <label>Apelido do cartão<input id="ktNome" placeholder="Ex.: Nubank" required maxlength="30"></label>
           <label>Fecha dia<input id="ktFecha" inputmode="numeric" placeholder="3"></label>
           <label>Vence dia<input id="ktVence" inputmode="numeric" placeholder="10"></label>
           <button class="primary" type="submit" style="align-self:end">Adicionar</button>
@@ -1348,7 +1349,7 @@ function renderBkp(){
   const nome = Bkp.pasta ? esc(Bkp.pasta.name || 'escolhida') : '';
   let pasta;
   if (!Bkp.podePasta) pasta = '<p class="hint">Este navegador não deixa o app gravar numa pasta sozinho. Use “Enviar backup” ou “Exportar backup” de vez em quando e guarde o arquivo fora do aparelho.</p>';
-  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
+  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app.</p><p class="hint" id="bkpDica">Crie uma pasta só para isso, por exemplo “Backup Caixinhas” dentro de Documentos. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p><div class="btns"><button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
@@ -2299,7 +2300,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'bkp-pasta': (async () => {
-      let h; try { h = await window.showDirectoryPicker({ id: 'caixinhas-backup', mode: 'readwrite' }); } catch (e) { return; }
+      let h; try { h = await window.showDirectoryPicker({ id: 'caixinhas-backup', mode: 'readwrite', startIn: 'documents' }); } catch (e) { return; }
       Bkp.pasta = h; Bkp.ultimo = null; Bkp.erro = false; await bkpOp('cfg', 'readwrite', s => s.put(h, 'pasta'));
       await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
       toast(Bkp.perm !== 'granted' ? 'Sem permissão para gravar nessa pasta' : gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');

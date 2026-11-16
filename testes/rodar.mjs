@@ -360,6 +360,13 @@ const TESTES = {
     await p.clicar("#dGraf summary"); await p.espera(60);
     certo((await p.avaliar(() => [...document.querySelectorAll("#grafBox .gb")].reduce((a, g) => a + g.getAnimations().length, 0))) > 0, "as barras dos 6 meses não se moveram");
   } },
+  "Cartões: avisa que não se digita dado do cartão": async (p) => {
+    await p.aba("cartao");
+    certo((await p.texto("#ktAviso")).includes("nunca pede número, validade nem código de segurança"), "faltou o aviso no cadastro de cartões");
+    certo((await p.texto('label:has(#ktNome)')).startsWith("Apelido do cartão"), "o campo devia pedir um apelido");
+    await p.aba("ajustes");
+    certo((await p.texto("#bkpDica")).includes("Crie uma pasta só para isso"), "faltou a dica de criar uma pasta para o backup");
+  },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
