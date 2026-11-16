@@ -6,6 +6,7 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Movimento (1.8):** o app reage ao que você faz. Na primeira abertura do dia o mostrador gira e se desenha, e a sobra conta até o valor (nas outras, uma versão curta). Ao lançar, o pedaço do anel cresce, a sobra desce e o valor lançado passa pelo centro; se a caixinha estoura, ela treme e mostra "passou R$ X". Meta batida ganha brilho e faíscas, e os gráficos se desenham ao aparecer. Com "reduzir movimento" ligado no aparelho, tudo aparece parado.
 - **Backup automático (1.7):** o app guarda sozinho uma cópia por dia neste aparelho (7 dias) e mais uma antes de importar ou apagar tudo, para desfazer um erro. Onde o navegador deixa (Chrome e Edge no computador), dá para escolher uma pasta e ele grava ali um arquivo por dia, mantendo os 7 mais recentes; numa pasta que sincroniza com a nuvem, o backup sai do aparelho sem conta nem servidor. No celular, "Enviar backup" abre o compartilhamento do sistema.
 - **Visual novo (1.6):** no Início, um mostrador grande em que cada pedaço do anel é uma caixinha (o tamanho é o limite, a parte acesa é o gasto) e o fio dourado em volta mostra quanto do mês já passou. Telas mais limpas, títulos sem caixa alta e ícone novo, irmão do ícone do Orolon.
 - **Lançar de qualquer tela (1.5):** o botão "Lançar" fica sempre à mão e abre uma folha com valor, caixinha e o aviso de "cabe / não cabe"; editar um gasto usa a mesma folha. No celular, o botão voltar fecha só a folha.
