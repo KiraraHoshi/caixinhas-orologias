@@ -93,6 +93,8 @@ async function novaPagina(cr, base, movimento = false, largura = 360, altura = 7
 
 const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${JSON.stringify(b)}, veio ${JSON.stringify(a)}`); };
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
+const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
+const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a.playState === "running").length);
 const comExemplo = async (p) => { await p.clicar('[data-act="onb-exemplo"]'); await p.espera(200); };
 
 const TESTES = {
@@ -274,6 +276,44 @@ const TESTES = {
       igual(await p.texto("#inResumo .big"), comGasto ? "-R$ 30,00" : "R$ 0,00", "sobra sem limite");
     }
   },
+  "Estourou: mostra quanto passou": async (p) => {
+    await comExemplo(p);
+    await lancar(p, 600, "Viagem de fim de semana");
+    certo((await p.texto('#inCx .cxl[data-cx="lazer"]')).includes("passou R$ 79,90"), "a caixinha estourada devia dizer quanto passou: " + await p.texto('#inCx .cxl[data-cx="lazer"]'));
+    igual(await p.texto('#inCx .cxl[data-cx="diaadia"] small'), "", "caixinha dentro do limite não tem aviso");
+  },
+  "Lançar no Início faz o mostrador reagir": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.espera(2300);
+    await lancar(p, 50, "Cinema");
+    certo((await animando(p)) > 0, "nada se moveu depois de lançar");
+    igual(await p.texto("#inResumo .ficha"), "− R$ 50,00", "valor lançado no centro do mostrador");
+    await p.espera(1500);
+    igual(await animando(p), 0, "animações que não terminaram");
+    igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois de lançar");
+  } },
+  "Lançar no Mês faz a barra da caixinha reagir": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("mes");
+    await lancar(p, 50, "Cinema");
+    certo((await p.avaliar(() => document.querySelector('#mesBoxes .box[data-cx="lazer"] .bar i').getAnimations().length)) > 0, "a barra do Lazer não se moveu");
+    await p.espera(1200);
+    igual(await animando(p), 0, "animações que não terminaram");
+  } },
+  "Lançar no meio da abertura termina no valor certo": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.espera(350);
+    await lancar(p, 50, "Cinema");
+    await p.espera(2500);
+    igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois de lançar durante a abertura");
+    igual(await p.texto('#inCx .cxl[data-cx="lazer"] .v'), "R$ 470,10", "sobra do Lazer");
+  } },
+  "Lançamentos seguidos não se atropelam": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await lancar(p, 10, "Um"); await lancar(p, 20, "Dois"); await lancar(p, 30, "Três");
+    await p.espera(1600);
+    igual(await p.texto("#inResumo .big"), "R$ 1.170,70", "sobra depois de três lançamentos");
+    igual(await animando(p), 0, "animações que não terminaram");
+  } },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");

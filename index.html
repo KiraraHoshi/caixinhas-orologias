@@ -444,6 +444,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .cxl .bar i{transition:none}
 .cxl b small{font-weight:600;font-size:.72rem;color:var(--over);margin-left:8px}
 .dialbox .dial{transform-origin:50% 50%}
+.ficha{position:absolute;left:50%;bottom:4%;transform:translate(-50%,0);opacity:0;font-weight:700;font-size:.95rem;color:var(--gold);pointer-events:none;white-space:nowrap}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -1488,7 +1489,7 @@ function renderMes(){
   $('mesBoxes').innerHTML = S.caixinhas.map(c => {
     const p = R.por[c.id], st = status(p), w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
     const col = p.sobra < 0 ? 'var(--over)' : c.cor;
-    return `<div class="box">
+    return `<div class="box" data-cx="${esc(c.id)}">
       ${cxi(c)}
       <button class="name" type="button" data-act="cx-help" data-id="${esc(c.id)}" aria-expanded="false">${esc(c.nome)}<small>${fmt(p.gasto)} de ${fmt(p.limite)}</small></button>
       <span class="left num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
@@ -2359,11 +2360,13 @@ $('fGasto').addEventListener('submit', e => {
     persist({ meses: [...new Set([edit.k, k])], estado: fixoMudou });
     sairEdicaoGasto(); fecharFolha(); UI.mes = k; renderMes(); renderInicio(); toast('Gasto atualizado'); return;
   }
+  const antes = Object.assign({ gasto: 0, limite: 0 }, resumoMes(k).por[c]);
   ensureMes(k).gastos.push({ id: uid(), valor: r2(v), descricao: desc, caixinha: c, forma: $('gForma').value, data, criado: Date.now() });
   persist({ meses: [k] });
   $('gValor').value = ''; $('gDesc').value = '';
   fecharFolha(); UI.mes = k; renderMes(); renderInicio();
   const p = resumoMes(k).por[c];
+  reagirGasto(c, r2(v), antes, p, k);
   toast(`Lançado. ${cx(c).nome}: sobra ${fmt(p.sobra)}`);
 });
 function sairEdicaoGasto(){
@@ -2698,7 +2701,7 @@ function montarInicio(k, R, dl, ent){
           <circle data-d="ponto" cx="120" cy="${120 - DIAL_RF}" r="4.5" fill="var(--gold)"/>
           ${anel}<circle data-d="alerta" cx="120" cy="120" r="${DIAL_R}" fill="none" stroke="var(--over)" stroke-width="15" opacity="0"/></svg>
         <div class="dial-c"><span class="lbl">Sobra de ${esc(monthLabel(k).split(' ')[0].toLowerCase())}</span><span class="big num" data-d="sobra"></span>
-          ${dl > 0 ? '<p class="dia"><b class="num" data-d="pordia"></b> por dia</p>' : ''}</div>
+          ${dl > 0 ? '<p class="dia"><b class="num" data-d="pordia"></b> por dia</p>' : ''}<span class="ficha num" data-d="ficha" aria-hidden="true"></span></div>
       </div>
       <div class="fatos">
         <div><span>Gasto</span><b class="num" data-d="gasto"></b></div>
@@ -2709,7 +2712,7 @@ function montarInicio(k, R, dl, ent){
   $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c =>
     `<button class="cxl" type="button" data-go="mes" data-cx="${esc(c.id)}" aria-label="${esc(c.nome)}: sobra ${fmt(R.por[c.id].sobra)} de ${fmt(R.por[c.id].limite)}">${cxi(c)}<b>${esc(c.nome)}<small></small></b><span class="v num"></span><span class="bar"><i></i></span></button>`).join('')}</div>`;
   const q = s => $('inResumo').querySelector('[data-d="' + s + '"]');
-  Vis.el = { fio: q('fio'), ponto: q('ponto'), alerta: q('alerta'), sobra: q('sobra'), pordia: q('pordia'), gasto: q('gasto'), dial: $('inResumo').querySelector('.dial') };
+  Vis.el = { fio: q('fio'), ponto: q('ponto'), alerta: q('alerta'), sobra: q('sobra'), pordia: q('pordia'), ficha: q('ficha'), gasto: q('gasto'), dial: $('inResumo').querySelector('.dial') };
   Vis.seg = {}; Vis.linhas = {}; Vis.lim = {}; Vis.ids = S.caixinhas.map(c => c.id);
   const g0 = Vis.g, e0 = Vis.ent; Vis.g = {}; Vis.ent = {};
   S.caixinhas.forEach(c => {
@@ -2732,6 +2735,7 @@ function desenharInicio(){
     if (sg) { sg.el.setAttribute('stroke-dasharray', n2(sg.comp * frac) + ' ' + n2(DIAL_VOLTA)); sg.el.setAttribute('stroke', passou ? 'var(--over)' : sg.cor); }
     L.bar.style.width = n2(frac * 100) + '%'; L.bar.style.background = passou ? 'var(--over)' : L.cor;
     L.v.textContent = fmt(r2(lim - g)); L.v.style.color = passou ? 'var(--over)' : (lim > 0 && g >= lim * 0.8 ? 'var(--warn)' : '');
+    L.aviso.textContent = passou ? 'passou ' + fmt(r2(g - lim)) : '';
     const e = Vis.ent[id]; L.el.style.opacity = e >= 1 ? '' : e; L.el.style.transform = e >= 1 ? '' : 'translateY(' + n2((1 - e) * 10) + 'px)';
   });
   const sobra = r2(Vis.limTotal - gasto), txt = fmt(sobra);
@@ -2758,6 +2762,29 @@ function abertura(longa, alvo, diaPct){
     tween(v => { Vis.g[id] = v; }, 0, alvo[id], longa ? 850 : 350, longa ? 160 + i * 85 : 0);
     if (longa) tween(v => { Vis.ent[id] = v; }, 0, 1, 420, 240 + i * 60);
   });
+}
+/* Reação a um gasto novo: no Início o mostrador responde; no Mês, a barra da caixinha. */
+const TREMIDA = [0, -6, 5, -3, 2, 0].map(x => ({ transform: 'translateX(' + x + 'px)' })), PISCA = [{ color: 'var(--gold)' }, { color: 'var(--gold)', offset: .5 }, {}];
+function reagirGasto(id, valor, antes, depois, k){
+  if (!movLigado()) return;
+  const estourou = depois.limite > 0 && antes.gasto <= antes.limite && depois.gasto > depois.limite, aba = abaAtual();
+  if (aba === 'inicio' && k === thisMonth() && Vis.linhas[id]) {
+    const sg = Vis.seg[id], L = Vis.linhas[id], f = Vis.el.ficha;
+    if (sg) anima(sg.el, [{ strokeWidth: 15 }, { strokeWidth: 21 }, { strokeWidth: 15 }], { duration: 520, easing: 'ease-out' });
+    anima(L.v, PISCA, 700);
+    if (f) { f.textContent = '− ' + fmt(valor); anima(f, [{ opacity: 0, transform: 'translate(-50%,10px)' }, { opacity: 1, transform: 'translate(-50%,0)', offset: .25 }, { opacity: 1, transform: 'translate(-50%,-4px)', offset: .7 }, { opacity: 0, transform: 'translate(-50%,-14px)' }], 1100); }
+    if (estourou) setTimeout(() => {
+      anima(L.el, TREMIDA, { duration: 380, easing: 'ease-out' });
+      const s2 = Vis.seg[id], al = Vis.el.alerta; // um anel vermelho abre e some, uma vez só
+      if (s2 && al && al.isConnected) { al.setAttribute('stroke-dasharray', n2(s2.comp) + ' ' + n2(DIAL_VOLTA)); al.setAttribute('transform', 'rotate(' + n2(s2.ang - 90) + ' 120 120)'); anima(al, [{ opacity: .55, strokeWidth: 15 }, { opacity: 0, strokeWidth: 40 }], { duration: 650, easing: 'ease-out' }); }
+    }, 300);
+  } else if (aba === 'mes') {
+    const box = [...document.querySelectorAll('#mesBoxes .box')].find(b => b.dataset.cx === id); if (!box) return;
+    const bar = box.querySelector('.bar i'), w0 = antes.limite > 0 ? Math.min(100, antes.gasto / antes.limite * 100) : (antes.gasto > 0 ? 100 : 0);
+    anima(bar, [{ width: n2(w0) + '%' }, { width: bar.style.width }], { duration: 560, easing: 'cubic-bezier(.25,1,.5,1)' });
+    anima(box.querySelector('.left'), PISCA, 700);
+    if (estourou) setTimeout(() => { if (box.isConnected) anima(box, TREMIDA, { duration: 380, easing: 'ease-out' }); }, 300);
+  }
 }
 function inicioVisivel(){ return !$('v-inicio').hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){
