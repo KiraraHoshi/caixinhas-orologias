@@ -1,5 +1,6 @@
 // Gera os ícones do Caixinhas a partir de icon-simbolo.svg, com o Chrome do PC (sem dependências).
 // Uso: node scripts/gerar-icones.mjs     (defina CX_CHROME se o Chrome estiver em outro lugar)
+// Depois de mudar o desenho, suba o ?v= dos ícones em index.html, manifest.webmanifest e sw.js (senão o navegador mostra o antigo).
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";

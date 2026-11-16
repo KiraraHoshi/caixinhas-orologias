@@ -413,6 +413,15 @@ const TESTES = {
     await p.avaliar(() => document.querySelector("#fSim").scrollIntoView()); await p.espera(3600);
     await p.print("08-simulador-largo");
   },
+  "Ícone da aba aponta para o ícone novo, com a versão no endereço": async (p) => {
+    const r = await p.avaliar(async () => {
+      const ls = [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute("href"));
+      const svg = await (await fetch(document.querySelector('link[rel="icon"][type="image/svg+xml"]').href)).text();
+      return { ls, novo: svg.includes("radialGradient") && !svg.includes("stroke-linecap=\"round\"/><line") };
+    });
+    certo(r.ls.length >= 2 && r.ls.every((h) => /\?v=\d+$/.test(h)), "os ícones devem ter a revisão (?v=) no endereço: " + r.ls.join(" | "));
+    certo(r.novo, "o icon.svg servido não é o ícone novo");
+  },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
