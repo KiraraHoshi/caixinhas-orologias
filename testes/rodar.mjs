@@ -668,6 +668,8 @@ const TESTES = {
     const ultima = () => p.avaliar(() => { const c = window.__nativo.chamadas.filter((x) => x[0] === "compartilhar").pop(); return c ? { nome: c[1].nome, tipo: c[1].tipo, tem: String(c[1].texto).slice(0, 4000) } : null; });
     await p.clicar('[data-act="exp"]'); await p.espera(200);
     let c = await ultima();
+    igual(await p.visivel("#expShare"), false, "no app sobra um caminho de envio só (o compartilhamento do Android)");
+    igual(await p.avaliar(() => document.querySelector('a[href="privacy.html"]').getAttribute("target")), null, "a política de privacidade abre dentro do app, não num navegador sem acesso aos arquivos");
     certo(c && /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/.test(c.nome) && c.tipo === "application/json" && c.tem.includes("caixinhas-orologia"), "backup compartilhado: " + JSON.stringify(c).slice(0, 200));
     igual(await p.texto("#expBox"), "", "sem a caixa de 'o download não começou' no app");
     igual(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-backup")), null, "abrir o compartilhamento não conta como backup feito (a pessoa pode cancelar)");

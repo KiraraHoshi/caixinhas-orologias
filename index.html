@@ -1379,6 +1379,8 @@ if (NATIVO) {
   document.documentElement.classList.add('nativo');
   const vp = document.querySelector('meta[name="viewport"]'); // zoom de pinça só é bloqueado no app; no site continua livre
   if (vp) vp.setAttribute('content', 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+  // links para arquivos do próprio app abrem aqui dentro: num navegador de fora eles não existem
+  document.querySelectorAll('a[target="_blank"]').forEach(a => { if (!/^[a-z]+:/i.test(a.getAttribute('href') || '')) a.removeAttribute('target'); });
 }
 /* marca deste aparelho no nome dos backups: cada aparelho só troca e apaga as cópias dele */
 function marcaAparelho(){
@@ -1483,7 +1485,7 @@ function renderBkp(){
   box.innerHTML = '<b>Backup automático</b>' + pasta + copias;
 }
 async function bkpIniciar(){
-  try { const f = new File(['{}'], 'caixinhas-backup.json', { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [f] })) $('expShare').hidden = false; } catch (e) {}
+  try { const f = new File(['{}'], 'caixinhas-backup.json', { type: 'application/json' }); if (!NATIVO && navigator.canShare && navigator.canShare({ files: [f] })) $('expShare').hidden = false; } catch (e) {}
   await bkpListar();
   if (NATIVO && PLUG.Cx) {
     // A marca vem do próprio aparelho, não do que está guardado: quando o Android restaura os dados num celular novo,
