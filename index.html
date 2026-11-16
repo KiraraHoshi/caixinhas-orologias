@@ -107,16 +107,18 @@ body{background:var(--bg) radial-gradient(120% 50% at 50% -10%, color-mix(in srg
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 a{color:var(--accent)}
-.wrap{max-width:640px;margin:0 auto;padding-block:18px calc(var(--tabh) + 36px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 96px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 /* Cabeçalho */
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.crest{display:flex;align-items:center;gap:12px;min-width:0}
-.crest svg{flex:none;width:48px;height:48px}
-.eyebrow{font-family:var(--display);font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 2px}
-h1{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1.1;margin:0;letter-spacing:.02em}
-.sync{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.crest{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
+.crest svg{flex:none;width:38px;height:38px}
+.eyebrow{font-family:var(--display);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0 0 2px}
+h1{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.1;margin:0;letter-spacing:.02em}
+.sync{font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;background:var(--surface);min-width:0}
+.sync span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync i{flex:none}
 .sync i{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block}
 .sync[data-s="ok"] i{background:var(--ok)} .sync[data-s="err"] i{background:var(--over)} .sync[data-s="wait"] i{background:var(--warn)}
 .rule{height:2px;border:0;margin:0;border-radius:1px;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 50%,var(--gold)) 50%,var(--gold))}
@@ -323,6 +325,66 @@ html[data-trava] body{overflow:hidden}
 .onb .onb-dots{display:flex;gap:6px}
 .onb .onb-dots i{width:22px;height:4px;border-radius:2px;background:var(--track)}
 .onb .onb-dots i.on{background:var(--gold)}
+/* Ícone da caixinha: um quadradinho na cor dela */
+.cxi{--c:var(--accent);flex:none;display:inline-grid;place-items:center;width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,var(--c) 18%,var(--surface));border:1px solid color-mix(in srgb,var(--c) 38%,var(--line))}
+.cxi svg{width:21px;height:21px;fill:none;stroke:var(--c);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cxi.sm{width:30px;height:30px;border-radius:9px}.cxi.sm svg{width:17px;height:17px}
+.cxi.xs{width:22px;height:22px;border-radius:7px;border:0}.cxi.xs svg{width:14px;height:14px}
+:root[data-claro] .cxi svg{filter:brightness(.62) saturate(1.5)}
+.item .cxi{grid-row:1/3}
+.box{grid-template-columns:auto 1fr auto;align-items:center}
+.box .name{flex-direction:column;align-items:flex-start;gap:1px}
+.box .name small{font-size:.76rem;color:var(--muted);font-weight:500;font-family:var(--mono);letter-spacing:-.01em}
+.box .bar{height:8px;margin-top:4px}
+.box .help{grid-column:1/-1}
+.chips label{padding:5px 12px 5px 6px}
+/* Início: destaque do mês com mostrador */
+.hero{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
+.hero .lbl{text-transform:uppercase;font-size:.7rem;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center}
+.hero .big{display:block;font-size:2.15rem;font-family:var(--display);font-weight:700;color:var(--accent);line-height:1.1;margin-top:2px}
+.hero .big.neg{color:var(--over)}
+.hero .dia{font-size:.9rem;color:var(--muted);margin:6px 0 0}
+.hero .dia b{color:var(--fg);font-weight:600}
+.hero .pe{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+.hero .pe b{color:var(--fg);font-weight:600}
+.dial{width:92px;height:92px;display:block}
+.dial text{font-family:var(--mono);font-size:15px;font-weight:600;fill:var(--fg)}
+.dial .sub{font-family:var(--body);font-size:8px;font-weight:500;fill:var(--muted);letter-spacing:.06em}
+.cxs{display:flex;flex-direction:column;gap:12px}
+.cxl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;background:none;border:0;padding:0;text-align:left;width:100%}
+.cxl .cxi{grid-row:1/3}
+.cxl b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cxl .v{font-weight:600;text-align:right}
+.cxl .bar{grid-column:2/-1;height:6px;display:block}
+.view>div:empty{display:none}
+.atalho.linha{flex-direction:row;align-items:center;gap:10px;padding:12px}
+.atalho.linha b{font-size:.9rem;font-weight:600}
+/* Botão de lançar (sempre à mão) e folha que sobe */
+.fab{position:fixed;z-index:25;right:max(16px,calc(50% - 304px));bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 20px 13px 16px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 75%,var(--tint)));color:var(--accent-ink);font-family:var(--display);font-weight:700;letter-spacing:.08em;box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
+.fab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.fab:active{transform:scale(.97)}
+html[data-trava] .fab,html[data-folha] .fab{display:none}
+.toast{bottom:calc(var(--tabh) + 76px + env(safe-area-inset-bottom,0px))}
+.folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.folha[hidden]{display:none}
+.folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
+.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:fl-sobe .22s cubic-bezier(.2,.8,.2,1)}
+.folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
+.folha-topo{display:flex;align-items:center;gap:6px}
+.folha-topo h3{font-size:.9rem}
+.folha-topo .icon{margin-left:auto}
+.folha .valor input{font:700 1.7rem/1.2 var(--mono);padding:12px 14px;letter-spacing:-.02em}
+.folha .primary{width:100%;padding:14px}
+html[data-folha] body{overflow:hidden}
+html[data-trava] .folha{visibility:hidden}
+@keyframes fl-sobe{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fl-fundo{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.folha-caixa,.folha-fundo{animation:none}}
+@media (min-width:700px){.folha{align-items:center}.folha-caixa{border-radius:20px;border-bottom:1px solid var(--line);max-width:460px}.folha-caixa::before{display:none}}
+.icos{position:relative;display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+.icos button{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--deep);padding:0;color:var(--muted)}
+.icos button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.icos button[aria-pressed="true"]{border-color:var(--accent);color:var(--fg);background:color-mix(in srgb,var(--accent) 18%,var(--surface))}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -362,21 +424,18 @@ html[data-trava] body{overflow:hidden}
   <!-- ===================== INÍCIO ===================== -->
   <section class="view" id="v-inicio">
     <div id="inGuia"></div>
-    <div class="vhead">
-      <div><p class="eyebrow">Visão geral</p><h2><span class="cap" id="inLabel">—</span></h2></div>
-    </div>
     <div id="inOnb"></div>
     <div id="inBanner"></div>
     <div class="panel" id="inResumo"></div>
-    <div class="atalhos">
-      <button class="atalho" type="button" data-go="mes" data-focus="gValor"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><b>Lançar gasto</b><span>Vê se cabe na caixinha</span></button>
-      <button class="atalho" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b><span>Salário, extras, Pix</span></button>
-      <button class="atalho" type="button" data-go="cartao"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg><b>Cartão</b><span>Fatura e parcelas</span></button>
-      <button class="atalho" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Contas CLT</b><span>Salário, 13º, férias</span></button>
-    </div>
-    <div class="flat" id="inAtencao"></div>
+    <div class="panel" id="inCx"></div>
     <div class="panel" id="inFatura"></div>
     <div class="panel" id="inMetas"></div>
+    <div class="atalhos">
+      <button class="atalho linha" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
+      <button class="atalho linha" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
+      <button class="atalho linha" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Contas CLT</b></button>
+      <button class="atalho linha" type="button" data-go="guia"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg><b>Como usar</b></button>
+    </div>
     <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
   </section>
 
@@ -512,7 +571,7 @@ html[data-trava] body{overflow:hidden}
 
     <div class="btns">
       <button class="ghost" type="button" data-act="onb-replay">Rever o passo a passo inicial</button>
-      <button class="primary" type="button" data-go="mes" data-focus="gValor">Lançar meu primeiro gasto</button>
+      <button class="primary" type="button" data-act="gasto-novo">Lançar meu primeiro gasto</button>
     </div>
   </section>
 
@@ -530,21 +589,6 @@ html[data-trava] body{overflow:hidden}
     <div id="mesResumo"></div>
     <div class="boxes" id="mesBoxes"></div>
     <p class="hint" style="margin:-6px 0 0"><button class="link" type="button" data-go="ajustes" data-focus="cxn-0">Editar caixinhas: criar, remover, reordenar</button></p>
-
-    <form class="panel" id="fGasto" autocomplete="off">
-      <div class="vhead qh"><h3 id="gHead">Lançar gasto</h3><button class="qm" type="button" data-act="qm" data-id="gasto" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
-      <div class="row">
-        <label>Valor (R$)<input id="gValor" inputmode="decimal" placeholder="0,00" required></label>
-        <label>O que foi<input id="gDesc" placeholder="Ex.: Uber pro trabalho" required></label>
-      </div>
-      <div class="chips" id="gCats" role="radiogroup" aria-label="Caixinha"></div>
-      <div class="row">
-        <label>Forma<select id="gForma"></select></label>
-        <label>Data<input id="gData" type="date"></label>
-      </div>
-      <p class="hint" id="gPrev">Digite o valor para ver se cabe.</p>
-      <div class="btns"><button class="primary" type="submit" id="gBtn">Lançar</button><button class="ghost" type="button" id="gCancel" data-act="gasto-cancel" hidden>Cancelar edição</button></div>
-    </form>
 
     <div class="flat">
       <div class="vhead"><h3>Lançamentos</h3><span class="hint" id="mesCount"></span></div>
@@ -934,20 +978,37 @@ html[data-trava] body{overflow:hidden}
     <a href="#ajustes" data-tab="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Ajustes</a>
   </nav>
 </div>
+<button class="fab" id="fab" type="button" data-act="gasto-novo" aria-label="Lançar gasto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Lançar</button>
+
+<div class="folha" id="folhaGasto" hidden>
+  <button class="folha-fundo" type="button" data-act="folha-fechar" aria-label="Fechar" tabindex="-1"></button>
+  <form class="folha-caixa" id="fGasto" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="gHead">
+    <div class="folha-topo"><h3 id="gHead">Lançar gasto</h3><button class="qm" type="button" data-act="qm" data-id="gasto" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button><button class="icon" type="button" data-act="folha-fechar" aria-label="Fechar">×</button></div>
+    <label class="valor">Valor (R$)<input id="gValor" inputmode="decimal" placeholder="0,00" required></label>
+    <div class="chips" id="gCats" role="radiogroup" aria-label="Caixinha"></div>
+    <p class="hint" id="gPrev" aria-live="polite">Digite o valor para ver se cabe.</p>
+    <label>O que foi<input id="gDesc" placeholder="Ex.: Uber pro trabalho" required enterkeyhint="done"></label>
+    <div class="row">
+      <label>Forma<select id="gForma"></select></label>
+      <label>Data<input id="gData" type="date"></label>
+    </div>
+    <button class="primary" type="submit" id="gBtn">Lançar</button>
+  </form>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 (function(){
 'use strict';
-const VERSION = '1.4.2';
+const VERSION = '1.5.0';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
 
 /* ---------- Ajuda curta (botões "?") ---------- */
 const AJUDAS = {
-  sobra: 'Sobra do mês é a soma dos limites das caixinhas menos o que você já gastou. O valor “por dia” divide a sobra pelos dias que faltam no mês: é quanto dá para gastar por dia sem estourar.',
-  gasto: 'Digite o valor, o que foi e escolha a caixinha: o app mostra na hora se cabe. Gastos no crédito não saem da conta agora, mas contam no limite do mês. Se uma caixinha estourar, dá para remanejar limite de outra, em “Remanejar entre caixinhas”.',
+  sobra: 'Sobra do mês é a soma dos limites das caixinhas menos o que você já gastou. O valor “por dia” divide a sobra pelos dias que faltam no mês: é quanto dá para gastar por dia sem estourar. No mostrador do Início, o arco é quanto do limite já foi gasto e o tracinho dourado marca o dia de hoje: se o arco passou do tracinho, o dinheiro está indo mais rápido que o mês.',
+  gasto: 'Digite o valor, escolha a caixinha e diga o que foi: o app mostra na hora se cabe. Gastos no crédito não saem da conta agora, mas contam no limite do mês. Se uma caixinha estourar, dá para remanejar limite de outra, em “Remanejar entre caixinhas”.',
   atencao: 'Caixinhas que já usaram 80% ou mais do limite, ou que já estouraram.',
   fatura: 'Soma das parcelas e assinaturas que caem na fatura deste mês. “Sua parte” não inclui o que é de outras pessoas no seu cartão.',
   proximas: 'Quanto deve vir nas próximas faturas, com as parcelas e assinaturas que você já cadastrou.',
@@ -956,7 +1017,7 @@ const AJUDAS = {
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
   clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
-  caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
+  caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca o ícone e a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
   selic: 'A taxa de referência é usada como rendimento padrão nas metas e nos simuladores. Atualize quando a Selic ou o CDI mudar.',
   temas: 'Troque o visual do app. Você pode criar o seu e compartilhar com o Orolon Player pelo arquivo .json.',
   filtros: 'Procure por descrição, caixinha, forma de pagamento ou valor (por exemplo “uber” ou “50”). Marque “todos os meses” para procurar no histórico inteiro. A lista filtrada pode ser exportada para planilha.',
@@ -965,6 +1026,52 @@ const AJUDAS = {
   backup: 'Seus dados ficam só neste aparelho. Exporte um backup de vez em quando e guarde fora dele. Importar um backup substitui tudo o que está aqui.'
 };
 const corOk = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : PALETA[0];
+
+/* ---------- Ícones das caixinhas (desenhos de traço, 24×24) ---------- */
+const ICONES = {
+  caixa: '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16zM3.5 8l8.5 4.5L20.5 8M12 12.5v8"/>',
+  sacola: '<path d="M5 8h14l-1 12.5H6zM9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  casa: '<path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/>',
+  mercado: '<path d="M3 4h2.5l2.2 10.5h9.8L19.5 7H6.2"/><circle cx="9.5" cy="18.5" r="1.4"/><circle cx="16.5" cy="18.5" r="1.4"/>',
+  comida: '<path d="M6 3v6a3 3 0 0 0 6 0V3M9 3v18M17.5 21V3c-1.9 1.6-3 4.2-3 7.7h3"/>',
+  cafe: '<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 10.5h1.5a2.5 2.5 0 0 1 0 5H16M8.5 3v3M12.5 3v3"/>',
+  carro: '<path d="M5 17H3.5v-4.5l2-5.5h13l2 5.5V17H19M9 17h6M3.5 12.5h17"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+  onibus: '<rect x="4" y="3.5" width="16" height="14" rx="2.5"/><path d="M4 11.5h16M8 17.5V20M16 17.5V20M8 14.5h.01M16 14.5h.01"/>',
+  saude: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/>',
+  academia: '<path d="M6.5 7v10M3.5 9.5v5M17.5 7v10M20.5 9.5v5M6.5 12h11"/>',
+  lazer: '<path d="M3.5 8.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2V10a2 2 0 0 0 0 4v1.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V14a2 2 0 0 0 0-4zM14 7v2M14 11v2M14 15v2"/>',
+  jogo: '<path d="M7.5 7h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.3 2.3 0 0 1-4.1 1L14.5 15h-5L8 17.2a2.3 2.3 0 0 1-4.1-1l-.8-3.8A4.5 4.5 0 0 1 7.5 7zM8 9.8v3M6.5 11.3h3M15.5 10.3h.01M17.3 12.3h.01"/>',
+  musica: '<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+  viagem: '<path d="M21 3 3 10.5l6.5 3 3 6.5zM9.5 13.5 21 3"/>',
+  alvo: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/>',
+  cofre: '<rect x="3.5" y="4.5" width="17" height="14" rx="2.5"/><circle cx="12" cy="11.5" r="3"/><path d="M12 8.5v1.2M7 18.5V20M17 18.5V20"/>',
+  dinheiro: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/>',
+  cartao: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/>',
+  contas: '<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>',
+  telefone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  trabalho: '<rect x="3" y="7.5" width="18" height="12" rx="2"/><path d="M9 7.5v-2A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5v2M3 13h18"/>',
+  estudo: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>',
+  roupa: '<path d="M8.5 3.5 4 6l-1.5 4 3 1.2v9.3h13v-9.3l3-1.2L20 6l-4.5-2.5a3.5 3.5 0 0 1-7 0z"/>',
+  presente: '<rect x="4" y="10" width="16" height="10.5" rx="1.5"/><path d="M3 7h18v3H3zM12 7v13.5M12 7C10.5 3.5 6.5 3.5 7 6c.2 1 2 1 5 1zM12 7c1.5-3.5 5.5-3.5 5-1-.2 1-2 1-5 1z"/>',
+  pet: '<circle cx="6" cy="11" r="1.7"/><circle cx="9.5" cy="7" r="1.7"/><circle cx="14.5" cy="7" r="1.7"/><circle cx="18" cy="11" r="1.7"/><path d="M12 12c-2.5 0-5 2.8-5 5.2 0 1.6 1.3 2.3 2.6 2.3 1 0 1.6-.5 2.4-.5s1.4.5 2.4.5c1.3 0 2.6-.7 2.6-2.3 0-2.4-2.5-5.2-5-5.2z"/>',
+  coracao: '<path d="M12 20s-7.5-4.5-7.5-10A4.3 4.3 0 0 1 12 7.5 4.3 4.3 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z"/>',
+  estrela: '<path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>'
+};
+const ICONE_PISTAS = [
+  ['casa', /morad|casa|alug|condom/], ['mercado', /mercad|feira|compras do mes/], ['comida', /comida|aliment|restaur|ifood|lanche|almoc/],
+  ['carro', /transp|carro|combust|gasolina|uber/], ['saude', /saude|farmac|medic|plano/], ['lazer', /lazer|divers|saida|passeio/],
+  ['alvo', /objetiv|meta|plano|sonho/], ['cofre', /guard|reserv|poup|invest|emergenc/], ['sacola', /essenc|dia a dia|diaadia|rotina/],
+  ['pet', /pet|cachorr|gato/], ['estudo', /estud|educa|curso|escola|faculd|livro/], ['viagem', /viage|ferias/], ['roupa', /roupa|vestu/],
+  ['contas', /conta|luz|energia|internet|agua/], ['presente', /present/], ['musica', /assinat|stream|musica/], ['academia', /academ|esporte|treino/],
+  ['jogo', /jogo|game|hobby/], ['trabalho', /trabalh|negocio|empresa/], ['telefone', /celular|telefone/], ['cartao', /cartao|fatura/]
+];
+function iconeDe(c){
+  if (c && ICONES[c.icone]) return c.icone;
+  const txt = normTxt(((c && c.nome) || '') + ' ' + ((c && c.id) || ''));
+  const achou = ICONE_PISTAS.find(p => p[1].test(txt));
+  return achou ? achou[0] : 'caixa';
+}
+function cxi(c, tam){ return `<span class="cxi${tam ? ' ' + tam : ''}" style="--c:${esc(corOk(c.cor))}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICONES[iconeDe(c)]}</svg></span>`; }
 const MODELOS = [
   { id: 'simples', nome: 'Simples', cx: [
     ['lazer', 'Lazer', 'Saídas, presentes, hobbies e comer fora por prazer. O que é gostoso, mas dá para cortar.'],
@@ -1080,7 +1187,7 @@ const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, edi
 
 /* ---------- Armazenamento: conta do ambiente hospedado (db) quando houver, senão este navegador ---------- */
 const Cloud = { on:false, col:null, pend:{}, chain:{}, seeded:false };
-function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; }
+function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; $('sync').title = txt; }
 function mesDoc(k){ return S.meses[k] || { gastos: [] }; }
 function estadoDoc(){ const o = Object.assign({}, S); delete o.meses; return o; }
 function cloudWrite(id, data, del){
@@ -1096,13 +1203,13 @@ function cloudWrite(id, data, del){
 function persist(opts){
   opts = opts || {};
   lsSet(LS_KEY, S);
-  if (!Cloud.on) { setSync('ok', 'Salvo neste aparelho'); return; }
+  if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   if (opts.estado) cloudWrite('estado', estadoDoc());
   (opts.meses || []).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
 }
 function persistAll(oldKeys){
   lsSet(LS_KEY, S);
-  if (!Cloud.on) { setSync('ok', 'Salvo neste aparelho'); return; }
+  if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   cloudWrite('estado', estadoDoc());
   Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
   (oldKeys || []).filter(k => !S.meses[k]).forEach(k => cloudWrite('mes-' + k, null, true));
@@ -1110,11 +1217,11 @@ function persistAll(oldKeys){
 function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length || (m.entradas||[]).length) || s.compras.length || s.metas.length || (s.fixos||[]).length; }
 
 async function connectCloud(){
-  if (!window.hospedeiro || typeof window.hospedeiro.use !== 'function') { setSync('ok', 'Salvo neste aparelho'); return; }
+  if (!window.hospedeiro || typeof window.hospedeiro.use !== 'function') { setSync('ok', 'Salvo no aparelho'); return; }
   try {
     const [db, user] = await Promise.all([window.hospedeiro.use('db'), window.hospedeiro.use('user')]);
     const id = user ? await user.id() : null;
-    if (!db || !id) { setSync('ok', 'Salvo neste aparelho'); return; }
+    if (!db || !id) { setSync('ok', 'Salvo no aparelho'); return; }
     Cloud.col = db.collection('data/users/' + id);
     Cloud.on = true;
     setSync('wait', 'Conectando…');
@@ -1141,7 +1248,7 @@ async function connectCloud(){
       Cloud.on = false;
       setSync('err', 'Conta indisponível — salvando neste aparelho');
     });
-  } catch (e) { setSync('ok', 'Salvo neste aparelho'); }
+  } catch (e) { setSync('ok', 'Salvo no aparelho'); }
 }
 
 /* ---------- Regras do mês ---------- */
@@ -1203,10 +1310,11 @@ function renderMes(){
     const p = R.por[c.id], st = status(p), w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
     const col = p.sobra < 0 ? 'var(--over)' : c.cor;
     return `<div class="box">
-      <button class="name" type="button" data-act="cx-help" data-id="${esc(c.id)}" aria-expanded="false"><span class="dot" style="background:${esc(c.cor)}"></span>${esc(c.nome)} <small>ⓘ</small></button>
+      ${cxi(c)}
+      <button class="name" type="button" data-act="cx-help" data-id="${esc(c.id)}" aria-expanded="false">${esc(c.nome)}<small>${fmt(p.gasto)} de ${fmt(p.limite)}</small></button>
       <span class="left num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
       <div class="bar"><i style="width:${w}%;background:${col};color:${col}"></i></div>
-      <div class="meta"><span class="num">${fmt(p.gasto)} de ${fmt(p.limite)}${dl > 0 && p.sobra > 0 ? ` · ${fmt(p.sobra/dl)}/dia` : ''}</span><span class="pill ${st[0]}">${st[1]}</span></div>
+      <div class="meta"><span class="num">${dl > 0 && p.sobra > 0 ? `${fmt(p.sobra/dl)} por dia` : ''}</span><span class="pill ${st[0]}">${st[1]}</span></div>
       <p class="help" id="help-${esc(c.id)}" hidden>${esc(c.ajuda || 'Sem descrição. Edite em Ajustes.')}</p>
     </div>`;
   }).join('');
@@ -1215,7 +1323,7 @@ function renderMes(){
 
   // chips da caixinha e formas
   const sel = (document.querySelector('input[name="gCx"]:checked') || {}).value || S.caixinhas[0].id;
-  $('gCats').innerHTML = S.caixinhas.map((c,i) => `<input type="radio" name="gCx" id="gCx${i}" value="${esc(c.id)}" ${c.id === sel ? 'checked' : ''}><label for="gCx${i}"><span class="dot" style="background:${esc(c.cor)}"></span>${esc(c.nome)}</label>`).join('');
+  $('gCats').innerHTML = S.caixinhas.map((c,i) => `<input type="radio" name="gCx" id="gCx${i}" value="${esc(c.id)}" ${c.id === sel ? 'checked' : ''}><label for="gCx${i}">${cxi(c, 'xs')}${esc(c.nome)}</label>`).join('');
   if (!document.querySelector('input[name="gCx"]:checked')) { const f = document.querySelector('input[name="gCx"]'); if (f) f.checked = true; }
   const fSel = $('gForma').value;
   $('gForma').innerHTML = S.formas.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
@@ -1263,13 +1371,13 @@ function renderLista(k){
     const c = cx(g.caixinha); let head = '';
     if (g.data !== lastDay) { lastDay = g.data; head = `<div class="daygroup">${esc(dayLabel(g.data, todos))}</div>`; }
     return head + `<div class="item">
-      <span class="dot" style="background:${esc(c.cor)}"></span>
+      ${cxi(c, 'sm')}
       <span class="desc">${esc(g.descricao)}${g.ex ? '<span class="ex">exemplo</span>' : ''}${g.fixoId ? '<span class="ex">fixo</span>' : ''}</span>
       <span class="val num">${fmt(g.valor)}</span>
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
       <span class="act"><button class="link" type="button" data-act="ed-gasto" data-id="${esc(g.id)}">Editar</button><button class="link ${UI.armed === 'g:' + g.id ? 'armed' : ''}" type="button" data-act="del-gasto" data-id="${esc(g.id)}">${UI.armed === 'g:' + g.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`;
-  }).join('') : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Lance o primeiro no formulário acima${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
+  }).join('') : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
 function renderGraf(k){
   if (!$('dGraf').open) return;
@@ -1712,6 +1820,7 @@ function renderAjustes(){
         <label>Limite padrão (R$)<input id="cxl-${idx}" data-i="${idx}" data-f="limite" inputmode="decimal" value="${numStr(numOr(c.limite, 0))}"></label>
       </div>
       <label>Para que serve<input id="cxa-${idx}" data-i="${idx}" data-f="ajuda" value="${esc(c.ajuda || '')}"></label>
+      <div class="icos" role="group" aria-label="Ícone de ${esc(c.nome)}">${Object.keys(ICONES).map(ic => `<button type="button" data-act="cx-ico" data-i="${idx}" data-ico="${ic}" aria-pressed="${iconeDe(c) === ic}" aria-label="Ícone ${ic}" title="${ic}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES[ic]}</svg></button>`).join('')}</div>
       <div class="btns" style="justify-content:space-between">
         <div class="swatches" role="group" aria-label="Cor de ${esc(c.nome)}">${PALETA.map(p => `<button type="button" data-act="cx-cor" data-i="${idx}" data-cor="${p}" aria-pressed="${p.toLowerCase() === String(c.cor).toLowerCase()}" aria-label="Cor ${p}" style="background:${p}"></button>`).join('')}<label class="cor-livre" title="Outra cor"><input type="color" data-i="${idx}" data-f="cor" value="${esc(corOk(c.cor).toLowerCase())}" aria-label="Escolher outra cor para ${esc(c.nome)}"></label></div>
         <div class="btns" style="gap:6px">
@@ -1722,6 +1831,7 @@ function renderAjustes(){
       </div>
       ${UI.cxPend === c.id ? painelMover(c, idx) : ''}
     </div>`).join('');
+    document.querySelectorAll('#cxList .icos [aria-pressed="true"]').forEach(b => { b.parentElement.scrollLeft = Math.max(0, b.offsetLeft - 46); });
     $('ajFormas').value = S.formas.join(', ');
     $('ajTaxa').value = numStr(S.taxaRef);
     renderTabelas();
@@ -1846,7 +1956,7 @@ document.addEventListener('click', e => {
     }
     case 'filtro-limpar': $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false; renderLista(UI.mes); break;
     case 'qm': {
-      const host = b.closest('.vhead, .total') || b.parentElement, nx = host.nextElementSibling;
+      const host = b.closest('.vhead, .total, .hero, .folha-topo') || b.parentElement, nx = host.nextElementSibling;
       if (nx && nx.classList.contains('qmtxt') && nx.dataset.for === id) { nx.remove(); b.setAttribute('aria-expanded', 'false'); break; }
       const t = document.createElement('p'); t.className = 'qmtxt'; t.dataset.for = id; t.setAttribute('role', 'note'); t.textContent = AJUDAS[id] || '';
       host.insertAdjacentElement('afterend', t); b.setAttribute('aria-expanded', 'true'); break;
@@ -1859,10 +1969,11 @@ document.addEventListener('click', e => {
       if (![...$('gForma').options].some(o => o.value === a.g.forma)) $('gForma').add(new Option(a.g.forma, a.g.forma));
       $('gForma').value = a.g.forma;
       const r = [...document.querySelectorAll('input[name="gCx"]')].find(x => x.value === a.g.caixinha); if (r) r.checked = true;
-      $('gHead').textContent = 'Editar gasto'; $('gBtn').textContent = 'Salvar alterações'; $('gCancel').hidden = false;
-      previewGasto(); $('fGasto').scrollIntoView({ block: 'start', behavior: 'smooth' }); $('gValor').focus(); break;
+      $('gHead').textContent = 'Editar gasto'; $('gBtn').textContent = 'Salvar alterações';
+      previewGasto(); abrirFolha(); break;
     }
-    case 'gasto-cancel': sairEdicaoGasto(); break;
+    case 'gasto-novo': abrirFolha(); break;
+    case 'folha-fechar': fecharFolha(); break;
     case 'del-ent': {
       if (UI.armed !== 'e:' + id) { arm('e:' + id); renderMes(); break; }
       disarm(); const m = S.meses[UI.mes]; if (m) { m.entradas = (m.entradas || []).filter(e => e.id !== id); persist({ meses: [UI.mes] }); toast('Entrada apagada'); }
@@ -1876,7 +1987,7 @@ document.addEventListener('click', e => {
       let mudou = false;
       if (UI.onb === 1 && UI.onbCx) {
         const lim = {}; UI.onbCx.forEach(c => { lim[c.id] = r2(numOr(c.limite, 0)); });
-        S.caixinhas = UI.onbCx.map(c => ({ id: c.id, nome: (c.nome || '').trim() || 'Sem nome', cor: corOk(c.cor), ajuda: c.ajuda || '' }));
+        S.caixinhas = UI.onbCx.map(c => ({ id: c.id, nome: (c.nome || '').trim() || 'Sem nome', cor: corOk(c.cor), ajuda: c.ajuda || '', icone: iconeDe(c) }));
         S.limitesPadrao = lim; UI.cxDraft = null; persist({ estado: true }); mudou = true;
       }
       UI.onb = Math.min(2, UI.onb + 1); if (mudou) renderAll(); else renderInicio(); break;
@@ -1891,7 +2002,7 @@ document.addEventListener('click', e => {
     case 'onb-cx-del': if (UI.onbCx.length > 1) { UI.onbCx.splice(+b.dataset.i, 1); renderInicio(); } break;
     case 'onb-prev': UI.onb = Math.max(0, UI.onb - 1); renderInicio(); break;
     case 'onb-skip': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); renderAll(); break;
-    case 'onb-fim': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('mes'); toast('Pronto! Lance o primeiro gasto.'); break;
+    case 'onb-fim': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('inicio'); toast('Pronto! Toque em “Lançar” para o primeiro gasto.'); break;
     case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
     case 'onb-tema': usarTema(id); renderInicio(); break;
     case 'mes-prev': UI.mes = addMonths(UI.mes, -1); renderMes(); break;
@@ -1948,6 +2059,7 @@ document.addEventListener('click', e => {
     case 'not-usar': { if (UI.not) { $('lSal').value = numStr(UI.not.sal); $('lNot').value = numStr(UI.not.adic); $('lDsr').value = numStr(UI.not.dsr); UI.calc = 'liq'; saveCalcInputs(); renderCalc(); toast('Valores levados para o salário líquido'); } break; }
     case 'cx-add': UI.cxDraft.push({ id: 'cx' + uid(), nome: 'Nova caixinha', cor: PALETA[UI.cxDraft.length % PALETA.length], ajuda: '', limite: 0 }); disarm(); renderAjustes(); break;
     case 'cx-cor': UI.cxDraft[+b.dataset.i].cor = b.dataset.cor; renderAjustes(); break;
+    case 'cx-ico': UI.cxDraft[+b.dataset.i].icone = b.dataset.ico; b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); break;
     case 'cx-del': {
       const i = +b.dataset.i; if (UI.armed !== 'x:' + i) { arm('x:' + i); renderAjustes(); break; }
       disarm(); const c = UI.cxDraft[i], dep = contaDependentes(c.id);
@@ -1974,7 +2086,7 @@ document.addEventListener('click', e => {
       Object.values(S.meses).forEach(m => (m.gastos || []).forEach(g => { if (!ids.has(g.caixinha)) { const t = dest(g.caixinha); if (t !== g.caixinha) { g.caixinha = t; movidos++; } } }));
       S.fixos.forEach(f => { if (!ids.has(f.caixinha)) { const t = dest(f.caixinha); if (t !== f.caixinha) { f.caixinha = t; movidos++; } } });
       const lp = {}; UI.cxDraft.forEach(c => { c.nome = (c.nome || '').trim() || 'Sem nome'; lp[c.id] = numOr(c.limite, 0); });
-      S.caixinhas = UI.cxDraft.map(c => ({ id: c.id, nome: c.nome, cor: corOk(c.cor).toUpperCase(), ajuda: c.ajuda || '' })); S.limitesPadrao = lp;
+      S.caixinhas = UI.cxDraft.map(c => ({ id: c.id, nome: c.nome, cor: corOk(c.cor).toUpperCase(), ajuda: c.ajuda || '', icone: iconeDe(c) })); S.limitesPadrao = lp;
       UI.cxDraft = null; if (movidos) persistAll([]); else persist({ estado: true });
       renderAll(); toast(movidos ? `Caixinhas salvas. ${movidos} ${movidos === 1 ? 'lançamento levado' : 'lançamentos levados'} para a nova caixinha.` : 'Caixinhas salvas'); break;
     }
@@ -2004,6 +2116,30 @@ document.addEventListener('click', e => {
   }
 });
 
+/* ---------- Folha de lançar gasto (abre de qualquer tela) ---------- */
+const Folha = { hist: false, pular: false, antes: null };
+function folhaAberta(){ return !$('folhaGasto').hidden; }
+function abaAtual(){ return TABS.find(x => !$('v-' + x).hidden) || 'inicio'; }
+function abrirFolha(){
+  if (!UI.editG) { $('gData').value = abaAtual() === 'mes' && UI.mes !== thisMonth() ? UI.mes + '-01' : today(); previewGasto(); }
+  if (folhaAberta()) return;
+  Folha.antes = document.activeElement;
+  $('folhaGasto').hidden = false; document.documentElement.setAttribute('data-folha', '');
+  try { history.pushState({ folha: 1 }, ''); Folha.hist = true; } catch (e) { Folha.hist = false; }
+  setTimeout(() => { if (folhaAberta()) $('gValor').focus(); }, 60);
+}
+/* peloVoltar: o botão voltar do aparelho já desfez o passo do histórico */
+function fecharFolha(peloVoltar){
+  if (!folhaAberta()) return;
+  $('folhaGasto').hidden = true; document.documentElement.removeAttribute('data-folha');
+  document.querySelectorAll('#folhaGasto .qmtxt').forEach(x => x.remove());
+  if (UI.editG) sairEdicaoGasto();
+  if (Folha.hist && !peloVoltar) { Folha.pular = true; try { history.back(); } catch (e) { Folha.pular = false; } }
+  Folha.hist = false;
+  try { if (Folha.antes && document.contains(Folha.antes)) Folha.antes.focus({ preventScroll: true }); } catch (e) {}
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && folhaAberta()) fecharFolha(); });
+
 /* Formulários */
 $('fGasto').addEventListener('submit', e => {
   e.preventDefault();
@@ -2020,17 +2156,17 @@ $('fGasto').addEventListener('submit', e => {
       S.meses[edit.k].gastos = S.meses[edit.k].gastos.filter(x => x.id !== edit.g.id); ensureMes(k).gastos.push(edit.g);
     }
     persist({ meses: [...new Set([edit.k, k])], estado: fixoMudou });
-    sairEdicaoGasto(); UI.mes = k; renderMes(); toast('Gasto atualizado'); return;
+    sairEdicaoGasto(); fecharFolha(); UI.mes = k; renderMes(); renderInicio(); toast('Gasto atualizado'); return;
   }
   ensureMes(k).gastos.push({ id: uid(), valor: r2(v), descricao: desc, caixinha: c, forma: $('gForma').value, data, criado: Date.now() });
   persist({ meses: [k] });
   $('gValor').value = ''; $('gDesc').value = '';
-  UI.mes = k; renderMes();
+  fecharFolha(); UI.mes = k; renderMes(); renderInicio();
   const p = resumoMes(k).por[c];
   toast(`Lançado. ${cx(c).nome}: sobra ${fmt(p.sobra)}`);
 });
 function sairEdicaoGasto(){
-  UI.editG = null; $('gHead').textContent = 'Lançar gasto'; $('gBtn').textContent = 'Lançar'; $('gCancel').hidden = true;
+  UI.editG = null; $('gHead').textContent = 'Lançar gasto'; $('gBtn').textContent = 'Lançar';
   $('gValor').value = ''; $('gDesc').value = ''; previewGasto();
 }
 $('fEnt').addEventListener('submit', e => {
@@ -2282,7 +2418,7 @@ function route(){
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { TAB = null; route(); });
-window.addEventListener('popstate', () => { TAB = null; route(); });
+window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
   const t = a.getAttribute('href').slice(1); if (!TABS.includes(t)) return;
@@ -2318,7 +2454,7 @@ function renderOnb(){
     corpo = `<h3>Suas caixinhas</h3>
     <p class="hint">${livre ? 'Escolha um modelo ou monte as suas.' : 'Ajuste nomes e limites.'} Informe quanto cabe em cada uma por mês. Dá para mudar tudo depois em Ajustes → Caixinhas.</p>
     ${livre ? `<div class="btns">${MODELOS.map(m => `<button class="ghost" type="button" data-act="onb-modelo" data-id="${m.id}">${m.nome} (${m.cx.length})</button>`).join('')}</div>` : ''}
-    ${UI.onbCx.map((c, i) => `<div class="row tight"><label><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${esc(c.cor)};margin-right:6px"></span>Nome</span><input data-onb="1" data-i="${i}" data-f="nome" value="${esc(c.nome)}" maxlength="30"></label>
+    ${UI.onbCx.map((c, i) => `<div class="row tight"><label><span style="display:flex;align-items:center;gap:6px">${cxi(c, 'xs')}Nome</span><input data-onb="1" data-i="${i}" data-f="nome" value="${esc(c.nome)}" maxlength="30"></label>
       <label>Limite (R$)<input data-onb="1" data-i="${i}" data-f="limite" inputmode="decimal" value="${esc(c.limite)}"></label>
       ${livre && UI.onbCx.length > 1 ? `<button class="link" type="button" data-act="onb-cx-del" data-i="${i}" style="align-self:end;padding-bottom:12px">Remover</button>` : ''}</div>`).join('')}
     ${livre ? '<div class="btns"><button class="ghost" type="button" data-act="onb-cx-add">+ Adicionar caixinha</button></div>' : ''}
@@ -2329,25 +2465,39 @@ function renderOnb(){
     <div class="btns"><button class="primary" type="button" data-act="onb-fim">Concluir</button><button class="ghost" type="button" data-act="onb-prev">Voltar</button></div>`;
   box.innerHTML = `<div class="panel onb"><div class="onb-dots" aria-hidden="true">${dots}</div>${corpo}</div>`;
 }
+/* Mostrador do mês: arco = quanto do limite foi gasto; tracinho = dia de hoje */
+function mostrador(usado, diaPct, estourou){
+  const r = 38, volta = 2 * Math.PI * r, g = Math.min(100, Math.max(0, usado));
+  const a = Math.min(100, Math.max(0, diaPct)) / 100 * 2 * Math.PI, s = Math.sin(a), c = Math.cos(a);
+  const p = n => (Math.round(n * 100) / 100);
+  return `<svg class="dial" viewBox="0 0 100 100" role="img" aria-label="${Math.round(usado)}% do limite do mês já foi gasto">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--track)" stroke-width="8"/>
+    ${g > 0 ? `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${estourou ? 'var(--over)' : 'var(--accent)'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${p(g / 100 * volta)} ${p(volta)}" transform="rotate(-90 50 50)"/>` : ''}
+    <line x1="${p(50 + s * 31)}" y1="${p(50 - c * 31)}" x2="${p(50 + s * 45)}" y2="${p(50 - c * 45)}" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round"/>
+    <text x="50" y="53" text-anchor="middle">${Math.round(usado)}%</text><text class="sub" x="50" y="65" text-anchor="middle">GASTO</text></svg>`;
+}
 function renderInicio(){
   const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
-  $('inLabel').textContent = monthLabel(k);
-  $('inGuia').innerHTML = `<button class="guia-card${S.guiaVisto ? ' slim' : ''}" type="button" data-go="guia">
+  const pronto = S.onboarded || hasData(S);
+  $('inGuia').innerHTML = !S.guiaVisto && pronto && !UI.onbReplay ? `<button class="guia-card slim" type="button" data-go="guia">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
-    <span style="flex:1;min-width:0"><b>${S.guiaVisto ? 'Como usar o app' : 'Novo por aqui? Veja como usar o app'}</b><span>Guia rápido, de 2 minutos, sem pressa</span></span><span class="go" aria-hidden="true">›</span></button>`;
+    <span style="flex:1;min-width:0"><b>Novo por aqui? Veja como usar</b></span><span class="go" aria-hidden="true">›</span></button>` : '';
   renderOnb();
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
   $('inBanner').innerHTML = backupBanner(exN);
-  const w = R.limite > 0 ? Math.min(100, R.gasto / R.limite * 100) : (R.gasto > 0 ? 100 : 0);
-  $('inResumo').innerHTML = `<div class="total">
-      <div><span class="lbl">Sobra do mês ${qm('sobra')}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
-      <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0, R.sobra / dl))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : ''}gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${ent ? `<br>entrou <b class="num">${fmt(ent)}</b>` : ''}</div>
-    </div><div class="bar"><i style="width:${w}%;background:${R.sobra < 0 ? 'var(--over)' : 'var(--accent)'}"></i></div>`;
-  const alertas = S.caixinhas.map(c => ({ c, p: R.por[c.id] })).filter(x => x.p && ['p-over','p-warn'].includes(status(x.p)[0]));
-  $('inAtencao').innerHTML = alertas.length ? `<div class="vhead qh"><h3>Pede atenção</h3>${qm('atencao')}</div><div class="list">${alertas.map(({ c, p }) => { const st = status(p); return `<div class="item">
-      <span class="dot" style="background:${esc(c.cor)}"></span><span class="desc">${esc(c.nome)}</span>
-      <span class="val num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
-      <span class="sub">${fmt(p.gasto)} de ${fmt(p.limite)} · <span class="pill ${st[0]}">${st[1]}</span></span></div>`; }).join('')}</div>` : '';
+  const usado = R.limite > 0 ? R.gasto / R.limite * 100 : (R.gasto > 0 ? 100 : 0);
+  const diaPct = (daysInMonth(k) - dl) / daysInMonth(k) * 100;
+  $('inResumo').innerHTML = `<div class="hero">
+      <div><span class="lbl">Sobra de ${esc(monthLabel(k).split(' ')[0])} ${qm('sobra')}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span>
+        ${dl > 0 ? `<p class="dia"><b class="num">${fmt(Math.max(0, R.sobra / dl))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}</p>` : ''}</div>
+      ${mostrador(usado, diaPct, R.sobra < 0)}
+      <div class="pe"><span>gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span></span>${ent ? `<span>entrou <b class="num">${fmt(ent)}</b></span>` : ''}</div>
+    </div>`;
+  $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c => {
+    const p = R.por[c.id], st = status(p)[0], w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
+    const cor = st === 'p-over' ? 'var(--over)' : st === 'p-warn' ? 'var(--warn)' : 'var(--fg)';
+    return `<button class="cxl" type="button" data-go="mes" aria-label="${esc(c.nome)}: sobra ${fmt(p.sobra)} de ${fmt(p.limite)}">${cxi(c)}<b>${esc(c.nome)}</b><span class="v num" style="color:${cor}">${fmt(p.sobra)}</span>
+      <span class="bar"><i style="width:${w}%;background:${p.sobra < 0 ? 'var(--over)' : esc(corOk(c.cor))}"></i></span></button>`; }).join('')}</div>`;
   const F = fatura(k);
   $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura que vence em ${esc(monthLabel(k, true))}</h3>${qm('fatura')}<button class="link" type="button" data-go="cartao">Ver cartão</button></div>
       <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`

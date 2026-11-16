@@ -6,6 +6,9 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Lançar de qualquer tela (1.5):** o botão "Lançar" fica sempre à mão e abre uma folha com valor, caixinha e o aviso de "cabe / não cabe"; editar um gasto usa a mesma folha. No celular, o botão voltar fecha só a folha.
+- **Início mais direto (1.5):** a sobra do mês com um mostrador (o arco é quanto do limite já foi gasto; o tracinho marca o dia de hoje), todas as caixinhas com a sobra de cada uma, fatura, metas e atalhos.
+- **Caixinhas com ícone (1.5):** cada caixinha tem um ícone na cor dela (27 opções, em Ajustes → Caixinhas). O app sugere um pelo nome.
 - **Busca, gráficos e planilha:** busca e filtros nos lançamentos (inclusive em todos os meses), comparação com o mês anterior por caixinha (no mês atual, até o mesmo dia), total dos últimos 6 meses, e exportação em CSV para Excel ou Google Planilhas.
 - **Bloqueio por PIN:** PIN de 4 a 6 números para abrir o app neste aparelho, com tempo para bloquear de novo. Os dados não são criptografados e o PIN não entra no backup; quem esquece o PIN só entra apagando os dados.
 - **Caixinhas à sua maneira:** criar, renomear, reordenar, trocar a cor (paleta ou cor livre) e remover; ao remover uma caixinha com gastos, o app leva os gastos para outra. No primeiro uso há modelos prontos (Simples, Detalhada, Enxuta).
@@ -67,6 +70,7 @@ Os valores de 2026 vêm de fábrica (INSS até R$ 8.475,55; IRRF com isenção a
 | `icon.svg`, `icon-192.png`, `icon-512.png` | Ícones |
 | `tema.schema.json` | Descrição do formato de tema (compartilhado com o Orolon Player) |
 | `privacy.html` | Política de privacidade (exigida pela Google Play) |
+| `testes/rodar.mjs` | Testes automáticos: `node testes/rodar.mjs` abre o app num Chrome sem janela e confere as telas (sem bibliotecas) |
 
 ## Privacidade e segurança
 
