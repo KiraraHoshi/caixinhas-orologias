@@ -398,6 +398,21 @@ const TESTES = {
     await p.aba("inicio"); await p.espera(150);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "a longa toca quando o Início aparece");
   } },
+  "Caixas de marcar mostram o texto em linha, sem espremer": async (p) => {
+    await comExemplo(p);
+    await p.tamanho(700, 900);
+    for (const [aba, id] of [["metas", "simIR"], ["mes", "fTodos"], ["cartao", "cAss"]]) {
+      await p.aba(aba);
+      const m = await p.avaliar((id) => { const e = document.getElementById(id); if (!e) return null; const r = e.closest("label").getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; }, id);
+      certo(m, "não achei a caixa " + id);
+      certo(m.w > 150 && m.h < 60, "o texto da caixa " + id + " está espremido: " + m.w + "x" + m.h);
+    }
+    await p.aba("metas");
+    const fora = await p.avaliar(() => { const s = document.querySelector("#simChart svg").getBoundingClientRect(); return [...document.querySelectorAll("#simChart svg text")].filter((x) => { const r = x.getBoundingClientRect(); return r.right > s.right + 0.5 || r.left < s.left - 0.5; }).map((x) => x.textContent); });
+    igual(fora.join(","), "", "textos do gráfico cortados na borda");
+    await p.avaliar(() => document.querySelector("#fSim").scrollIntoView()); await p.espera(3600);
+    await p.print("08-simulador-largo");
+  },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");

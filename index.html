@@ -450,7 +450,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .metabox .bar{position:relative}
 .brilho{position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-120%);pointer-events:none}
 .faisca{position:absolute;right:0;top:2px;width:6px;height:6px;border-radius:2px;pointer-events:none}
-.check{display:inline-block;width:14px;height:14px;fill:none;stroke:var(--ok);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px}
+.certo{display:inline-block;width:14px;height:14px;fill:none;stroke:var(--ok);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px}
 .meta-card .facts b.batida{color:var(--ok);transform-origin:left center}
 .ficha{position:absolute;left:50%;bottom:4%;transform:translate(-50%,0);opacity:0;font-weight:700;font-size:.95rem;color:var(--gold);pointer-events:none;white-space:nowrap}
 </style>
@@ -1068,7 +1068,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.8.1';
+const VERSION = '1.8.2';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1789,7 +1789,7 @@ function areaChart(points){ // points: [{x:ano, total, aportado}]
   let g = '';
   [0, .25, .5, .75, 1].forEach(f => { const v = max * f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-dasharray="${f ? '3 4' : ''}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`; });
   const step = Math.max(1, Math.ceil(xMax / 6));
-  for (let a = 0; a <= xMax; a += step) g += `<text x="${x(a)}" y="${H-8}" text-anchor="middle">${a === 0 ? 'hoje' : a + (a === 1 ? ' ano' : ' anos')}</text>`;
+  for (let a = 0; a <= xMax; a += step) g += `<text x="${a + step > xMax && a > 0 ? Math.min(W - 2, x(a) + 12) : x(a)}" y="${H-8}" text-anchor="${a + step > xMax && a > 0 ? 'end' : 'middle'}">${a === 0 ? 'hoje' : a + (a === 1 ? ' ano' : ' anos')}</text>`;
   g += `<path class="ga-area" d="${line('total')}L${x(xMax)},${y(0)}L${x(0)},${y(0)}Z" style="fill:color-mix(in srgb,var(--accent) 22%,transparent)"/>`;
   g += `<path class="ga-tot" pathLength="1" d="${line('total')}" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>`;
   g += `<path class="ga-ap" d="${line('aportado')}" style="fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:5 4"/>`;
@@ -1832,7 +1832,7 @@ function renderMetas(){
       <div class="hd"><b>${esc(m.nome)}${m.ex ? '<span class="ex">exemplo</span>' : ''}</b><span class="num">${fmt(m.atual)} <span style="color:var(--muted)">de ${fmt(m.alvo)}</span></span></div>
       <div class="metabox"><div class="bar"><i style="width:${p}%;background:${p >= 100 ? 'var(--ok)' : 'var(--accent)'}"></i>${batida ? '<span class="brilho"></span>' : ''}</div></div>
       <div class="facts">
-        <span>Progresso${batida ? '<b class="batida"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5"/></svg>Meta batida</b>' : `<b class="num">${pct(p)}</b>`}</span>
+        <span>Progresso${batida ? '<b class="batida"><svg class="certo" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5"/></svg>Meta batida</b>' : `<b class="num">${pct(p)}</b>`}</span>
         <span>Falta<b class="num">${fmt(Math.max(0, m.alvo - m.atual))}</b></span>
         <span>Aporte/mês<b class="num">${fmt(m.aporte)}</b></span>
         <span>Rende ${pct(m.taxa)} a.a.<b class="num">≈ ${fmt(rendeMes)}/mês</b></span>
@@ -2806,7 +2806,7 @@ function reagirGasto(id, valor, antes, depois, k){
 function celebrarMeta(id, pAntes){
   if (!movLigado()) return;
   const card = [...document.querySelectorAll('#metasLista .meta-card')].find(c => c.dataset.meta === id); if (!card) return;
-  const box = card.querySelector('.metabox'), bar = box.querySelector('.bar i'), selo = card.querySelector('.facts b.batida'), certo = card.querySelector('.check path');
+  const box = card.querySelector('.metabox'), bar = box.querySelector('.bar i'), selo = card.querySelector('.facts b.batida'), certo = card.querySelector('.certo path');
   anima(bar, [{ width: n2(pAntes) + '%', background: 'var(--accent)' }, { width: '100%', background: 'var(--accent)', offset: .92 }, { width: '100%', background: 'var(--ok)' }], { duration: 900, easing: 'cubic-bezier(.25,1,.5,1)' });
   if (selo) anima(selo, [{ opacity: 0 }, { opacity: 0 }], 900);
   setTimeout(() => {
