@@ -441,6 +441,9 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .copia small{display:block;color:var(--muted);font-size:.78rem}
 .bkp{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px}
 .bkp>b{font-family:var(--display);font-size:1rem}
+.cxl .bar i{transition:none}
+.cxl b small{font-weight:600;font-size:.72rem;color:var(--over);margin-left:8px}
+.dialbox .dial{transform-origin:50% 50%}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -1269,7 +1272,6 @@ function movPasso(agora){
 function pararMov(){ const f = [...Mov.fila]; Mov.fila.clear(); f.forEach(t => { t.set(t.para); t.ok(); }); if (f.length) desenharInicio(); }
 function anima(el, quadros, op){ if (!el || !el.animate || !movLigado()) return null; try { return el.animate(quadros, op); } catch (e) { return null; } }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pararMov(); });
-function desenharInicio(){}
 
 /* ---------- Cópias de segurança automáticas ----------
    1) Neste aparelho (IndexedDB, separado dos dados): uma cópia por dia e uma antes de importar ou apagar tudo.
@@ -2609,7 +2611,11 @@ function route(){
   const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio', calc: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  if (t === 'inicio') renderInicio();
+  const trocou = UI.abaVista !== t; UI.abaVista = t;
+  if (t === 'inicio') {
+    renderInicio();
+    if (trocou && Vis.abriu && !Mov.fila.size && Date.now() - Vis.ultima > 2000) { const a = JSON.parse(Vis.alvo || '{}'), d = Vis.dia; abertura(false, a, d); }
+  }
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
   window.scrollTo(0, 0);
@@ -2662,30 +2668,98 @@ function renderOnb(){
     <div class="btns"><button class="primary" type="button" data-act="onb-fim">Concluir</button><button class="ghost" type="button" data-act="onb-prev">Voltar</button></div>`;
   box.innerHTML = `<div class="panel onb"><div class="onb-dots" aria-hidden="true">${dots}</div>${corpo}</div>`;
 }
+/* ---------- Início: peças fixas, números animados ----------
+   O mostrador e as linhas das caixinhas são montados uma vez (montarInicio) e só os números mudam (desenharInicio).
+   Vis.g é o gasto "visto" de cada caixinha: anda até o gasto real por tween(). */
+const Vis = { chave: null, g: {}, ent: {}, dia: 0, seg: {}, linhas: {}, lim: {}, ids: [], limTotal: 0, orfaos: 0, dl: 0, alvo: '', abriu: false, ultima: 0, el: {} };
+const LS_ABERTURA = 'caixinhas-orologia-abertura', DIAL_R = 92, DIAL_VOLTA = 2 * Math.PI * DIAL_R, DIAL_RF = 112, DIAL_VF = 2 * Math.PI * DIAL_RF;
+const n2 = v => Math.round(v * 100) / 100;
 /* Mostrador do mês: cada pedaço do anel é uma caixinha (tamanho = limite; parte acesa = gasto).
    O fio de fora, em âmbar, mostra quanto do mês já passou. */
-function mostrador(R, diaPct){
-  const r = 92, volta = 2 * Math.PI * r, n2 = v => Math.round(v * 100) / 100;
+function montarInicio(k, R, dl, ent){
   const partes = S.caixinhas.map(c => { const p = R.por[c.id]; return { c, p, peso: Math.max(p.limite, p.gasto) }; }).filter(x => x.peso > 0);
   const total = partes.reduce((a, x) => a + x.peso, 0), folga = partes.length > 1 ? 4 : 0;
   let ang = folga / 2, anel = '';
+  const comp = {};
   partes.forEach(x => {
-    const graus = Math.max(1, x.peso / total * 360 - folga), comp = graus / 360 * volta;
-    const frac = x.p.limite > 0 ? Math.min(1, x.p.gasto / x.p.limite) : 1, cor = x.p.sobra < 0 ? 'var(--over)' : esc(corOk(x.c.cor));
-    const base = `cx="120" cy="120" r="${r}" fill="none" stroke-width="15" transform="rotate(${n2(ang - 90)} 120 120)"`;
-    anel += `<circle class="seg" ${base} stroke="${esc(corOk(x.c.cor))}" stroke-opacity=".22" stroke-dasharray="${n2(comp)} ${n2(volta)}"/>`;
-    if (frac > 0) anel += `<circle class="seg" ${base} stroke="${cor}" stroke-dasharray="${n2(comp * frac)} ${n2(volta)}"/>`;
+    const graus = Math.max(1, x.peso / total * 360 - folga);
+    comp[x.c.id] = { comp: graus / 360 * DIAL_VOLTA, ang };
+    const base = `cx="120" cy="120" r="${DIAL_R}" fill="none" stroke-width="15" transform="rotate(${n2(ang - 90)} 120 120)"`;
+    anel += `<circle class="seg" ${base} stroke="${esc(corOk(x.c.cor))}" stroke-opacity=".22" stroke-dasharray="${n2(comp[x.c.id].comp)} ${n2(DIAL_VOLTA)}"/><circle class="seg" data-seg="${esc(x.c.id)}" ${base} stroke="${esc(corOk(x.c.cor))}" stroke-dasharray="0 ${n2(DIAL_VOLTA)}"/>`;
     ang += graus + folga;
   });
-  if (!partes.length) anel = `<circle cx="120" cy="120" r="${r}" fill="none" stroke="var(--track)" stroke-width="15"/>`;
-  const d = Math.min(100, Math.max(0, diaPct)), rf = 112, vf = 2 * Math.PI * rf, a = d / 100 * 2 * Math.PI;
+  if (!partes.length) anel = `<circle cx="120" cy="120" r="${DIAL_R}" fill="none" stroke="var(--track)" stroke-width="15"/>`;
   const usado = R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0;
-  return `<svg class="dial" viewBox="0 0 240 240" role="img" aria-label="${usado}% do limite do mês gasto, com ${Math.round(d)}% do mês passado">
-    <circle cx="120" cy="120" r="${rf}" fill="none" stroke="var(--track)" stroke-width="2"/>
-    ${d > 0 ? `<circle cx="120" cy="120" r="${rf}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-dasharray="${n2(d / 100 * vf)} ${n2(vf)}" transform="rotate(-90 120 120)"/>` : ''}
-    <circle cx="${n2(120 + Math.sin(a) * rf)}" cy="${n2(120 - Math.cos(a) * rf)}" r="4.5" fill="var(--gold)"/>
-    ${anel}</svg>`;
+  $('inResumo').innerHTML = `<div class="hero">
+      ${qm('sobra')}
+      <div class="dialbox"><svg class="dial" viewBox="0 0 240 240" role="img" aria-label="${usado}% do limite do mês gasto">
+          <circle cx="120" cy="120" r="${DIAL_RF}" fill="none" stroke="var(--track)" stroke-width="2"/>
+          <circle data-d="fio" cx="120" cy="120" r="${DIAL_RF}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-dasharray="0 ${n2(DIAL_VF)}" transform="rotate(-90 120 120)"/>
+          <circle data-d="ponto" cx="120" cy="${120 - DIAL_RF}" r="4.5" fill="var(--gold)"/>
+          ${anel}<circle data-d="alerta" cx="120" cy="120" r="${DIAL_R}" fill="none" stroke="var(--over)" stroke-width="15" opacity="0"/></svg>
+        <div class="dial-c"><span class="lbl">Sobra de ${esc(monthLabel(k).split(' ')[0].toLowerCase())}</span><span class="big num" data-d="sobra"></span>
+          ${dl > 0 ? '<p class="dia"><b class="num" data-d="pordia"></b> por dia</p>' : ''}</div>
+      </div>
+      <div class="fatos">
+        <div><span>Gasto</span><b class="num" data-d="gasto"></b></div>
+        <div><span>Limite</span><b class="num">${fmt(R.limite)}</b></div>
+        ${ent ? `<div><span>Entrou</span><b class="num">${fmt(ent)}</b></div>` : `<div><span>Faltam</span><b>${dl} ${dl === 1 ? 'dia' : 'dias'}</b></div>`}
+      </div>
+    </div>`;
+  $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c =>
+    `<button class="cxl" type="button" data-go="mes" data-cx="${esc(c.id)}" aria-label="${esc(c.nome)}: sobra ${fmt(R.por[c.id].sobra)} de ${fmt(R.por[c.id].limite)}">${cxi(c)}<b>${esc(c.nome)}<small></small></b><span class="v num"></span><span class="bar"><i></i></span></button>`).join('')}</div>`;
+  const q = s => $('inResumo').querySelector('[data-d="' + s + '"]');
+  Vis.el = { fio: q('fio'), ponto: q('ponto'), alerta: q('alerta'), sobra: q('sobra'), pordia: q('pordia'), gasto: q('gasto'), dial: $('inResumo').querySelector('.dial') };
+  Vis.seg = {}; Vis.linhas = {}; Vis.lim = {}; Vis.ids = S.caixinhas.map(c => c.id);
+  const g0 = Vis.g, e0 = Vis.ent; Vis.g = {}; Vis.ent = {};
+  S.caixinhas.forEach(c => {
+    const l = [...$('inCx').querySelectorAll('.cxl')].find(x => x.dataset.cx === c.id), sg = [...$('inResumo').querySelectorAll('[data-seg]')].find(x => x.dataset.seg === c.id);
+    Vis.linhas[c.id] = { el: l, v: l.querySelector('.v'), bar: l.querySelector('.bar i'), aviso: l.querySelector('small'), cor: corOk(c.cor) };
+    if (sg) Vis.seg[c.id] = Object.assign({ el: sg, cor: corOk(c.cor) }, comp[c.id]);
+    Vis.lim[c.id] = R.por[c.id].limite;
+    Vis.g[c.id] = Number.isFinite(g0[c.id]) ? g0[c.id] : R.por[c.id].gasto; // caixinha que já estava na tela continua de onde estava
+    Vis.ent[c.id] = Number.isFinite(e0[c.id]) ? e0[c.id] : 1;
+  });
+  Vis.limTotal = R.limite; Vis.dl = dl;
+  Vis.orfaos = r2(R.gasto - S.caixinhas.reduce((a, c) => a + R.por[c.id].gasto, 0)); // gastos de caixinhas que não existem mais
 }
+function desenharInicio(){
+  const E = Vis.el; if (!Vis.chave || !E.sobra || !E.sobra.isConnected) return;
+  let gasto = Vis.orfaos;
+  Vis.ids.forEach(id => {
+    const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id], sg = Vis.seg[id]; gasto += g;
+    const frac = lim > 0 ? Math.min(1, g / lim) : (g > 0 ? 1 : 0);
+    if (sg) { sg.el.setAttribute('stroke-dasharray', n2(sg.comp * frac) + ' ' + n2(DIAL_VOLTA)); sg.el.setAttribute('stroke', passou ? 'var(--over)' : sg.cor); }
+    L.bar.style.width = n2(frac * 100) + '%'; L.bar.style.background = passou ? 'var(--over)' : L.cor;
+    L.v.textContent = fmt(r2(lim - g)); L.v.style.color = passou ? 'var(--over)' : (lim > 0 && g >= lim * 0.8 ? 'var(--warn)' : '');
+    const e = Vis.ent[id]; L.el.style.opacity = e >= 1 ? '' : e; L.el.style.transform = e >= 1 ? '' : 'translateY(' + n2((1 - e) * 10) + 'px)';
+  });
+  const sobra = r2(Vis.limTotal - gasto), txt = fmt(sobra);
+  E.sobra.textContent = txt; E.sobra.classList.toggle('neg', sobra < 0); E.sobra.classList.toggle('longo', txt.length > 12);
+  if (E.pordia) E.pordia.textContent = fmt(Vis.dl > 0 ? Math.max(0, sobra / Vis.dl) : 0);
+  E.gasto.textContent = fmt(r2(gasto));
+  const d = Math.min(100, Math.max(0, Vis.dia)), a = d / 100 * 2 * Math.PI;
+  E.fio.setAttribute('stroke-dasharray', n2(d / 100 * DIAL_VF) + ' ' + n2(DIAL_VF));
+  E.ponto.setAttribute('cx', n2(120 + Math.sin(a) * DIAL_RF)); E.ponto.setAttribute('cy', n2(120 - Math.cos(a) * DIAL_RF));
+}
+/* Abertura: a longa (mostrador gira, fio corre, pedaços e linhas em sequência) toca uma vez por dia; depois, só a curta. */
+function abertura(longa, alvo, diaPct){
+  pararMov();
+  Vis.abriu = true; Vis.ultima = Date.now();
+  $('inResumo').dataset.abertura = longa ? 'longa' : 'curta';
+  if (longa) lsSet(LS_ABERTURA, today());
+  Vis.ids.forEach(id => { Vis.g[id] = 0; Vis.ent[id] = longa ? 0 : 1; });
+  Vis.dia = longa ? 0 : diaPct; desenharInicio();
+  if (longa) {
+    anima(Vis.el.dial, [{ opacity: 0, transform: 'scale(.94) rotate(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    tween(v => { Vis.dia = v; }, 0, diaPct, 1000, 80);
+  }
+  Vis.ids.forEach((id, i) => {
+    tween(v => { Vis.g[id] = v; }, 0, alvo[id], longa ? 850 : 350, longa ? 160 + i * 85 : 0);
+    if (longa) tween(v => { Vis.ent[id] = v; }, 0, 1, 420, 240 + i * 60);
+  });
+}
+function inicioVisivel(){ return !$('v-inicio').hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){
   const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
   const pronto = S.onboarded || hasData(S);
@@ -2695,24 +2769,21 @@ function renderInicio(){
   renderOnb();
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
   $('inBanner').innerHTML = backupBanner(exN);
-  const diaPct = (daysInMonth(k) - dl) / daysInMonth(k) * 100, valor = fmt(R.sobra);
-  $('inResumo').innerHTML = `<div class="hero">
-      ${qm('sobra')}
-      <div class="dialbox">${mostrador(R, diaPct)}
-        <div class="dial-c"><span class="lbl">Sobra de ${esc(monthLabel(k).split(' ')[0].toLowerCase())}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}${valor.length > 12 ? ' longo' : ''}">${valor}</span>
-          ${dl > 0 ? `<p class="dia"><b class="num">${fmt(Math.max(0, R.sobra / dl))}</b> por dia</p>` : ''}</div>
-      </div>
-      <div class="fatos">
-        <div><span>Gasto</span><b class="num">${fmt(R.gasto)}</b></div>
-        <div><span>Limite</span><b class="num">${fmt(R.limite)}</b></div>
-        ${ent ? `<div><span>Entrou</span><b class="num">${fmt(ent)}</b></div>` : `<div><span>Faltam</span><b>${dl} ${dl === 1 ? 'dia' : 'dias'}</b></div>`}
-      </div>
-    </div>`;
-  $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c => {
-    const p = R.por[c.id], st = status(p)[0], w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
-    const cor = st === 'p-over' ? 'var(--over)' : st === 'p-warn' ? 'var(--warn)' : 'var(--fg)';
-    return `<button class="cxl" type="button" data-go="mes" aria-label="${esc(c.nome)}: sobra ${fmt(p.sobra)} de ${fmt(p.limite)}">${cxi(c)}<b>${esc(c.nome)}</b><span class="v num" style="color:${cor}">${fmt(p.sobra)}</span>
-      <span class="bar"><i style="width:${w}%;background:${p.sobra < 0 ? 'var(--over)' : esc(corOk(c.cor))}"></i></span></button>`; }).join('')}</div>`;
+  const diaPct = (daysInMonth(k) - dl) / daysInMonth(k) * 100;
+  const chave = JSON.stringify([k, dl, ent, R.limite, S.caixinhas.map(c => [c.id, c.nome, corOk(c.cor), iconeDe(c), R.por[c.id].limite, Math.max(R.por[c.id].limite, R.por[c.id].gasto) > R.por[c.id].limite ? R.por[c.id].gasto : 0])]);
+  const alvo = {}; S.caixinhas.forEach(c => { alvo[c.id] = R.por[c.id].gasto; });
+  const alvoTxt = JSON.stringify(alvo);
+  if (chave !== Vis.chave) { pararMov(); Vis.chave = chave; montarInicio(k, R, dl, ent); if (Vis.abriu) { Vis.dia = diaPct; } Vis.alvo = ''; }
+  if (!Vis.abriu) {
+    // a abertura espera o Início estar à vista e haver dados; até lá, tudo aparece pronto
+    if (inicioVisivel() && hasData(S)) abertura(movLigado() && lsGet(LS_ABERTURA) !== today(), alvo, diaPct);
+    else { Vis.ids.forEach(id => { Vis.g[id] = alvo[id]; Vis.ent[id] = 1; }); Vis.dia = diaPct; desenharInicio(); }
+  } else if (alvoTxt !== Vis.alvo) {
+    pararMov(); // uma mudança nova interrompe a animação em curso e parte do valor final dela
+    Vis.ids.forEach(id => { if (Vis.g[id] !== alvo[id]) tween(v => { Vis.g[id] = v; }, Vis.g[id], alvo[id], 560); });
+    desenharInicio();
+  }
+  Vis.alvo = alvoTxt;
   const F = fatura(k);
   $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura que vence em ${esc(monthLabel(k, true))}</h3>${qm('fatura')}<button class="link" type="button" data-go="cartao">Ver cartão</button></div>
       <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`
@@ -2750,7 +2821,7 @@ function travar(){
   $('travaMsg').textContent = 'Digite o seu PIN.';
   if (matchMedia('(pointer:fine)').matches) setTimeout(() => $('travaPin').focus(), 60);
 }
-function destravar(){ document.documentElement.removeAttribute('data-trava'); Trava.erros = 0; $('travaPin').value = ''; }
+function destravar(){ document.documentElement.removeAttribute('data-trava'); Trava.erros = 0; $('travaPin').value = ''; renderInicio(); }
 async function verificarPin(){
   const c = pinCfg(); if (!c) { destravar(); return; }
   if (Trava.ocupado) return;

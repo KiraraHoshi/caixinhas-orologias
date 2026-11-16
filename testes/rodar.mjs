@@ -77,6 +77,7 @@ async function novaPagina(cr, base, movimento = false, largura = 360, altura = 7
     digitar: (sel, txt) => avaliar((q, v) => { const e = document.querySelector(q); e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); }, sel, txt),
     texto: (sel) => avaliar((q) => { const e = document.querySelector(q); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; }, sel),
     visivel: (sel) => avaliar((q) => { const e = document.querySelector(q); if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }, sel),
+    recarregar: async () => { await avaliar(() => { location.reload(); }).catch(() => {}); await espera(700); },
     aba: async (t) => { await avaliar((x) => { location.hash = "#" + x; }, t); await espera(200); },
     abaAtual: () => avaliar(() => [...document.querySelectorAll(".view")].find((v) => !v.hidden).id.slice(2)),
     tamanho: (w, h) => s("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: true }),
@@ -210,6 +211,68 @@ const TESTES = {
     await p.clicar("#fab"); await p.digitar("#gValor", "5"); await p.digitar("#gDesc", "Bala"); await p.clicar("#gBtn");
     await p.espera(1900);
     igual(await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); let n = 0; for await (const k of d.keys()) if (k.startsWith("caixinhas-backup-")) n++; return n; }), 7, "arquivos de backup na pasta");
+  },
+  "Abertura longa toca uma vez por dia": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await p.espera(2200);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "primeira abertura do dia");
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura longa");
+    await p.recarregar(); await p.espera(1000);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "curta", "segunda abertura do dia");
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura curta");
+  } },
+  "Durante a abertura a sobra conta até o valor": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    let contou = false;
+    for (let i = 0; i < 24 && !contou; i++) { await p.espera(50); const v = await p.texto("#inResumo .big").catch(() => null); if (v && v !== "R$ 1.230,70") contou = true; }
+    certo(contou, "a sobra apareceu pronta, sem contar");
+    await p.espera(2200);
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da contagem");
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .cxl").length), 3, "caixinhas no Início");
+  } },
+  "Início se refaz quando as caixinhas mudam": async (p) => {
+    await comExemplo(p);
+    await p.aba("ajustes");
+    await p.clicar('[data-act="cx-add"]'); await p.clicar('[data-act="cx-save"]');
+    await p.aba("inicio");
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .cxl").length), 4, "caixinhas no Início depois de criar uma");
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra não muda com caixinha sem limite");
+  },
+  "Com PIN, a abertura espera o desbloqueio": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await p.aba("ajustes");
+    await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]');
+    await p.aba("inicio"); // o endereço guarda a aba; a abertura só toca com o Início à vista
+    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.espera(1500);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura || ""), "", "a abertura não devia tocar atrás do bloqueio");
+    for (const n of "1234") await p.clicar('[data-tk="' + n + '"]');
+    await p.espera(300);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "abertura depois de desbloquear");
+    await p.espera(2200);
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra depois de desbloquear");
+  } },
+  "Início no tema claro": async (p) => {
+    await comExemplo(p);
+    await p.aba("ajustes");
+    await p.avaliar(() => document.querySelectorAll('[data-tm="usar"]')[1].click());
+    await p.aba("inicio"); await p.espera(3600);
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra no tema claro");
+    await p.print("07-inicio-claro");
+  },
+  "Mostrador aguenta caixinha sem limite": async (p) => {
+    const semear = (comGasto) => p.avaliar((comGasto) => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }, { id: "b", nome: "Outra", cor: "#E3C98A" }], limitesPadrao: { a: 0, b: 0 },
+        meses: comGasto ? { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } : {} }));
+    }, comGasto);
+    for (const comGasto of [true, false]) {
+      await semear(comGasto); await p.recarregar();
+      const ruim = await p.avaliar(() => [...document.querySelectorAll("#inResumo .dial, #inResumo .dial *")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((v) => /NaN|undefined|Infinity/.test(v)));
+      igual(ruim.length, 0, "atributos quebrados no mostrador (" + (comGasto ? "com" : "sem") + " gasto): " + ruim.join(" | "));
+      igual(await p.texto("#inResumo .big"), comGasto ? "-R$ 30,00" : "R$ 0,00", "sobra sem limite");
+    }
   },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
