@@ -368,9 +368,9 @@ html[data-trava] body{overflow:hidden}
 .cxs{display:flex;flex-direction:column;gap:12px}
 .cxl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;background:none;border:0;padding:0;text-align:left;width:100%}
 .cxl .cxi{grid-row:1/3}
-.cxl b{font-weight:600;min-width:0;overflow:hidden;display:flex;align-items:baseline;white-space:nowrap}
-.cxl .cxnome{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.cxl b small{flex:none}
+.cxl b{font-weight:600;min-width:0;overflow:hidden;display:flex;flex-wrap:wrap;column-gap:8px;align-items:baseline;white-space:nowrap}
+.cxl .cxnome{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cxl b small{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .cxl .v{font-weight:600;text-align:right}
 .cxl .bar{grid-column:2/-1;height:6px;display:block}
 .view>div:empty{display:none}
@@ -459,7 +459,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .bkp{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px}
 .bkp>b{font-family:var(--display);font-size:1rem}
 .cxl .bar i{transition:none}
-.cxl b small{font-weight:600;font-size:.72rem;color:var(--over);margin-left:8px}
+.cxl b small{font-weight:600;font-size:.72rem;color:var(--over)}
 .dialbox .dial{transform-origin:50% 50%}
 .gb{transform-box:fill-box;transform-origin:50% 100%}
 .ga-bola{transform-box:fill-box;transform-origin:center}
@@ -1934,7 +1934,7 @@ function barChart(labels, stacks, aria){
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria || 'Faturas dos próximos meses')}">${g}</svg>`;
 }
 function areaChart(points){ // points: [{x:ano, total, aportado}]
-  const W = 360, H = 200, L = 44, B = 24, T = 12, R = 10;
+  const W = 360, H = 200, L = 54, B = 24, T = 12, R = 10;
   const max = niceMax(Math.max(...points.map(p => p.total), 1));
   const xMax = points[points.length-1].x || 1;
   const x = v => L + (W - L - R) * (v / xMax), y = v => T + (H - T - B) * (1 - v / max);
