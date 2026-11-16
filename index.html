@@ -353,7 +353,9 @@ html[data-trava] body{overflow:hidden}
 .cxs{display:flex;flex-direction:column;gap:12px}
 .cxl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;background:none;border:0;padding:0;text-align:left;width:100%}
 .cxl .cxi{grid-row:1/3}
-.cxl b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cxl b{font-weight:600;min-width:0;overflow:hidden;display:flex;align-items:baseline;white-space:nowrap}
+.cxl .cxnome{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cxl b small{flex:none}
 .cxl .v{font-weight:600;text-align:right}
 .cxl .bar{grid-column:2/-1;height:6px;display:block}
 .view>div:empty{display:none}
@@ -1068,7 +1070,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.8.3';
+const VERSION = '1.8.4';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1262,10 +1264,10 @@ function movLigado(){ return !(MQ_MOV && MQ_MOV.matches); }
 const outQuart = p => 1 - Math.pow(1 - p, 4);
 const outBack = p => 1 + 2.2 * Math.pow(p - 1, 3) + 1.2 * Math.pow(p - 1, 2);
 const Mov = { fila: new Set(), raf: 0 };
-function tween(set, de, para, ms, espera = 0, ease = outQuart){
+function tween(set, de, para, ms, espera = 0, ease = outQuart, marca = ''){
   return new Promise(ok => {
     if (!movLigado() || ms <= 0 || document.hidden) { set(para); desenharInicio(); return ok(); }
-    Mov.fila.add({ set, de, para, ms, t0: performance.now() + espera, ease, ok });
+    Mov.fila.add({ set, de, para, ms, t0: performance.now() + espera, ease, ok, marca });
     if (!Mov.raf) Mov.raf = requestAnimationFrame(movPasso);
   });
 }
@@ -1280,6 +1282,8 @@ function movPasso(agora){
 }
 /* leva tudo ao valor final agora (a página ficou oculta, ou uma ação nova chegou) */
 function pararMov(){ const f = [...Mov.fila]; Mov.fila.clear(); f.forEach(t => { t.set(t.para); t.ok(); }); if (f.length) desenharInicio(); }
+/* descarta (sem terminar) só os movimentos com essa marca; os outros seguem */
+function soltarMov(marca){ for (const t of [...Mov.fila]) if (t.marca === marca) { Mov.fila.delete(t); t.ok(); } }
 function anima(el, quadros, op){ if (!el || !el.animate || !movLigado()) return null; try { return el.animate(quadros, op); } catch (e) { return null; } }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pararMov(); else if (!Vis.abriu) renderInicio(); });
 
@@ -2690,7 +2694,7 @@ function renderOnb(){
 /* ---------- Início: peças fixas, números animados ----------
    O mostrador e as linhas das caixinhas são montados uma vez (montarInicio) e só os números mudam (desenharInicio).
    Vis.g é o gasto "visto" de cada caixinha: anda até o gasto real por tween(). */
-const Vis = { chave: null, g: {}, ent: {}, dia: 0, seg: {}, linhas: {}, lim: {}, ids: [], limTotal: 0, orfaos: 0, dl: 0, alvo: '', abriu: false, ultima: 0, el: {} };
+const Vis = { chave: null, fixo: null, fin: 0, abreDe: 0, abreAte: 0, g: {}, ent: {}, dia: 0, seg: {}, linhas: {}, lim: {}, ids: [], limTotal: 0, orfaos: 0, dl: 0, alvo: '', abriu: false, ultima: 0, el: {} };
 const LS_ABERTURA = 'caixinhas-orologia-abertura', DIAL_R = 92, DIAL_VOLTA = 2 * Math.PI * DIAL_R, DIAL_RF = 112, DIAL_VF = 2 * Math.PI * DIAL_RF;
 const n2 = v => Math.round(v * 100) / 100;
 /* Mostrador do mês: cada pedaço do anel é uma caixinha (tamanho = limite; parte acesa = gasto).
@@ -2726,7 +2730,7 @@ function montarInicio(k, R, dl, ent){
       </div>
     </div>`;
   $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c =>
-    `<button class="cxl" type="button" data-go="mes" data-cx="${esc(c.id)}" aria-label="${esc(c.nome)}: sobra ${fmt(R.por[c.id].sobra)} de ${fmt(R.por[c.id].limite)}">${cxi(c)}<b>${esc(c.nome)}<small></small></b><span class="v num"></span><span class="bar"><i></i></span></button>`).join('')}</div>`;
+    `<button class="cxl" type="button" data-go="mes" data-cx="${esc(c.id)}" aria-label="${esc(c.nome)}: sobra ${fmt(R.por[c.id].sobra)} de ${fmt(R.por[c.id].limite)}">${cxi(c)}<b><span class="cxnome">${esc(c.nome)}</span><small></small></b><span class="v num"></span><span class="bar"><i></i></span></button>`).join('')}</div>`;
   const q = s => $('inResumo').querySelector('[data-d="' + s + '"]');
   Vis.el = { fio: q('fio'), ponto: q('ponto'), alerta: q('alerta'), sobra: q('sobra'), pordia: q('pordia'), ficha: q('ficha'), gasto: q('gasto'), dial: $('inResumo').querySelector('.dial') };
   Vis.seg = {}; Vis.linhas = {}; Vis.lim = {}; Vis.ids = S.caixinhas.map(c => c.id);
@@ -2746,16 +2750,18 @@ function desenharInicio(){
   const E = Vis.el; if (!Vis.chave || !E.sobra || !E.sobra.isConnected) return;
   let gasto = Vis.orfaos;
   Vis.ids.forEach(id => {
-    const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id], sg = Vis.seg[id]; gasto += g;
+    const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id], sg = Vis.seg[id];
+    const gn = Vis.fixo && Number.isFinite(Vis.fixo[id]) ? Vis.fixo[id] : g, passouN = gn > lim + 0.004; // na abertura curta só o anel e as barras andam; os números já vêm certos
+    gasto += gn;
     const frac = lim > 0 ? Math.min(1, g / lim) : (g > 0 ? 1 : 0);
     if (sg) { sg.el.setAttribute('stroke-dasharray', n2(sg.comp * frac) + ' ' + n2(DIAL_VOLTA)); sg.el.setAttribute('stroke', passou ? 'var(--over)' : sg.cor); }
     L.bar.style.width = n2(frac * 100) + '%'; L.bar.style.background = passou ? 'var(--over)' : L.cor;
-    L.v.textContent = fmt(r2(lim - g)); L.v.style.color = passou ? 'var(--over)' : (lim > 0 && g >= lim * 0.8 ? 'var(--warn)' : '');
-    L.aviso.textContent = passou ? 'passou ' + fmt(r2(g - lim)) : '';
+    L.v.textContent = fmt(r2(lim - gn)); L.v.style.color = passouN ? 'var(--over)' : (lim > 0 && gn >= lim * 0.8 ? 'var(--warn)' : '');
+    L.aviso.textContent = passouN ? 'passou ' + fmt(r2(gn - lim)) : '';
     const e = Vis.ent[id]; L.el.style.opacity = e >= 1 ? '' : e; L.el.style.transform = e >= 1 ? '' : 'translateY(' + n2((1 - e) * 10) + 'px)';
   });
   const sobra = r2(Vis.limTotal - gasto), txt = fmt(sobra);
-  E.sobra.textContent = txt; E.sobra.classList.toggle('neg', sobra < 0); E.sobra.classList.toggle('longo', txt.length > 12);
+  E.sobra.textContent = txt; E.sobra.classList.toggle('neg', sobra < 0); E.sobra.classList.toggle('longo', fmt(Vis.fin).length > 12); // pelo valor final, para o tamanho não pular durante a contagem
   if (E.pordia) E.pordia.textContent = fmt(Vis.dl > 0 ? Math.max(0, sobra / Vis.dl) : 0);
   E.gasto.textContent = fmt(r2(gasto));
   const d = Math.min(100, Math.max(0, Vis.dia)), a = d / 100 * 2 * Math.PI;
@@ -2766,6 +2772,7 @@ function desenharInicio(){
 function abertura(longa, alvo, diaPct){
   pararMov();
   Vis.abriu = true; Vis.ultima = Date.now();
+  Vis.fixo = longa ? null : Object.assign({}, alvo); Vis.abreDe = Date.now(); Vis.abreAte = longa ? Vis.abreDe + 1500 : 0;
   $('inResumo').dataset.abertura = longa ? 'longa' : 'curta';
   if (longa) lsSet(LS_ABERTURA, today());
   Vis.ids.forEach(id => { Vis.g[id] = 0; Vis.ent[id] = longa ? 0 : 1; });
@@ -2775,7 +2782,7 @@ function abertura(longa, alvo, diaPct){
     tween(v => { Vis.dia = v; }, 0, diaPct, 1000, 80);
   }
   Vis.ids.forEach((id, i) => {
-    tween(v => { Vis.g[id] = v; }, 0, alvo[id], longa ? 850 : 350, longa ? 160 + i * 85 : 0);
+    tween(v => { Vis.g[id] = v; }, 0, alvo[id], longa ? 850 : 350, longa ? 160 + i * 85 : 0, undefined, 'g');
     if (longa) tween(v => { Vis.ent[id] = v; }, 0, 1, 420, 240 + i * 60);
   });
 }
@@ -2846,7 +2853,16 @@ function renderInicio(){
   const chave = JSON.stringify([k, dl, ent, R.limite, S.caixinhas.map(c => [c.id, c.nome, corOk(c.cor), iconeDe(c), R.por[c.id].limite, Math.max(R.por[c.id].limite, R.por[c.id].gasto) > R.por[c.id].limite ? R.por[c.id].gasto : 0])]);
   const alvo = {}; S.caixinhas.forEach(c => { alvo[c.id] = R.por[c.id].gasto; });
   const alvoTxt = JSON.stringify(alvo);
-  if (chave !== Vis.chave) { pararMov(); Vis.chave = chave; montarInicio(k, R, dl, ent); if (Vis.abriu) { Vis.dia = diaPct; } Vis.alvo = ''; }
+  Vis.fin = r2(R.limite - R.gasto);
+  if (chave !== Vis.chave) {
+    // refazer o mostrador no meio da abertura longa (ex.: uma caixinha estourou) não corta o giro: o fio segue e o giro continua de onde estava
+    const abrindo = Vis.abriu && Date.now() < Vis.abreAte, decorrido = Date.now() - Vis.abreDe;
+    if (abrindo) soltarMov('g'); else { pararMov(); Vis.abreAte = 0; }
+    Vis.fixo = null; Vis.chave = chave; montarInicio(k, R, dl, ent);
+    if (abrindo) anima(Vis.el.dial, [{ opacity: 0, transform: 'scale(.94) rotate(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: -decorrido, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+    else if (Vis.abriu) Vis.dia = diaPct;
+    Vis.alvo = '';
+  }
   const orfaos = r2(R.gasto - S.caixinhas.reduce((a, c) => a + R.por[c.id].gasto, 0));
   if (orfaos !== Vis.orfaos) { Vis.orfaos = orfaos; desenharInicio(); }
   S.caixinhas.forEach(c => { const L = Vis.linhas[c.id]; if (L) L.el.setAttribute('aria-label', c.nome + ': sobra ' + fmt(R.por[c.id].sobra) + ' de ' + fmt(R.por[c.id].limite)); });
@@ -2856,8 +2872,10 @@ function renderInicio(){
     if (inicioVisivel() && hasData(S)) abertura(movLigado() && lsGet(LS_ABERTURA) !== today(), alvo, diaPct);
     else { Vis.ids.forEach(id => { Vis.g[id] = alvo[id]; Vis.ent[id] = 1; }); Vis.dia = diaPct; desenharInicio(); }
   } else if (alvoTxt !== Vis.alvo) {
-    pararMov(); // uma mudança nova interrompe a animação em curso e parte do valor final dela
-    Vis.ids.forEach(id => { if (Vis.g[id] !== alvo[id]) tween(v => { Vis.g[id] = v; }, Vis.g[id], alvo[id], 560); });
+    // uma mudança nova interrompe a animação em curso e parte do valor final dela; na abertura longa só as contagens são trocadas, o giro e o fio seguem
+    if (Date.now() < Vis.abreAte) soltarMov('g'); else { pararMov(); Vis.abreAte = 0; }
+    Vis.fixo = null;
+    Vis.ids.forEach(id => { if (Vis.g[id] !== alvo[id]) tween(v => { Vis.g[id] = v; }, Vis.g[id], alvo[id], 560, 0, undefined, 'g'); });
     desenharInicio();
   }
   Vis.alvo = alvoTxt;

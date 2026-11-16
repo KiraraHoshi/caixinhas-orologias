@@ -310,6 +310,57 @@ const TESTES = {
     igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois de lançar durante a abertura");
     igual(await p.texto('#inCx .cxl[data-cx="lazer"] .v'), "R$ 470,10", "sobra do Lazer");
   } },
+  "Abertura curta: só o anel e as barras contam, os números já vêm certos": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.espera(2200); // a longa do dia já tocou
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
+    const vistos = [];
+    for (let i = 0; i < 12; i++) { await p.espera(30); const v = await p.avaliar(() => { const b = document.querySelector("#inResumo .big"), l = document.querySelector('#inCx .cxl[data-cx="lazer"] .v'); return b && l && b.textContent ? (b.textContent + " | " + l.textContent).replace(/\s/g, " ") : null; }).catch(() => null); if (v) vistos.push(v); }
+    certo(vistos.length >= 3, "poucas amostras: " + vistos.length);
+    const errados = vistos.filter((v) => v !== "R$ 1.230,70 | R$ 520,10");
+    igual(errados.length, 0, "números que contaram na abertura curta: " + errados.slice(0, 3).join(" ; "));
+  } },
+  "Sobra grande não muda de tamanho durante a contagem": { movimento: true, fn: async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 100000 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 99995, descricao: "Carro", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+      localStorage.removeItem("caixinhas-orologia-abertura"); location.reload();
+    }).catch(() => {});
+    const classes = new Set();
+    for (let i = 0; i < 40; i++) { await p.espera(40); const c = await p.avaliar(() => { const b = document.querySelector("#inResumo .big"); return b && b.textContent ? String(b.classList.contains("longo")) : null; }).catch(() => null); if (c) classes.add(c); }
+    igual(classes.size, 1, "o tamanho do número mudou durante a contagem: " + [...classes].join(","));
+    igual(await p.texto("#inResumo .big"), "R$ 5,00", "sobra no fim");
+  } },
+  "Aviso 'passou R$' aparece inteiro mesmo com nome comprido": async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Mercado e padaria do bairro", cor: "#9C9BF5" }], limitesPadrao: { a: 100 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 250, descricao: "Compras", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+    });
+    await p.tamanho(320, 640); await p.recarregar(); await p.espera(1500);
+    const m = await p.avaliar(() => { const b = document.querySelector("#inCx .cxl b"), s = b.querySelector("small"), r = s.getBoundingClientRect(), rb = b.getBoundingClientRect(); return { texto: s.textContent, dentro: r.right <= rb.right + 1 && r.width > 0, nomeCortado: b.scrollWidth > b.clientWidth + 1 }; });
+    igual(m.texto.replace(/\s/g, " "), "passou R$ 150,00", "texto do aviso");
+    certo(m.dentro, "o aviso 'passou' ficou fora da área visível da linha");
+    igual(m.nomeCortado, false, "a linha inteira estourou a largura");
+  },
+  "Gastar além do limite durante a abertura não corta o giro": { movimento: true, fn: async (p) => {
+    await comExemplo(p);
+    await p.avaliar(() => {
+      localStorage.removeItem("caixinhas-orologia-abertura");
+      window.__fio = () => parseFloat(document.querySelector('#inResumo [data-d="fio"]').getAttribute("stroke-dasharray"));
+      location.reload();
+    }).catch(() => {});
+    await p.espera(120);
+    await p.avaliar(() => {
+      window.__fio = () => parseFloat(document.querySelector('#inResumo [data-d="fio"]').getAttribute("stroke-dasharray"));
+      document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#gBtn")) { window.__antes = window.__fio(); setTimeout(() => { window.__depois = window.__fio(); }, 40); } }, true);
+    });
+    await lancar(p, 600, "Viagem");
+    await p.espera(2500);
+    const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio() }));
+    certo(f.antes < f.fim * 0.9, "o teste chegou tarde: o fio já estava em " + f.antes + " de " + f.fim);
+    certo(f.depois - f.antes < f.fim * 0.15, "o fio saltou de " + f.antes + " para " + f.depois + " (fim " + f.fim + ")");
+  } },
   "Lançamentos seguidos não se atropelam": { movimento: true, fn: async (p) => {
     await comExemplo(p);
     await lancar(p, 10, "Um"); await lancar(p, 20, "Dois"); await lancar(p, 30, "Três");
