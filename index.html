@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg?v=2" type="image/svg+xml"><link rel="icon" href="icon-192.png?v=2" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="icon-192.png?v=2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--base)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg?v=2" type="image/svg+xml"><link rel="icon" href="icon-192.png?v=2" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="icon-192.png?v=2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:var(--topo);padding-bottom:var(--base)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>/* Bloqueio por PIN: esconde o app antes de aparecer */try{var pn=JSON.parse(localStorage.getItem('caixinhas-orologia-pin')||'null');if(pn&&pn.h)document.documentElement.setAttribute('data-trava','');}catch(e){}</script>
 <script>
 /* Temas do Orolon Caixinhas. Roda antes da página aparecer, para não piscar o tema errado.
@@ -107,7 +107,7 @@ body{background:var(--bg) radial-gradient(120% 50% at 50% -10%, color-mix(in srg
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 a{color:var(--accent)}
-.wrap{max-width:640px;margin:0 auto;padding-block:calc(14px + var(--topo)) calc(var(--tabh) + 96px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 96px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 /* Cabeçalho */
@@ -1162,7 +1162,7 @@ const AJUDAS = {
   terceiros: 'Compras no seu cartão que são de outras pessoas. Marque como recebido quando a pessoa te pagar.',
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
-  vencer: 'Faturas de cartão e gastos fixos (fora os pagos no crédito, que já estão na fatura) que vencem de hoje até 7 dias. O item some quando o dia passa.',
+  vencer: 'Faturas dos cartões cadastrados e gastos fixos que vencem de hoje até 7 dias. O valor da fatura soma as compras da aba Cartão. Gasto fixo pago no crédito não aparece sozinho: ele vence junto com a fatura. O item some quando o dia passa.',
   fin: 'Compara os dois sistemas de financiamento. No SAC a parcela começa maior e vai caindo; no PRICE ela é igual do começo ao fim e o total pago é maior. A amortização extra é um valor a mais pago todo mês, que encurta o prazo.',
   clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
   caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca o ícone e a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
@@ -1382,6 +1382,7 @@ if (NATIVO) {
 }
 /* marca deste aparelho no nome dos backups: cada aparelho só troca e apaga as cópias dele */
 function marcaAparelho(){
+  if (Bkp.marca) return Bkp.marca; // a que o Android informou para este aparelho (ver bkpIniciar)
   let m = lsGet(LS_APARELHO);
   if (!/^[a-z0-9]{4}$/.test(m || '')) { m = Array.from({ length: 4 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join(''); lsSet(LS_APARELHO, m); }
   return m;
@@ -1393,7 +1394,7 @@ async function enviarNativo(nome, texto, tipo, titulo){
   catch (e) { toast('Não deu para abrir o compartilhamento'); return false; }
 }
 const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
-  podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null };
+  podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null, marca: null };
 const BKP_DIAS = 7, BKP_ANTES = 3, BKP_ARQ = /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/, LS_BKP_PASTA = 'caixinhas-orologia-backup-pasta';
 function bkpTxt(){ return JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2); }
 function contaLanc(s){ return Object.values(s.meses || {}).reduce((a, m) => a + (m.gastos || []).length + (m.entradas || []).length, 0); }
@@ -1484,6 +1485,11 @@ function renderBkp(){
 async function bkpIniciar(){
   try { const f = new File(['{}'], 'caixinhas-backup.json', { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [f] })) $('expShare').hidden = false; } catch (e) {}
   await bkpListar();
+  if (NATIVO && PLUG.Cx) {
+    // A marca vem do próprio aparelho, não do que está guardado: quando o Android restaura os dados num celular novo,
+    // a marca guardada é a do antigo, e usá-la faria o novo trocar e apagar as cópias do antigo.
+    try { const r = await PLUG.Cx.aparelho(); if (r && /^[a-z0-9]{4}$/.test(r.marca || '')) { Bkp.marca = r.marca; lsSet(LS_APARELHO, r.marca); } } catch (e) {}
+  }
   if (NATIVO) { const g = lsGet(LS_PASTA_NAT); Bkp.pasta = g && g.uri ? { name: g.nome || 'escolhida', uri: g.uri, nativa: true } : null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
   else if (Bkp.podePasta) { Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
   try { if (hasData(S) && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
@@ -1799,8 +1805,8 @@ function fatura(k){
   const terc = r2(itens.filter(i => i.c.dono).reduce((a,i)=>a+i.valor,0));
   return { itens, eu, terc, total: r2(eu + terc) };
 }
-/* Contas dos próximos dias: faturas (total do cartão, com o que é de outras pessoas) e gastos fixos.
-   Fixo no crédito fica de fora (já está na fatura), e também o fixo apagado naquele mês. A mesma lista alimenta os lembretes. */
+/* Contas dos próximos dias: a fatura de cada cartão (com o total das compras cadastradas, se houver) e os gastos fixos.
+   Fixo no crédito fica de fora (é pago junto com a fatura), e também o fixo apagado naquele mês. A mesma lista alimenta os lembretes. */
 function aVencer(dias, de){
   const ini = de ? new Date(de + 'T12:00:00') : new Date(), saida = [];
   for (let n = 0; n <= dias; n++) {
@@ -1811,7 +1817,7 @@ function aVencer(dias, de){
       if (!noDia(ct.vence || 10)) return;
       F = F || fatura(k);
       const valor = r2(F.itens.filter(i => i.c.cartao === ct.id).reduce((a, i) => a + i.valor, 0));
-      if (valor > 0) saida.push({ tipo: 'fatura', id: ct.id, nome: 'Fatura ' + ct.nome, valor, data, em: n });
+      saida.push({ tipo: 'fatura', id: ct.id, nome: 'Fatura ' + ct.nome, valor, data, em: n }); // cartão cadastrado tem vencimento, mesmo que as compras tenham sido lançadas só como gasto no crédito
     });
     S.fixos.forEach(f => {
       if (!noDia(f.dia) || f.forma === 'Crédito' || !(f.desde <= k) || (f.pulados || []).includes(k)) return;
@@ -2346,7 +2352,7 @@ function disarm(){ clearTimeout(UI.armedT); UI.armed = null; }
 async function exportar(){
   const txt = JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2);
   const name = 'caixinhas-backup-' + today() + '.json';
-  if (NATIVO) { if (await enviarNativo(name, txt, 'application/json', 'Backup do Orolon Caixinhas')) { marcaBackup(); renderAll(); } return; }
+  if (NATIVO) { await enviarNativo(name, txt, 'application/json', 'Backup do Orolon Caixinhas'); return; } // não conta como backup feito: a pessoa pode desistir no compartilhamento
   try {
     const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
     if (dl) { await dl.save({ filename: name, data: txt }); marcaBackup(); renderAll(); toast('Backup salvo'); return; }
@@ -2914,7 +2920,7 @@ function route(){
   if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
   if (t === 'calc') renderCalc();
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
-  if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); }
+  if (t === 'ajustes') { if (trocou) UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); } // dentro dos Ajustes, a edição das caixinhas não se perde
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { TAB = null; route(); });
@@ -3175,7 +3181,7 @@ function renderInicio(){
   const venc = aVencer(7);
   $('inVencer').hidden = !venc.length;
   $('inVencer').innerHTML = venc.length ? `<div class="vhead"><h3>A vencer</h3>${qm('vencer')}</div><div class="out">${venc.map(v =>
-    `<div class="r"><span><b class="vnome">${esc(v.nome)}</b> · ${quandoTxt(v.em)}</span><span class="num">${fmt(v.valor)}</span></div>`).join('')}</div>` : '';
+    `<div class="r"><span><b class="vnome">${esc(v.nome)}</b> · ${quandoTxt(v.em)}</span><span class="num">${v.valor > 0 ? fmt(v.valor) : ''}</span></div>`).join('')}</div>` : '';
   const F = fatura(k);
   $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura que vence em ${esc(monthLabel(k, true))}</h3>${qm('fatura')}<button class="link" type="button" data-go="cartao">Ver cartão</button></div>
       <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`

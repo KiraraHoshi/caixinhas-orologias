@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.provider.Settings;
 
 import androidx.activity.result.ActivityResult;
 import androidx.core.content.FileProvider;
@@ -37,12 +38,32 @@ import java.util.Collections;
 @CapacitorPlugin(name = "Caixinhas")
 public class CaixinhasPlugin extends Plugin {
 
+    // Marca deste aparelho (4 letras/números), tirada do identificador que o Android dá ao app neste aparelho.
+    // Ela não vem junto quando o Android restaura os dados num celular novo; por isso cada aparelho tem a sua.
+    @PluginMethod
+    public void aparelho(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            String id = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+            if (id != null && !id.isEmpty()) {
+                final String letras = "abcdefghijkmnpqrstuvwxyz23456789";
+                int h = id.hashCode();
+                StringBuilder m = new StringBuilder();
+                for (int i = 0; i < 4; i++) { m.append(letras.charAt(h & 31)); h >>>= 5; }
+                r.put("marca", m.toString());
+            }
+        } catch (Exception e) { /* sem identificador: o app usa uma marca sorteada */ }
+        call.resolve(r);
+    }
+
     @PluginMethod
     public void compartilhar(PluginCall call) {
         final String nome = call.getString("nome", "caixinhas-backup.json");
         final String texto = call.getString("texto");
         final String titulo = call.getString("titulo", nome);
-        final String tipo = call.getString("tipo", "application/json");
+        final String tipoPedido = call.getString("tipo", "application/json");
+        final int pv = tipoPedido.indexOf(';');
+        final String tipo = (pv >= 0 ? tipoPedido.substring(0, pv) : tipoPedido).trim(); // "text/csv;charset=utf-8" esconderia apps que aceitam text/csv
         if (texto == null) { call.reject("sem-texto"); return; }
         new Thread(() -> {
             try {
@@ -127,10 +148,11 @@ public class CaixinhasPlugin extends Plugin {
                 Uri arvore = Uri.parse(uriTxt);
                 ContentResolver cr = getContext().getContentResolver();
                 Uri pasta = DocumentsContract.buildDocumentUriUsingTree(arvore, DocumentsContract.getTreeDocumentId(arvore));
-                for (String[] b : backupsDa(arvore)) if (nome.equals(b[1])) apagarDocumento(arvore, b[0]); // a cópia de hoje é trocada, não duplicada
-                Uri novo = DocumentsContract.createDocument(cr, pasta, "application/json", nome);
+                Uri novo = null; // a cópia de hoje é regravada no lugar: se a gravação falhar, a anterior não some antes
+                for (String[] b : backupsDa(arvore)) if (nome.equals(b[1])) { novo = DocumentsContract.buildDocumentUriUsingTree(arvore, b[0]); break; }
+                if (novo == null) novo = DocumentsContract.createDocument(cr, pasta, "application/json", nome);
                 if (novo == null) { call.reject("sem-acesso"); return; }
-                try (OutputStream o = cr.openOutputStream(novo, "w")) {
+                try (OutputStream o = cr.openOutputStream(novo, "wt")) {
                     if (o == null) { call.reject("sem-acesso"); return; }
                     o.write(texto.getBytes(StandardCharsets.UTF_8));
                 }

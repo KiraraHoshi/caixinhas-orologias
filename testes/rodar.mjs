@@ -105,6 +105,7 @@ function capacitorFalso() {
     App: { addListener: (ev, fn) => { if (ev === "backButton") N.voltar = fn; return Promise.resolve({ remove() {} }); }, minimizeApp: async () => { N.minimizou++; } },
     Caixinhas: {
       compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
+      aparelho: async () => ({ marca: "tst1" }),
       escolherPastaBackup: async () => ({ uri: "content://pasta-de-teste", nome: "Backup" }),
       listarBackups: async () => ({ backups: Object.keys(ler("__pasta", {})).map((n) => ({ doc: n, nome: n, modificado: 0 })) }),
       lerBackup: async ({ doc }) => ({ texto: ler("__pasta", {})[doc] }),
@@ -598,7 +599,7 @@ const TESTES = {
     certo(!t.includes("Netflix"), "fixo no crédito não entra (já está na fatura): " + t);
     certo(!t.includes("Academia"), "fixo apagado neste mês não entra: " + t);
     certo(!t.includes("Seguro"), "o que vence depois de 7 dias não entra: " + t);
-    certo(!t.includes("Fatura Vazio"), "cartão sem fatura não entra: " + t);
+    certo(/Fatura Vazio · em 2 dias(?!\s*R\$)/.test(t.replace(/\s+/g, " ")) && !/Fatura Vazio[^F]*R\$ 0/.test(t), "cartão sem compras cadastradas avisa o vencimento, sem valor: " + t);
     await p.print("13-a-vencer");
   },
   "Sem nada a vencer, o cartão A vencer não aparece": async (p) => {
@@ -627,6 +628,8 @@ const TESTES = {
     certo(await p.visivel("#ajMenu"), "o voltar do aparelho fecha a parte e mostra a lista");
     await p.aba("mes"); await p.clicar('[data-go="ajustes/caixinhas"]');
     certo(await p.visivel("#cxList"), "o atalho Editar caixinhas abre direto a parte Caixinhas");
+    await p.digitar("#cxn-0", "Nome em edição"); await p.clicar("#ajVoltar"); await p.clicar('#ajMenu [data-parte="caixinhas"]');
+    igual(await p.avaliar(() => document.querySelector("#cxn-0").value), "Nome em edição", "voltar para a lista não descarta a edição das caixinhas");
     await p.aba("ajustes/lembretes");
     certo((await p.texto("#lembBox")).includes("A vencer"), "parte Lembretes: " + await p.texto("#lembBox"));
     await p.tamanho(900, 800); await p.aba("ajustes"); await p.print("14-ajustes-pc");
@@ -654,8 +657,10 @@ const TESTES = {
     igual(await p.avaliar(() => window.__nativo.minimizou), 0, "ainda não saiu do app");
     await voltar();
     igual(await p.avaliar(() => window.__nativo.minimizou), 1, "no Início, voltar sai do app");
-    await p.aba("cartao"); await p.recarregar(); // app reaberto numa aba, sem histórico: voltar sobe para o Início
-    await voltar(); await voltar();
+    await p.aba("ajustes/pin"); await p.avaliar(() => { history.back = () => {}; }); // app reaberto numa aba, sem histórico: o voltar do navegador não faz nada
+    await voltar();
+    certo(await p.visivel("#ajMenu"), "sem histórico, voltar sobe da parte para a lista de Ajustes");
+    await voltar();
     igual(await p.abaAtual(), "inicio", "sem histórico, voltar leva ao Início");
   } },
   "Android: backup, planilha e cópias saem pelo compartilhamento": { nativo: true, fn: async (p) => {
@@ -665,6 +670,7 @@ const TESTES = {
     let c = await ultima();
     certo(c && /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/.test(c.nome) && c.tipo === "application/json" && c.tem.includes("caixinhas-orologia"), "backup compartilhado: " + JSON.stringify(c).slice(0, 200));
     igual(await p.texto("#expBox"), "", "sem a caixa de 'o download não começou' no app");
+    igual(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-backup")), null, "abrir o compartilhamento não conta como backup feito (a pessoa pode cancelar)");
     await p.clicar('[data-act="csv-tudo"]'); await p.espera(200);
     c = await ultima();
     certo(c && c.nome.endsWith(".csv") && c.tipo.includes("csv") && c.tem.includes("Mercado da semana"), "planilha compartilhada: " + JSON.stringify(c).slice(0, 200));
@@ -677,6 +683,7 @@ const TESTES = {
         meses: { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
       const antigo = { app: "caixinhas-orologia", caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 }, meses: { "2026-01": { gastos: [{ id: "x", valor: 7, descricao: "Antigo", caixinha: "a", forma: "Pix", data: "2026-01-01" }, { id: "y", valor: 8, descricao: "Antigo 2", caixinha: "a", forma: "Pix", data: "2026-01-02" }] } } };
       localStorage.setItem("__pasta", JSON.stringify({ [outro]: JSON.stringify(antigo), "outra-coisa.txt": "x" }));
+      localStorage.setItem("caixinhas-orologia-aparelho", JSON.stringify("zzzz")); // celular novo que herdou os dados (e a marca) do antigo pela restauração do Android
     }, outro);
     await p.recarregar(); await p.aba("ajustes/dados");
     const gravacoes = () => p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "gravarBackup").map((x) => x[1]));
@@ -687,7 +694,7 @@ const TESTES = {
     await p.clicar('[data-act="bkp-usar"]'); await p.espera(400);
     const g = await gravacoes();
     igual(g.length, 1, "gravações depois de aceitar a pasta");
-    certo(/^caixinhas-backup-\d{4}-\d{2}-\d{2}-[a-z0-9]{4}\.json$/.test(g[0].nome) && g[0].nome.endsWith(g[0].grupo) && g[0].grupo !== "-zzzz.json" && g[0].manter === 7, "nome com a marca do aparelho: " + JSON.stringify(g[0]));
+    certo(/^caixinhas-backup-\d{4}-\d{2}-\d{2}-[a-z0-9]{4}\.json$/.test(g[0].nome) && g[0].nome.endsWith(g[0].grupo) && g[0].grupo === "-tst1.json" && g[0].manter === 7, "nome com a marca do aparelho: " + JSON.stringify(g[0]));
     certo(await p.avaliar((outro) => outro in JSON.parse(localStorage.getItem("__pasta")), outro), "a cópia do outro aparelho foi apagada");
     await p.recarregar(); await p.aba("ajustes/dados");
     certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backup”"), "a pasta continua escolhida depois de reabrir: " + await p.texto("#bkpBox"));

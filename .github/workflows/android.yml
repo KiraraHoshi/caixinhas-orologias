@@ -59,7 +59,7 @@ jobs:
         run: |
           # o manifesto final (já com o que as bibliotecas acrescentam): não pode haver permissão de internet
           M=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*merged_manifests*" | head -1)
-          if [ -z "$M" ]; then echo "::warning title=Permissões::manifesto final não encontrado para conferir"; exit 0; fi
+          if [ -z "$M" ]; then echo "::error title=Permissões::manifesto final não encontrado para conferir"; exit 1; fi
           grep -o '<uses-permission[^>]*>' "$M" || true
           if grep -q 'android.permission.INTERNET"' "$M"; then echo "::error title=Permissões::O app ficou com a permissão de internet"; exit 1; fi
 
