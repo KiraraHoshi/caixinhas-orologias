@@ -28,7 +28,7 @@
 
 ---
 
-### Tarefa 1: motor de movimento e testes com movimento desligado
+### Task 1: motor de movimento e testes com movimento desligado
 
 **Arquivos:** `index.html` (bloco novo logo depois de `let S = normalize(...)`), `testes/rodar.mjs`.
 
@@ -45,7 +45,7 @@
 - [ ] **Passo 3:** implementar o motor em `index.html`. O laço usa `requestAnimationFrame`; cada passo chama `desenharInicio()` (definida na tarefa 2; até lá, função vazia). `document.addEventListener('visibilitychange', ...)` chama `pararMov()` quando a página fica oculta.
 - [ ] **Passo 4:** rodar os testes; commit `Movimento: motor de animação e testes com movimento desligado`.
 
-### Tarefa 2: Início fixo e abertura longa/curta
+### Task 2: Início fixo e abertura longa/curta
 
 **Arquivos:** `index.html` (`mostrador`, `renderInicio`, CSS do `.hero`), `testes/rodar.mjs`.
 
@@ -70,7 +70,7 @@
 - [ ] **Passo 3:** implementar; rodar tudo; conferir os prints `02-inicio` (escuro) e um print novo `07-inicio-claro` no tema Orologia Dia.
 - [ ] **Passo 4:** commit `Movimento: Início fixo com abertura longa uma vez por dia`.
 
-### Tarefa 3: lançar e estourar
+### Task 3: lançar e estourar
 
 **Arquivos:** `index.html` (envio do `fGasto`, `renderMes`, CSS), `testes/rodar.mjs`.
 
@@ -90,7 +90,7 @@
 - [ ] **Passo 2:** implementar; rodar tudo.
 - [ ] **Passo 3:** commit `Movimento: lançar gasto e caixinha estourada`.
 
-### Tarefa 4: meta batida
+### Task 4: meta batida
 
 **Arquivos:** `index.html` (`renderMetas`, caso `meta-aportar`, CSS), `testes/rodar.mjs`.
 
@@ -104,7 +104,7 @@
 - [ ] **Passo 2:** implementar; rodar tudo.
 - [ ] **Passo 3:** commit `Movimento: meta batida`.
 
-### Tarefa 5: gráficos
+### Task 5: gráficos
 
 **Arquivos:** `index.html` (`barChart`, `areaChart`, pontos onde aparecem), `testes/rodar.mjs`.
 
@@ -119,7 +119,7 @@
 - [ ] **Passo 2:** implementar; rodar tudo.
 - [ ] **Passo 3:** commit `Movimento: gráficos`.
 
-### Tarefa 6: versão e registros
+### Task 6: versão e registros
 
 - [ ] `VERSION = '1.8.0'` em `index.html`; `CACHE = 'caixinhas-v1.8.0'` em `sw.js`; item "Movimento (1.8)" no topo de "O que ele faz" do `README.md`.
 - [ ] Atualizar o resumo do projeto (fora do repositório): seção "Movimento" passa a "implementado na branch `1.8-movimento`".

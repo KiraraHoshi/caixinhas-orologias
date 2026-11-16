@@ -1241,6 +1241,36 @@ function backupBanner(exN){
 
 let S = normalize(lsGet(LS_KEY));
 
+/* ---------- Movimento ----------
+   Tudo o que se move sai de números animados por tween(); desenharInicio() aplica esses números na tela.
+   Com "reduzir movimento" ligado no aparelho, nada se move: os valores aparecem prontos. */
+const MQ_MOV = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+function movLigado(){ return !(MQ_MOV && MQ_MOV.matches); }
+const outQuart = p => 1 - Math.pow(1 - p, 4);
+const outBack = p => 1 + 2.2 * Math.pow(p - 1, 3) + 1.2 * Math.pow(p - 1, 2);
+const Mov = { fila: new Set(), raf: 0 };
+function tween(set, de, para, ms, espera = 0, ease = outQuart){
+  return new Promise(ok => {
+    if (!movLigado() || ms <= 0 || document.hidden) { set(para); desenharInicio(); return ok(); }
+    Mov.fila.add({ set, de, para, ms, t0: performance.now() + espera, ease, ok });
+    if (!Mov.raf) Mov.raf = requestAnimationFrame(movPasso);
+  });
+}
+function movPasso(agora){
+  for (const t of Mov.fila) {
+    const p = Math.min(1, Math.max(0, (agora - t.t0) / t.ms));
+    t.set(t.de + (t.para - t.de) * t.ease(p));
+    if (p >= 1) { Mov.fila.delete(t); t.ok(); }
+  }
+  desenharInicio();
+  Mov.raf = Mov.fila.size ? requestAnimationFrame(movPasso) : 0;
+}
+/* leva tudo ao valor final agora (a página ficou oculta, ou uma ação nova chegou) */
+function pararMov(){ const f = [...Mov.fila]; Mov.fila.clear(); f.forEach(t => { t.set(t.para); t.ok(); }); if (f.length) desenharInicio(); }
+function anima(el, quadros, op){ if (!el || !el.animate || !movLigado()) return null; try { return el.animate(quadros, op); } catch (e) { return null; } }
+document.addEventListener('visibilitychange', () => { if (document.hidden) pararMov(); });
+function desenharInicio(){}
+
 /* ---------- Cópias de segurança automáticas ----------
    1) Neste aparelho (IndexedDB, separado dos dados): uma cópia por dia e uma antes de importar ou apagar tudo.
    2) Numa pasta escolhida pela pessoa, onde o navegador deixa: um arquivo por dia, os 7 mais recentes.

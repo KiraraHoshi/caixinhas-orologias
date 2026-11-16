@@ -49,7 +49,7 @@ async function abrirChrome() {
 }
 
 // Cada teste ganha uma página com armazenamento próprio (começa sempre do zero).
-async function novaPagina(cr, base, largura = 360, altura = 780) {
+async function novaPagina(cr, base, movimento = false, largura = 360, altura = 780) {
   const { browserContextId } = await cr.enviar("Target.createBrowserContext");
   const { targetId } = await cr.enviar("Target.createTarget", { url: "about:blank", browserContextId });
   const { sessionId } = await cr.enviar("Target.attachToTarget", { targetId, flatten: true });
@@ -62,6 +62,8 @@ async function novaPagina(cr, base, largura = 360, altura = 780) {
   });
   await s("Runtime.enable"); await s("Page.enable");
   await s("Emulation.setDeviceMetricsOverride", { width: largura, height: altura, deviceScaleFactor: 1, mobile: true });
+  // por padrão os testes rodam com "reduzir movimento" ligado: os valores aparecem prontos, sem esperar animação
+  await s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: movimento ? "no-preference" : "reduce" }] });
   await s("Page.navigate", { url: `${base}/index.html` });
   await espera(700);
   const avaliar = async (fn, ...args) => {
@@ -209,6 +211,14 @@ const TESTES = {
     await p.espera(1900);
     igual(await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); let n = 0; for await (const k of d.keys()) if (k.startsWith("caixinhas-backup-")) n++; return n; }), 7, "arquivos de backup na pasta");
   },
+  "Sem movimento: nada anima": async (p) => {
+    await comExemplo(p);
+    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
+    for (const t of ["inicio", "cartao", "metas", "mes"]) {
+      await p.aba(t);
+      igual(await p.avaliar(() => document.getAnimations().filter((a) => !a.animationName || !a.animationName.startsWith("fl-")).length), 0, "animações na aba " + t);
+    }
+  },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);
@@ -227,8 +237,10 @@ const srv = await servir();
 const base = `http://127.0.0.1:${srv.address().port}`;
 const cr = await abrirChrome();
 let falhas = 0;
-for (const [nome, fn] of Object.entries(TESTES)) {
-  const p = await novaPagina(cr, base);
+// um teste é uma função (movimento desligado) ou { movimento: true, fn } para testar as animações
+for (const [nome, t] of Object.entries(TESTES)) {
+  const fn = typeof t === "function" ? t : t.fn;
+  const p = await novaPagina(cr, base, typeof t !== "function" && !!t.movimento);
   try {
     await fn(p);
     if (p.erros.length) throw new Error(p.erros.join(" | "));
