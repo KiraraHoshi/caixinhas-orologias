@@ -31,7 +31,7 @@ async function abrirChrome() {
   const exe = CHROMES.find((c) => existsSync(c));
   if (!exe) throw new Error("Chrome não encontrado. Defina CX_CHROME com o caminho do executável.");
   const perfil = await mkdtemp(join(tmpdir(), "caixinhas-teste-"));
-  const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: "ignore" });
+  const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--no-first-run", "--no-default-browser-check", ...(process.platform === "linux" ? ["--no-sandbox"] : []), "about:blank"], { stdio: "ignore" });
   const arq = join(perfil, "DevToolsActivePort");
   for (let i = 0; i < 100 && !existsSync(arq); i++) await espera(100);
   const [porta, caminho] = readFileSync(arq, "utf8").trim().split("\n");

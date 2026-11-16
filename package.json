@@ -1,0 +1,20 @@
+{
+  "name": "orolon-caixinhas",
+  "version": "1.9.0",
+  "private": true,
+  "description": "Orolon Caixinhas: finanças pessoais offline. Este arquivo só serve para montar o app Android com Capacitor (o site não usa).",
+  "scripts": {
+    "www": "node scripts/preparar-www.mjs",
+    "android": "npm run www && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/local-notifications": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}

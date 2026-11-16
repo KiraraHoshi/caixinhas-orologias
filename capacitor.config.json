@@ -1,0 +1,20 @@
+{
+  "appId": "com.joah.caixinhas",
+  "appName": "Orolon Caixinhas",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#14111F"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK"
+    },
+    "LocalNotifications": {
+      "iconColor": "#9C9BF5"
+    }
+  }
+}

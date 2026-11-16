@@ -1,0 +1,36 @@
+# Roda os testes do Orolon Caixinhas (Chrome sem janela) a cada envio, em qualquer branch.
+# Um erro aparece aqui mesmo que ninguém tenha rodado os testes no PC.
+name: Testes
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Rodar os testes
+        run: |
+          set +e
+          node testes/rodar.mjs > saida.txt 2>&1
+          codigo=$?
+          cat saida.txt
+          # as falhas viram um aviso na página do envio e um resumo, sem precisar abrir o registro inteiro
+          node -e '
+            const l = require("fs").readFileSync("saida.txt", "utf8").split("\n"), f = [];
+            for (let i = 0; i < l.length; i++) if (l[i].startsWith("FALHA")) f.push(l.slice(i, i + 2).join("\n"));
+            const total = l.filter((x) => /passaram|falharam/.test(x)).pop() || "os testes não chegaram ao fim";
+            const txt = total + "\n\n" + f.join("\n\n").slice(0, 6000);
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, "## Testes\n\n```\n" + txt + "\n```\n");
+            if (f.length || !/passaram/.test(total)) console.log("::error title=Testes::" + txt.replace(/%/g, "%25").replace(/\r/g, "").replace(/\n/g, "%0A"));
+          '
+          exit $codigo

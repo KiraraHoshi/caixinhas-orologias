@@ -1,2 +1,7 @@
 testes/prints/
 .superpowers/
+node_modules/
+www/
+android/
+assets/
+package-lock.json

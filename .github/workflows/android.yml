@@ -1,0 +1,89 @@
+# Monta o app Android do Orolon Caixinhas com Capacitor, no próprio GitHub (nada precisa ser instalado no PC).
+# Cada envio (main ou qualquer branch) que mexe no app gera um APK de teste, publicado na página de Releases
+# como "Android (teste)". A página diz de qual branch veio o APK; o último envio substitui o anterior.
+name: App Android
+
+on:
+  push:
+    branches: ["**"]
+    paths: ["index.html", "privacy.html", "manifest.webmanifest", "icon*", "android-assets/**", "android-plugin/**", "android-teste/**", "capacitor.config.json", "package.json", "scripts/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar o Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Montar o projeto Android
+        run: |
+          npm run www
+          npx cap add android
+          node scripts/plugin-android.mjs
+          cp -r android-assets assets
+          npx @capacitor/assets generate --android --iconBackgroundColor "#14111F" --iconBackgroundColorDark "#14111F" --splashBackgroundColor "#14111F" --splashBackgroundColorDark "#14111F"
+          npx cap sync android
+
+      - name: Versão do app
+        run: |
+          VERSAO=$(grep -oP "const VERSION = '\K[0-9.]+" index.html)
+          echo "VERSAO=$VERSAO" >> "$GITHUB_ENV"
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"$VERSAO\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: Gerar o APK de teste
+        run: |
+          # chave fixa: cada APK de teste novo atualiza o anterior sem desinstalar
+          node scripts/chave-teste-android.mjs
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "../Caixinhas-${VERSAO}-teste.apk"
+
+      - name: Permissões que ficaram no app
+        run: |
+          # o manifesto final (já com o que as bibliotecas acrescentam): não pode haver permissão de internet
+          M=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*merged_manifests*" | head -1)
+          if [ -z "$M" ]; then echo "::warning title=Permissões::manifesto final não encontrado para conferir"; exit 0; fi
+          grep -o '<uses-permission[^>]*>' "$M" || true
+          if grep -q 'android.permission.INTERNET"' "$M"; then echo "::error title=Permissões::O app ficou com a permissão de internet"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Caixinhas-${{ env.VERSAO }}-teste
+          path: Caixinhas-*-teste.apk
+
+      - name: Tirar os APKs de versões anteriores da página
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/tags/android-teste" --jq ".assets[] | select(.name != \"Caixinhas-${VERSAO}-teste.apk\") | .id" 2>/dev/null \
+            | while read -r id; do gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$id"; done || true
+
+      - name: Publicar na página de Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-teste
+          name: Android (teste)
+          prerelease: true
+          make_latest: false
+          files: Caixinhas-*-teste.apk
+          body: |
+            APK de teste do Orolon Caixinhas ${{ env.VERSAO }} (build ${{ github.run_number }}), da branch `${{ github.ref_name }}`.
+            No celular: baixe o arquivo .apk abaixo e abra. O Android pede para permitir a instalação de apps desta fonte.
+            Esta versão é só para testar; a da Google Play vai ser assinada com a chave oficial.

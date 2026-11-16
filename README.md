@@ -6,6 +6,12 @@ App de finanças pessoais em **um único arquivo HTML**: sem servidor, sem conta
 
 ## O que ele faz
 
+- **Versão 1.9:**
+  - **Calculadoras** numa tela só: as contas CLT, o **financiamento de imóvel** (SAC e PRICE lado a lado, com correção, amortização extra e aviso quando a parcela passa de 30% da renda), os juros compostos e o "quanto guardar por mês" (os dois últimos saíram da tela Metas).
+  - **A vencer:** o Início avisa das faturas e dos gastos fixos que vencem nos próximos 7 dias.
+  - **Ajustes em partes:** Caixinhas, Pagamento e rendimento, Aparência, Bloqueio por PIN, Backup e dados, Lembretes e Sobre.
+  - **Mês mais curto:** a lista mostra os 8 lançamentos mais recentes e o resto a pedido.
+  - **App Android (em teste):** o mesmo app, empacotado. Botão voltar fecha uma coisa por vez, backup e planilha saem pelo compartilhamento, backup automático numa pasta escolhida (cada aparelho só mexe nas cópias dele) e lembrete de contas a vencer por notificação. Detalhes em [ANDROID.md](ANDROID.md).
 - **Ajustes de acabamento (1.8.4):** na abertura curta só o anel e as barras se movem (os números já aparecem certos); o número grande da sobra não muda de tamanho durante a contagem; o aviso "passou R$ X" não é mais cortado em nomes de caixinha compridos; gastar além do limite durante a abertura longa não interrompe mais o giro do mostrador.
 - **Movimento (1.8):** o app reage ao que você faz. Na primeira abertura do dia o mostrador gira e se desenha, e a sobra conta até o valor (nas outras, uma versão curta). Ao lançar, o pedaço do anel cresce, a sobra desce e o valor lançado passa pelo centro; se a caixinha estoura, ela treme e mostra "passou R$ X". Meta batida ganha brilho e faíscas, e os gráficos se desenham ao aparecer. Com "reduzir movimento" ligado no aparelho, tudo aparece parado.
 - **Backup automático (1.7):** o app guarda sozinho uma cópia por dia neste aparelho (7 dias) e mais uma antes de importar ou apagar tudo, para desfazer um erro. Onde o navegador deixa (Chrome e Edge no computador), dá para escolher uma pasta e ele grava ali um arquivo por dia, mantendo os 7 mais recentes; numa pasta que sincroniza com a nuvem, o backup sai do aparelho sem conta nem servidor. No celular, "Enviar backup" abre o compartilhamento do sistema.

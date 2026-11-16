@@ -598,15 +598,15 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <summary>Metas e investimentos</summary>
       <div class="inner">
         <p>Em <b>Metas → Nova meta</b>, defina o alvo, quanto já tem e quanto vai guardar por mês. O app calcula em quanto tempo você chega lá, com rendimento. Comece pela reserva de emergência.</p>
-        <p class="hint">Os simuladores mostram quanto um valor cresce e quanto guardar por mês. São estimativas.</p>
+        <p class="hint">Os simuladores de juros e de quanto guardar por mês ficam em <b>Início → Calculadoras</b> (ou pelo botão “Simular” em Metas). São estimativas.</p>
       </div>
     </details>
 
     <details>
-      <summary>Calculadoras CLT</summary>
+      <summary>Calculadoras</summary>
       <div class="inner">
-        <p>Em <b>Início → Calculadoras</b>: salário líquido, adicional noturno, 13º salário, férias e saque-aniversário do FGTS, com as tabelas de 2026.</p>
-        <p class="hint">Confira com o seu holerite. As tabelas podem ser editadas em Ajustes quando o governo mudar os valores.</p>
+        <p>Em <b>Início → Calculadoras</b>: salário líquido, adicional noturno, 13º salário, férias e saque-aniversário do FGTS, com as tabelas de 2026. Na mesma tela ficam o financiamento de imóvel (SAC e PRICE lado a lado), os juros compostos e o “quanto guardar”.</p>
+        <p class="hint">Confira com o seu holerite. As tabelas podem ser editadas em Ajustes → Pagamento e rendimento quando o governo mudar os valores.</p>
       </div>
     </details>
 
@@ -615,7 +615,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <div class="inner">
         <p>Em <b>Mês → Lançamentos</b>, use a busca e os filtros de caixinha e forma de pagamento. Marque “Buscar em todos os meses” para procurar no histórico inteiro.</p>
         <p>Em <b>Mês → Gráficos e comparação</b>, veja quanto gastou em cada caixinha comparado com o mês anterior, e o total dos últimos 6 meses.</p>
-        <p class="hint">Para abrir no Excel ou no Google Planilhas: “Exportar esta lista (.csv)” embaixo da lista, ou “Exportar planilha (.csv)” em Ajustes → Seus dados.</p>
+        <p class="hint">Para abrir no Excel ou no Google Planilhas: “Exportar esta lista (.csv)” embaixo da lista, ou “Exportar planilha (.csv)” em Ajustes → Backup e dados.</p>
       </div>
     </details>
 
@@ -646,7 +646,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <div class="inner">
         <p>Nada vai para a internet. Seus dados ficam só neste aparelho.</p>
         <ol>
-          <li>Em <b>Ajustes → Seus dados</b>, toque em “Exportar backup” e guarde o arquivo fora do aparelho.</li>
+          <li>Em <b>Ajustes → Backup e dados</b>, toque em “Exportar backup” e guarde o arquivo fora do aparelho.</li>
           <li>No celular novo, abra o app e use “Importar backup”.</li>
         </ol>
         <p class="hint">Importar substitui tudo o que estiver no aparelho. Faça backup de vez em quando.</p>
@@ -1077,7 +1077,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 
     <div class="aj-parte flat" data-parte="dados" hidden>
     <div class="panel">
-      <div class="vhead qh"><h3>Seus dados</h3><button class="qm" type="button" data-act="qm" data-id="backup" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <div class="vhead qh"><h3>Backup e dados</h3><button class="qm" type="button" data-act="qm" data-id="backup" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <p class="hint" id="ajOnde"></p>
       <div class="bkp" id="bkpBox"></div>
       <div class="btns">
@@ -1146,7 +1146,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.8.4';
+const VERSION = '1.9.0';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];

@@ -15,19 +15,25 @@ const svg = readFileSync(join(RAIZ, "icon-simbolo.svg"), "utf8").replace(/<!--[\
 const miolo = svg.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 const FUNDO = "radial-gradient(70% 70% at 28% 18%, #2A2140 0%, #14111F 72%)"; // o mesmo fundo do ícone do Orolon
 const ARQUIVOS = [
-  // [caminho, lado, tamanho do símbolo em fração do lado]
-  ["icon-192.png", 192, 0.88],
-  ["icon-512.png", 512, 0.88],
-  ["icon-maskable-512.png", 512, 0.8], // o anel (73% do símbolo) cabe no círculo seguro de 80%
+  // [caminho, lado, tamanho do símbolo em fração do lado, fundo]
+  ["icon-192.png", 192, 0.88, FUNDO],
+  ["icon-512.png", 512, 0.88, FUNDO],
+  ["icon-maskable-512.png", 512, 0.8, FUNDO], // o anel (73% do símbolo) cabe no círculo seguro de 80%
+  // peças do app Android (o Capacitor monta o ícone e a tela de abertura a partir delas)
+  ["android-assets/icon-only.png", 1024, 0.82, FUNDO],
+  ["android-assets/icon-foreground.png", 1024, 0.68, "transparent"], // dentro da área segura de 61%
+  ["android-assets/icon-background.png", 1024, 0, FUNDO],
+  ["android-assets/splash.png", 2732, 0.2, "#14111F"],
+  ["android-assets/splash-dark.png", 2732, 0.2, "#14111F"],
 ];
 
 const tmp = mkdtempSync(join(tmpdir(), "caixinhas-icones-"));
 try {
-  for (const [arq, lado, frac] of ARQUIVOS) {
+  for (const [arq, lado, frac, fundo] of ARQUIVOS) {
     const pagina = join(tmp, "p.html"), s = Math.round(lado * frac);
-    writeFileSync(pagina, `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;width:${lado}px;height:${lado}px;overflow:hidden;background:${FUNDO}}
-      div{position:absolute;left:${(lado - s) / 2}px;top:${(lado - s) / 2}px;width:${s}px;height:${s}px}svg{width:100%;height:100%;display:block}</style><body><div>${svg}</div></body>`);
-    const r = spawnSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1", `--window-size=${lado},${lado}`,
+    writeFileSync(pagina, `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;width:${lado}px;height:${lado}px;overflow:hidden;background:${fundo}}
+      div{position:absolute;left:${(lado - s) / 2}px;top:${(lado - s) / 2}px;width:${s}px;height:${s}px}svg{width:100%;height:100%;display:block}</style><body>${frac ? `<div>${svg}</div>` : ""}</body>`);
+    const r = spawnSync(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1", `--window-size=${lado},${lado}`, "--default-background-color=00000000",
       `--user-data-dir=${join(tmp, "perfil")}`, `--screenshot=${join(RAIZ, arq)}`, pathToFileURL(pagina).href], { stdio: "ignore" });
     if (r.status !== 0) throw new Error(`Falhou ao gerar ${arq}`);
     console.log("ok", arq, `${lado}x${lado}`);
