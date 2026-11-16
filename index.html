@@ -1068,7 +1068,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 <script>
 (function(){
 'use strict';
-const VERSION = '1.8.0';
+const VERSION = '1.8.1';
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -1281,7 +1281,7 @@ function movPasso(agora){
 /* leva tudo ao valor final agora (a página ficou oculta, ou uma ação nova chegou) */
 function pararMov(){ const f = [...Mov.fila]; Mov.fila.clear(); f.forEach(t => { t.set(t.para); t.ok(); }); if (f.length) desenharInicio(); }
 function anima(el, quadros, op){ if (!el || !el.animate || !movLigado()) return null; try { return el.animate(quadros, op); } catch (e) { return null; } }
-document.addEventListener('visibilitychange', () => { if (document.hidden) pararMov(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pararMov(); else if (!Vis.abriu) renderInicio(); });
 
 /* ---------- Cópias de segurança automáticas ----------
    1) Neste aparelho (IndexedDB, separado dos dados): uma cópia por dia e uma antes de importar ou apagar tudo.
@@ -2832,7 +2832,7 @@ function animarGraficos(raiz){
   raiz.querySelectorAll('.ga-ap').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 200, fill: 'backwards' }));
   raiz.querySelectorAll('.ga-bola').forEach(x => anima(x, [{ transform: 'scale(0)' }, { transform: 'scale(1.5)' }, { transform: 'scale(1)' }], { duration: 380, delay: 1200, fill: 'backwards' }));
 }
-function inicioVisivel(){ return !$('v-inicio').hidden && !document.documentElement.hasAttribute('data-trava'); }
+function inicioVisivel(){ return UI.abaVista === 'inicio' && !$('v-inicio').hidden && !document.hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){
   const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
   const pronto = S.onboarded || hasData(S);
@@ -2847,6 +2847,10 @@ function renderInicio(){
   const alvo = {}; S.caixinhas.forEach(c => { alvo[c.id] = R.por[c.id].gasto; });
   const alvoTxt = JSON.stringify(alvo);
   if (chave !== Vis.chave) { pararMov(); Vis.chave = chave; montarInicio(k, R, dl, ent); if (Vis.abriu) { Vis.dia = diaPct; } Vis.alvo = ''; }
+  const orfaos = r2(R.gasto - S.caixinhas.reduce((a, c) => a + R.por[c.id].gasto, 0));
+  if (orfaos !== Vis.orfaos) { Vis.orfaos = orfaos; desenharInicio(); }
+  S.caixinhas.forEach(c => { const L = Vis.linhas[c.id]; if (L) L.el.setAttribute('aria-label', c.nome + ': sobra ' + fmt(R.por[c.id].sobra) + ' de ' + fmt(R.por[c.id].limite)); });
+  if (Vis.el.dial) Vis.el.dial.setAttribute('aria-label', (R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0) + '% do limite do mês gasto, com ' + Math.round(diaPct) + '% do mês passado');
   if (!Vis.abriu) {
     // a abertura espera o Início estar à vista e haver dados; até lá, tudo aparece pronto
     if (inicioVisivel() && hasData(S)) abertura(movLigado() && lsGet(LS_ABERTURA) !== today(), alvo, diaPct);

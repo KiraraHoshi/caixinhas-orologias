@@ -97,7 +97,7 @@ const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digit
 const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a.playState === "running").length);
 // aporta na meta cujo cartão contém o nome dado
 const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
-const cartaoMeta = (p, nome) => p.avaliar((nome) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); return c ? c.textContent.replace(/s+/g, " ") : ""; }, nome);
+const cartaoMeta = (p, nome) => p.avaliar((nome) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); return c ? c.textContent.replace(/\s+/g, " ") : ""; }, nome);
 const comExemplo = async (p) => { await p.clicar('[data-act="onb-exemplo"]'); await p.espera(200); };
 
 const TESTES = {
@@ -367,6 +367,37 @@ const TESTES = {
     await p.aba("ajustes");
     certo((await p.texto("#bkpDica")).includes("Crie uma pasta só para isso"), "faltou a dica de criar uma pasta para o backup");
   },
+  "Leitor de tela ouve os valores atuais no Início": async (p) => {
+    await comExemplo(p);
+    const rotulo = () => p.avaliar(() => document.querySelector('#inCx .cxl[data-cx="lazer"]').getAttribute("aria-label").replace(/\s+/g, " "));
+    igual(await rotulo(), "Lazer: sobra R$ 520,10 de R$ 700,00", "rótulo do Lazer");
+    const dial = await p.avaliar(() => document.querySelector("#inResumo .dial").getAttribute("aria-label"));
+    certo(/^18% do limite do mês gasto, com \d+% do mês passado$/.test(dial), "rótulo do mostrador: " + dial);
+    await lancar(p, 50, "Cinema");
+    igual(await rotulo(), "Lazer: sobra R$ 470,10 de R$ 700,00", "rótulo do Lazer depois de lançar");
+  },
+  "Gasto de caixinha que não existe mais entra e sai da sobra": async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Casa", cor: "#9C9BF5" }], limitesPadrao: { a: 1000 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 50, descricao: "Luz", caixinha: "a", forma: "Pix", data: mes + "-01" }, { id: "g2", valor: 100, descricao: "Antigo", caixinha: "fantasma", forma: "Pix", data: mes + "-02" }] } } }));
+    });
+    await p.recarregar();
+    igual(await p.texto("#inResumo .big"), "R$ 850,00", "sobra com o gasto órfão");
+    await p.aba("mes");
+    await p.clicar('[data-act="del-gasto"][data-id="g2"]'); await p.clicar('[data-act="del-gasto"][data-id="g2"]');
+    await p.aba("inicio");
+    igual(await p.texto("#inResumo .big"), "R$ 950,00", "sobra depois de apagar o gasto órfão");
+  },
+  "Abrir em outra aba não gasta a abertura longa": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("mes");
+    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.espera(900);
+    igual(await p.abaAtual(), "mes", "o app reabre na aba Mês");
+    igual(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-abertura")), null, "a abertura longa não devia ser gasta fora do Início");
+    await p.aba("inicio"); await p.espera(150);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "a longa toca quando o Início aparece");
+  } },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
