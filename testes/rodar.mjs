@@ -49,7 +49,7 @@ async function abrirChrome() {
 }
 
 // Cada teste ganha uma página com armazenamento próprio (começa sempre do zero).
-async function novaPagina(cr, base, movimento = false, largura = 360, altura = 780) {
+async function novaPagina(cr, base, movimento = false, nativo = false, largura = 360, altura = 780) {
   const { browserContextId } = await cr.enviar("Target.createBrowserContext");
   const { targetId } = await cr.enviar("Target.createTarget", { url: "about:blank", browserContextId });
   const { sessionId } = await cr.enviar("Target.attachToTarget", { targetId, flatten: true });
@@ -64,6 +64,7 @@ async function novaPagina(cr, base, movimento = false, largura = 360, altura = 7
   await s("Emulation.setDeviceMetricsOverride", { width: largura, height: altura, deviceScaleFactor: 1, mobile: true });
   // por padrão os testes rodam com "reduzir movimento" ligado: os valores aparecem prontos, sem esperar animação
   await s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: movimento ? "no-preference" : "reduce" }] });
+  if (nativo) await s("Page.addScriptToEvaluateOnNewDocument", { source: `(${capacitorFalso})()` }); // finge o app Android
   await s("Page.navigate", { url: `${base}/index.html` });
   await espera(700);
   const avaliar = async (fn, ...args) => {
@@ -95,6 +96,34 @@ const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
 const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
 const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-calc="' + qual + '"]'); };
+// Android de mentira: roda dentro da página antes do app (testes com { nativo: true }). Guarda o que o app pediu em window.__nativo.
+// A "pasta" e a permissão ficam no localStorage para sobreviver a um recarregar.
+function capacitorFalso() {
+  const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+  const N = (window.__nativo = { chamadas: [], voltar: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [] });
+  window.Capacitor = { isNativePlatform: () => true, Plugins: {
+    App: { addListener: (ev, fn) => { if (ev === "backButton") N.voltar = fn; return Promise.resolve({ remove() {} }); }, minimizeApp: async () => { N.minimizou++; } },
+    Caixinhas: {
+      compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
+      escolherPastaBackup: async () => ({ uri: "content://pasta-de-teste", nome: "Backup" }),
+      listarBackups: async () => ({ backups: Object.keys(ler("__pasta", {})).map((n) => ({ doc: n, nome: n, modificado: 0 })) }),
+      lerBackup: async ({ doc }) => ({ texto: ler("__pasta", {})[doc] }),
+      gravarBackup: async (a) => {
+        N.chamadas.push(["gravarBackup", { nome: a.nome, grupo: a.grupo, manter: a.manter }]);
+        const o = ler("__pasta", {}); o[a.nome] = a.texto;
+        Object.keys(o).filter((n) => n.endsWith(a.grupo)).sort().reverse().slice(a.manter).forEach((n) => delete o[n]);
+        localStorage.setItem("__pasta", JSON.stringify(o));
+      },
+    },
+    LocalNotifications: {
+      checkPermissions: async () => ({ display: ler("__perm", "prompt") }),
+      requestPermissions: async () => { N.pediu++; localStorage.setItem("__perm", JSON.stringify(N.responder)); return { display: N.responder }; },
+      getPending: async () => ({ notifications: N.agendadas.map((n) => ({ id: n.id })) }),
+      cancel: async ({ notifications }) => { const ids = notifications.map((n) => n.id); N.agendadas = N.agendadas.filter((n) => !ids.includes(n.id)); },
+      schedule: async ({ notifications }) => { N.agendadas.push(...notifications.map((n) => ({ id: n.id, title: n.title, body: n.body, at: new Date(n.schedule.at).getTime() }))); return { notifications }; },
+    },
+  } };
+}
 // estado com contas em datas relativas a hoje: fatura amanhã, fixo em 3 dias, e casos que não devem aparecer
 const semearContas = (p) => p.avaliar(() => {
   const pad = (n) => String(n).padStart(2, "0"), mesDe = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1);
@@ -602,6 +631,106 @@ const TESTES = {
     certo((await p.texto("#lembBox")).includes("A vencer"), "parte Lembretes: " + await p.texto("#lembBox"));
     await p.tamanho(900, 800); await p.aba("ajustes"); await p.print("14-ajustes-pc");
   },
+  "No site nada de Android aparece": async (p) => {
+    await comExemplo(p); await p.aba("ajustes/lembretes");
+    igual(await p.avaliar(() => !!document.querySelector("#lembLigar")), false, "controle de notificação fora do app");
+    igual(await p.avaliar(() => document.documentElement.classList.contains("nativo")), false, "marca de app no site");
+    certo(!(await p.avaliar(() => document.querySelector('meta[name="viewport"]').content)).includes("user-scalable=no"), "o zoom continua livre no site");
+  },
+  "Android: voltar fecha uma coisa por vez e sai do app no Início": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    certo((await p.avaliar(() => document.querySelector('meta[name="viewport"]').content)).includes("user-scalable=no"), "zoom de pinça bloqueado no app");
+    const voltar = async () => { await p.avaliar(() => { window.__nativo.voltar(); }); await p.espera(350); };
+    await p.aba("mes"); await p.clicar("#fab");
+    certo(await p.visivel("#folhaGasto"), "a folha de lançar abriu");
+    await voltar();
+    igual(await p.visivel("#folhaGasto"), false, "o primeiro voltar fecha só a folha");
+    igual(await p.abaAtual(), "mes", "e continua na aba Mês");
+    await p.aba("ajustes"); await p.clicar('#ajMenu [data-parte="pin"]');
+    await voltar();
+    certo(await p.visivel("#ajMenu"), "voltar fecha a parte dos Ajustes");
+    await voltar(); await voltar();
+    igual(await p.abaAtual(), "inicio", "voltando chega ao Início");
+    igual(await p.avaliar(() => window.__nativo.minimizou), 0, "ainda não saiu do app");
+    await voltar();
+    igual(await p.avaliar(() => window.__nativo.minimizou), 1, "no Início, voltar sai do app");
+    await p.aba("cartao"); await p.recarregar(); // app reaberto numa aba, sem histórico: voltar sobe para o Início
+    await voltar(); await voltar();
+    igual(await p.abaAtual(), "inicio", "sem histórico, voltar leva ao Início");
+  } },
+  "Android: backup, planilha e cópias saem pelo compartilhamento": { nativo: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("ajustes/dados");
+    const ultima = () => p.avaliar(() => { const c = window.__nativo.chamadas.filter((x) => x[0] === "compartilhar").pop(); return c ? { nome: c[1].nome, tipo: c[1].tipo, tem: String(c[1].texto).slice(0, 4000) } : null; });
+    await p.clicar('[data-act="exp"]'); await p.espera(200);
+    let c = await ultima();
+    certo(c && /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/.test(c.nome) && c.tipo === "application/json" && c.tem.includes("caixinhas-orologia"), "backup compartilhado: " + JSON.stringify(c).slice(0, 200));
+    igual(await p.texto("#expBox"), "", "sem a caixa de 'o download não começou' no app");
+    await p.clicar('[data-act="csv-tudo"]'); await p.espera(200);
+    c = await ultima();
+    certo(c && c.nome.endsWith(".csv") && c.tipo.includes("csv") && c.tem.includes("Mercado da semana"), "planilha compartilhada: " + JSON.stringify(c).slice(0, 200));
+  } },
+  "Android: pasta com cópias de outro aparelho pergunta antes e nunca as apaga": { nativo: true, fn: async (p) => {
+    const outro = "caixinhas-backup-2026-01-01-zzzz.json";
+    await p.avaliar((outro) => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+      const antigo = { app: "caixinhas-orologia", caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 }, meses: { "2026-01": { gastos: [{ id: "x", valor: 7, descricao: "Antigo", caixinha: "a", forma: "Pix", data: "2026-01-01" }, { id: "y", valor: 8, descricao: "Antigo 2", caixinha: "a", forma: "Pix", data: "2026-01-02" }] } } };
+      localStorage.setItem("__pasta", JSON.stringify({ [outro]: JSON.stringify(antigo), "outra-coisa.txt": "x" }));
+    }, outro);
+    await p.recarregar(); await p.aba("ajustes/dados");
+    const gravacoes = () => p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "gravarBackup").map((x) => x[1]));
+    await p.clicar('[data-act="bkp-pasta"]'); await p.espera(300);
+    certo((await p.texto("#bkpBox")).includes("já tem uma cópia"), "devia avisar que a pasta já tem cópias: " + await p.texto("#bkpBox"));
+    certo((await p.texto("#bkpBox")).includes("de outro aparelho"), "a cópia é de outro aparelho: " + await p.texto("#bkpBox"));
+    igual((await gravacoes()).length, 0, "nada é gravado antes da resposta");
+    await p.clicar('[data-act="bkp-usar"]'); await p.espera(400);
+    const g = await gravacoes();
+    igual(g.length, 1, "gravações depois de aceitar a pasta");
+    certo(/^caixinhas-backup-\d{4}-\d{2}-\d{2}-[a-z0-9]{4}\.json$/.test(g[0].nome) && g[0].nome.endsWith(g[0].grupo) && g[0].grupo !== "-zzzz.json" && g[0].manter === 7, "nome com a marca do aparelho: " + JSON.stringify(g[0]));
+    certo(await p.avaliar((outro) => outro in JSON.parse(localStorage.getItem("__pasta")), outro), "a cópia do outro aparelho foi apagada");
+    await p.recarregar(); await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backup”"), "a pasta continua escolhida depois de reabrir: " + await p.texto("#bkpBox"));
+    await p.clicar('[data-act="bkp-ver"]'); await p.espera(300);
+    igual(await p.avaliar(() => document.querySelectorAll('#bkpBox [data-act="bkp-doc"]').length), 2, "cópias da pasta (a deste aparelho e a do outro; outros arquivos não contam)");
+    await p.avaliar((outro) => [...document.querySelectorAll('[data-act="bkp-doc"]')].find((b) => b.dataset.id === outro).click(), outro); await p.espera(300);
+    certo((await p.texto("#impConfirm")).includes("Backup com 2 gastos"), "restaurar a cópia escolhida pede confirmação: " + await p.texto("#impConfirm"));
+    await p.clicar('[data-act="bkp-parar"]'); await p.espera(300); await p.recarregar(); await p.aba("ajustes/dados");
+    certo(!(await p.texto("#bkpBox")).includes("Gravando na pasta"), "parar de usar a pasta vale depois de reabrir");
+  } },
+  "Android: lembretes pedem permissão só ao ligar e não mostram valores": { nativo: true, fn: async (p) => {
+    await semearContas(p); await p.recarregar(); await p.espera(1000);
+    const N = () => p.avaliar(() => ({ pediu: window.__nativo.pediu, ag: window.__nativo.agendadas }));
+    igual((await N()).pediu, 0, "abrir o app não pede permissão");
+    igual((await N()).ag.length, 0, "nada agendado com o lembrete desligado");
+    await p.aba("ajustes/lembretes");
+    const marcar = async (v) => { await p.avaliar((v) => { const c = document.querySelector("#lembLigar"); c.checked = v; c.dispatchEvent(new Event("change", { bubbles: true })); }, v); await p.espera(400); };
+    await marcar(true);
+    let n = await N();
+    igual(n.pediu, 1, "a permissão é pedida ao ligar");
+    certo(n.ag.length >= 2, "notificações agendadas: " + n.ag.length);
+    igual(new Set(n.ag.map((x) => x.id)).size, n.ag.length, "uma notificação por dia, sem repetir");
+    certo(n.ag.every((x) => x.at > Date.now()), "nada agendado para o passado");
+    certo(n.ag.some((x) => x.body === "Vence amanhã: Internet"), "aviso do gasto fixo, 1 dia antes: " + n.ag.map((x) => x.body).join(" | "));
+    certo(n.ag.some((x) => x.body.includes("Fatura Nubank")), "aviso da fatura: " + n.ag.map((x) => x.body).join(" | "));
+    certo(!n.ag.some((x) => /R\$|Netflix|\d,\d\d/.test(x.body)), "sem valores nem contas que não entram: " + n.ag.map((x) => x.body).join(" | "));
+    const d9 = n.ag.find((x) => x.body === "Vence amanhã: Internet"); igual(new Date(d9.at).getHours(), 9, "hora padrão");
+    await p.avaliar(() => { const s = document.querySelector("#lembAntes"); s.value = "0"; s.dispatchEvent(new Event("change", { bubbles: true })); }); await p.espera(400);
+    n = await N();
+    certo(n.ag.some((x) => x.body === "Vence hoje: Internet") && !n.ag.some((x) => x.body.includes("amanhã")), "mudar a antecedência refaz os avisos: " + n.ag.map((x) => x.body).join(" | "));
+    await p.recarregar(); await p.espera(1200);
+    certo((await N()).ag.length >= 2, "ao reabrir o app os avisos são refeitos");
+    await p.aba("ajustes/lembretes");
+    igual(await p.avaliar(() => document.querySelector("#lembLigar").checked), true, "o lembrete continua ligado");
+    await marcar(false);
+    igual((await N()).ag.length, 0, "desligar cancela os avisos");
+    await p.avaliar(() => { localStorage.removeItem("__perm"); window.__nativo.responder = "denied"; });
+    await marcar(true);
+    igual(await p.avaliar(() => document.querySelector("#lembLigar").checked), false, "sem permissão, o controle volta para desligado");
+    certo((await p.texto("#lembEstado")).includes("não deixou"), "explica como liberar: " + await p.texto("#lembEstado"));
+    igual((await N()).ag.length, 0, "sem permissão, nada é agendado");
+    await p.print("15-lembretes-android");
+  } },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);
@@ -624,7 +753,7 @@ let falhas = 0;
 const SO = process.argv[2]; // opcional: roda só os testes cujo nome contém este texto
 for (const [nome, t] of Object.entries(TESTES).filter(([n]) => !SO || n.includes(SO))) {
   const fn = typeof t === "function" ? t : t.fn;
-  const p = await novaPagina(cr, base, typeof t !== "function" && !!t.movimento);
+  const p = await novaPagina(cr, base, typeof t !== "function" && !!t.movimento, typeof t !== "function" && !!t.nativo);
   try {
     await fn(p);
     if (p.erros.length) throw new Error(p.erros.join(" | "));

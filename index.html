@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg?v=2" type="image/svg+xml"><link rel="icon" href="icon-192.png?v=2" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="icon-192.png?v=2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#110E18"><link rel="icon" href="icon.svg?v=2" type="image/svg+xml"><link rel="icon" href="icon-192.png?v=2" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="icon-192.png?v=2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--base)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>/* Bloqueio por PIN: esconde o app antes de aparecer */try{var pn=JSON.parse(localStorage.getItem('caixinhas-orologia-pin')||'null');if(pn&&pn.h)document.documentElement.setAttribute('data-trava','');}catch(e){}</script>
 <script>
 /* Temas do Orolon Caixinhas. Roda antes da página aparecer, para não piscar o tema errado.
@@ -107,7 +107,7 @@ body{background:var(--bg) radial-gradient(120% 50% at 50% -10%, color-mix(in srg
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 a{color:var(--accent)}
-.wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 96px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.wrap{max-width:640px;margin:0 auto;padding-block:calc(14px + var(--topo)) calc(var(--tabh) + 96px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 /* Cabeçalho */
@@ -124,7 +124,7 @@ h1{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.1;
 .rule{height:2px;border:0;margin:0;border-radius:1px;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 50%,var(--gold)) 50%,var(--gold))}
 
 /* Abas */
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--deep) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--deep) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--base);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
 .tabs nav{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
 .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:var(--muted);font-size:.68rem;font-weight:600;letter-spacing:.03em;border-radius:10px}
 .tabs a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -223,6 +223,10 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .aj-menu span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.aj-menu b{font-weight:600}.aj-menu small{color:var(--muted);font-size:.78rem}
 .aj-menu i{font-style:normal;color:var(--muted);font-size:1.2rem}
 .aj-voltar{align-self:flex-start}
+/* Barras do sistema: no app Android a tela vai até atrás da barra de status e da de navegação. O Capacitor informa --safe-area-inset-* quando a WebView não informa. */
+:root{--topo:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));--base:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px))}
+.nativo body{touch-action:pan-x pan-y}
+.copia-pasta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}
 .fin-lado{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .fin-lado h4{margin:0 0 6px;font-size:.95rem}.fin-lado h4 small{font-weight:500;color:var(--muted);font-size:.74rem;margin-left:6px}
 .out .r .vnome{color:var(--fg);font-weight:600}
@@ -255,7 +259,7 @@ table.mini input{padding:6px 8px;min-width:80px}
 .icon:disabled{opacity:.35;cursor:default}
 .cx-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .cx-row:last-child{border-bottom:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 14px + var(--base));z-index:30;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
 textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:120px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 .support{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
@@ -373,15 +377,15 @@ html[data-trava] body{overflow:hidden}
 .atalho.linha{flex-direction:row;align-items:center;gap:10px;padding:12px}
 .atalho.linha b{font-size:.9rem;font-weight:600}
 /* Botão de lançar (sempre à mão) e folha que sobe */
-.fab{position:fixed;z-index:25;right:max(16px,calc(50% - 304px));bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 20px 13px 16px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 75%,var(--tint)));color:var(--accent-ink);font-family:var(--display);font-weight:700;letter-spacing:.08em;box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
+.fab{position:fixed;z-index:25;right:max(16px,calc(50% - 304px));bottom:calc(var(--tabh) + 14px + var(--base));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 20px 13px 16px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 75%,var(--tint)));color:var(--accent-ink);font-family:var(--display);font-weight:700;letter-spacing:.08em;box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
 .fab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .fab:active{transform:scale(.97)}
 html[data-trava] .fab,html[data-folha] .fab{display:none}
-.toast{bottom:calc(var(--tabh) + 76px + env(safe-area-inset-bottom,0px))}
+.toast{bottom:calc(var(--tabh) + 76px + var(--base))}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
-.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:fl-sobe .22s cubic-bezier(.2,.8,.2,1)}
+.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:fl-sobe .22s cubic-bezier(.2,.8,.2,1)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
 .folha-topo{display:flex;align-items:center;gap:6px}
 .folha-topo h3{font-size:.9rem}
@@ -1365,8 +1369,31 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) parar
    1) Neste aparelho (IndexedDB, separado dos dados): uma cópia por dia e uma antes de importar ou apagar tudo.
    2) Numa pasta escolhida pela pessoa, onde o navegador deixa: um arquivo por dia, os 7 mais recentes.
    Nada disso usa rede: a pasta é do próprio aparelho (se ela sincroniza com a nuvem, é o sistema que faz). */
+/* ---------- App Android (Capacitor) ----------
+   O mesmo arquivo roda no site e dentro do app. Tudo aqui só age quando window.Capacitor existe; no site, NATIVO é falso. */
+const NATIVO = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const pegarPlugin = n => { if (!NATIVO) return null; try { const P = window.Capacitor.Plugins; if (P && P[n]) return P[n]; if (window.Capacitor.registerPlugin) return window.Capacitor.registerPlugin(n); } catch (e) {} return null; };
+const PLUG = { App: pegarPlugin('App'), Cx: pegarPlugin('Caixinhas'), Notif: pegarPlugin('LocalNotifications') };
+const LS_PASTA_NAT = 'caixinhas-orologia-pasta', LS_APARELHO = 'caixinhas-orologia-aparelho', LS_LEMB = 'caixinhas-orologia-lembretes';
+if (NATIVO) {
+  document.documentElement.classList.add('nativo');
+  const vp = document.querySelector('meta[name="viewport"]'); // zoom de pinça só é bloqueado no app; no site continua livre
+  if (vp) vp.setAttribute('content', 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+}
+/* marca deste aparelho no nome dos backups: cada aparelho só troca e apaga as cópias dele */
+function marcaAparelho(){
+  let m = lsGet(LS_APARELHO);
+  if (!/^[a-z0-9]{4}$/.test(m || '')) { m = Array.from({ length: 4 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join(''); lsSet(LS_APARELHO, m); }
+  return m;
+}
+/* No app, "baixar" um arquivo é abrir o compartilhamento do Android: quem envia ou salva é o app que a pessoa escolher. */
+async function enviarNativo(nome, texto, tipo, titulo){
+  if (!PLUG.Cx) return false;
+  try { await PLUG.Cx.compartilhar({ nome, texto, tipo: tipo || 'application/json', titulo: titulo || nome }); return true; }
+  catch (e) { toast('Não deu para abrir o compartilhamento'); return false; }
+}
 const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
-  podePasta: typeof window.showDirectoryPicker === 'function' };
+  podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null };
 const BKP_DIAS = 7, BKP_ANTES = 3, BKP_ARQ = /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/, LS_BKP_PASTA = 'caixinhas-orologia-backup-pasta';
 function bkpTxt(){ return JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2); }
 function contaLanc(s){ return Object.values(s.meses || {}).reduce((a, m) => a + (m.gastos || []).length + (m.entradas || []).length, 0); }
@@ -1399,6 +1426,7 @@ async function bkpGuardar(tipo){
 }
 async function bkpPerm(pedir){
   if (!Bkp.pasta) return (Bkp.perm = null);
+  if (Bkp.pasta.nativa) return (Bkp.perm = 'granted'); // no Android a permissão da pasta é dada uma vez, no seletor
   try {
     let p = await Bkp.pasta.queryPermission({ mode: 'readwrite' });
     if (p !== 'granted' && pedir) p = await Bkp.pasta.requestPermission({ mode: 'readwrite' });
@@ -1408,6 +1436,13 @@ async function bkpPerm(pedir){
 }
 async function bkpNaPasta(){
   if (!Bkp.pasta || Bkp.perm !== 'granted' || !hasData(S) || temExemplo()) return false;
+  if (Bkp.pasta.nativa) {
+    try {
+      const m = marcaAparelho();
+      await PLUG.Cx.gravarBackup({ uri: Bkp.pasta.uri, nome: 'caixinhas-backup-' + today() + '-' + m + '.json', texto: bkpTxt(), manter: BKP_DIAS, grupo: '-' + m + '.json' });
+      Bkp.erro = false; Bkp.ultimo = Date.now(); lsSet(LS_BKP_PASTA, Bkp.ultimo); marcaBackup(); return true;
+    } catch (e) { Bkp.erro = true; return false; }
+  }
   try {
     const arq = await Bkp.pasta.getFileHandle('caixinhas-backup-' + today() + '.json', { create: true }), w = await arq.createWritable();
     await w.write(bkpTxt()); await w.close();
@@ -1422,14 +1457,24 @@ function bkpAgendar(){
   Bkp.t = setTimeout(async () => { await bkpGuardar('dia'); await bkpNaPasta(); renderBkp(); }, 1200);
 }
 function bkpQuando(ms){ const iso = isoDate(new Date(ms)), h = new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return (iso === today() ? 'hoje' : dayLabel(iso, true)) + ' às ' + h; }
+/* cópias que estão na pasta (Android): a data vem do nome; a marca diz de qual aparelho é */
+function listaPasta(backups){
+  const m = marcaAparelho();
+  return backups.slice().sort((a, b) => b.nome.localeCompare(a.nome)).map(b => { const x = /^caixinhas-backup-(\d{4}-\d{2}-\d{2})(?:-([a-z0-9]{4}))?\.json$/.exec(b.nome) || [];
+    return `<div class="copia-pasta"><span>${x[1] ? esc(dayLabel(x[1], true)) : esc(b.nome)} <small class="hint">${x[2] === m ? 'deste aparelho' : 'de outro aparelho'}</small></span><button class="link" type="button" data-act="bkp-doc" data-id="${esc(b.doc)}">Restaurar</button></div>`; }).join('');
+}
+const BKP_ARQ_NAT = /^caixinhas-backup-\d{4}-\d{2}-\d{2}(?:-[a-z0-9]{4})?\.json$/;
+function soBackups(l){ return (l || []).filter(b => b && BKP_ARQ_NAT.test(b.nome || '')); } // outros arquivos da pasta não contam
 function renderBkp(){
   const box = $('bkpBox'); if (!box) return;
   const nome = Bkp.pasta ? esc(Bkp.pasta.name || 'escolhida') : '';
   let pasta;
   if (!Bkp.podePasta) pasta = '<p class="hint">Este navegador não deixa o app gravar numa pasta sozinho. Use “Enviar backup” ou “Exportar backup” de vez em quando e guarde o arquivo fora do aparelho.</p>';
+  else if (Bkp.pend) pasta = `<p class="hint warn">A pasta “${esc(Bkp.pend.pasta.name)}” já tem ${Bkp.pend.backups.length === 1 ? 'uma cópia' : Bkp.pend.backups.length + ' cópias'} de backup. Nada foi gravado ainda. Se elas são de outro aparelho seu, você pode restaurar uma antes de continuar.</p>${listaPasta(Bkp.pend.backups)}<div class="btns"><button class="primary" type="button" data-act="bkp-usar">Usar esta pasta e começar a gravar</button><button class="ghost" type="button" data-act="bkp-desistir">Cancelar</button></div>`;
+  else if (!Bkp.pasta && NATIVO) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes deste aparelho. Se for uma pasta que sincroniza com a nuvem, o backup sai do celular sem precisar de conta no app.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app.</p><p class="hint" id="bkpDica">Crie uma pasta só para isso, por exemplo “Backup Caixinhas” dentro de Documentos. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
-  else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p><div class="btns"><button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
+  else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p>${Bkp.lista ? (Bkp.lista.length ? listaPasta(Bkp.lista) : '<p class="hint">A pasta ainda não tem cópias.</p>') : ''}<div class="btns">${Bkp.pasta.nativa && !Bkp.lista ? '<button class="ghost" type="button" data-act="bkp-ver">Ver cópias da pasta</button>' : ''}<button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
       ${Bkp.copias.length ? Bkp.copias.map(c => `<div class="copia"><span>${esc(c.rotulo || 'Cópia do dia')}<small>${esc(bkpQuando(c.quando))}, ${c.n} ${c.n === 1 ? 'lançamento' : 'lançamentos'}</small></span>
         <span class="btns"><button class="link" type="button" data-act="bkp-rest" data-id="${esc(c.id)}">Restaurar</button><button class="link" type="button" data-act="bkp-baixar" data-id="${esc(c.id)}">Baixar</button></span></div>`).join('') : '<p class="hint">Nenhuma cópia ainda. A primeira aparece depois do seu primeiro lançamento.</p>'}
@@ -1439,12 +1484,18 @@ function renderBkp(){
 async function bkpIniciar(){
   try { const f = new File(['{}'], 'caixinhas-backup.json', { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [f] })) $('expShare').hidden = false; } catch (e) {}
   await bkpListar();
-  if (Bkp.podePasta) { Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
+  if (NATIVO) { const g = lsGet(LS_PASTA_NAT); Bkp.pasta = g && g.uri ? { name: g.nome || 'escolhida', uri: g.uri, nativa: true } : null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
+  else if (Bkp.podePasta) { Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
   try { if (hasData(S) && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
   renderBkp(); renderInicio(); renderMes();
   if (hasData(S)) bkpAgendar();
 }
-function baixarJSON(nome, txt){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+async function usarPastaNativa(pasta){
+  Bkp.pend = null; Bkp.lista = null; Bkp.pasta = pasta; Bkp.ultimo = null; Bkp.erro = false; lsSet(LS_PASTA_NAT, { uri: pasta.uri, nome: pasta.name });
+  await bkpPerm(false); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
+  toast(gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');
+}
+function baixarJSON(nome, txt){ if (NATIVO) { enviarNativo(nome, txt, 'application/json', 'Backup do Orolon Caixinhas'); return; } const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 function confirmarImport(o){
   UI.imp = o;
   const ng = Object.values(o.meses || {}).reduce((a,m)=>a+((m.gastos||[]).length),0);
@@ -1469,13 +1520,13 @@ function cloudWrite(id, data, del){
 }
 function persist(opts){
   opts = opts || {};
-  lsSet(LS_KEY, S); bkpAgendar();
+  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   if (opts.estado) cloudWrite('estado', estadoDoc());
   (opts.meses || []).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
 }
 function persistAll(oldKeys){
-  lsSet(LS_KEY, S); bkpAgendar();
+  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   cloudWrite('estado', estadoDoc());
   Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
@@ -2147,7 +2198,52 @@ function painelMover(c, idx){
     <div class="btns"><button class="primary" type="button" data-act="cx-move-ok" data-i="${idx}">Levar e remover</button><button class="ghost" type="button" data-act="cx-move-no">Cancelar</button></div></div>`;
 }
 /* Lembretes: no site, só o aviso do Início; no app Android, também a notificação (ver Nativo). */
+const Lemb = { fila: Promise.resolve(), t: null, negado: false };
+function lembCfg(){ const c = lsGet(LS_LEMB) || {}; return { ligado: !!c.ligado, antes: [0, 1, 3].includes(c.antes) ? c.antes : 1, hora: Number.isInteger(c.hora) && c.hora >= 0 && c.hora <= 23 ? c.hora : 9 }; }
+/* Notificações do Android: uma por dia de vencimento, juntando o que vence na data, sem valores (aparece na tela bloqueada).
+   Refaz tudo a cada mudança: cancela as pendentes e agenda as dos próximos 60 dias. */
+function lembTexto(nomes, antes){ const v = nomes.length > 1 ? 'Vencem ' : 'Vence '; return v + (antes === 0 ? 'hoje' : antes === 1 ? 'amanhã' : 'em ' + antes + ' dias') + ': ' + nomes.join(', '); }
+function lembPlano(cfg, agora){
+  const dias = {}; aVencer(60).forEach(v => { (dias[v.data] = dias[v.data] || []).push(v.nome); });
+  return Object.keys(dias).sort().map(data => {
+    const [y, m, d] = data.split('-').map(Number);
+    return { id: y * 10000 + m * 100 + d, title: 'Contas a vencer', body: lembTexto(dias[data], cfg.antes), at: new Date(y, m - 1, d - cfg.antes, cfg.hora, 0, 0) };
+  }).filter(n => n.at.getTime() > agora);
+}
+function lembReagendar(){
+  if (!PLUG.Notif) return Promise.resolve();
+  return (Lemb.fila = Lemb.fila.then(async () => {
+    try {
+      const pend = ((await PLUG.Notif.getPending()) || {}).notifications || [];
+      if (pend.length) await PLUG.Notif.cancel({ notifications: pend.map(n => ({ id: n.id })) });
+      const cfg = lembCfg(); if (!cfg.ligado) return;
+      if (((await PLUG.Notif.checkPermissions()) || {}).display !== 'granted') { lsSet(LS_LEMB, Object.assign(cfg, { ligado: false })); Lemb.negado = true; renderLembretes(); return; }
+      const plano = lembPlano(cfg, Date.now());
+      if (plano.length) await PLUG.Notif.schedule({ notifications: plano.map(n => ({ id: n.id, title: n.title, body: n.body, schedule: { at: n.at, allowWhileIdle: true } })) });
+    } catch (e) {}
+  }));
+}
+function lembAgendar(){ if (!PLUG.Notif) return; clearTimeout(Lemb.t); Lemb.t = setTimeout(lembReagendar, 800); }
+async function lembLigar(liga){
+  const cfg = lembCfg(); Lemb.negado = false;
+  if (liga) { // a permissão só é pedida aqui, quando a pessoa liga o lembrete
+    let p = 'denied';
+    try { p = ((await PLUG.Notif.checkPermissions()) || {}).display; if (p !== 'granted') p = ((await PLUG.Notif.requestPermissions()) || {}).display; } catch (e) {}
+    if (p !== 'granted') { Lemb.negado = true; liga = false; }
+  }
+  lsSet(LS_LEMB, Object.assign(cfg, { ligado: liga })); renderLembretes(); await lembReagendar();
+}
 function renderLembretes(){
+  if (NATIVO && PLUG.Notif) {
+    const c = lembCfg(), horas = Array.from({ length: 17 }, (_, i) => i + 6);
+    $('lembBox').innerHTML = `<p class="hint">O cartão <b>A vencer</b> aparece no Início quando uma fatura ou um gasto fixo vence nos próximos 7 dias. Se quiser, o celular também avisa por notificação.</p>
+      <label class="check"><input type="checkbox" id="lembLigar"${c.ligado ? ' checked' : ''}> Avisar por notificação</label>
+      <div class="row tight"><label>Quando<select id="lembAntes"><option value="0">No dia</option><option value="1">1 dia antes</option><option value="3">3 dias antes</option></select></label>
+      <label>Hora<select id="lembHora">${horas.map(h => `<option value="${h}">${h}h</option>`).join('')}</select></label></div>
+      <p class="hint ${Lemb.negado ? 'warn' : ''}" id="lembEstado">${Lemb.negado ? 'O Android não deixou mostrar notificações. Libere em Configurações do celular › Apps › Orolon Caixinhas › Notificações e ligue de novo.' : 'A notificação diz o nome da conta e quando vence, sem o valor. A hora é aproximada.'}</p>`;
+    $('lembAntes').value = String(c.antes); $('lembHora').value = String(c.hora);
+    return;
+  }
   $('lembBox').innerHTML = '<p class="hint">O cartão <b>A vencer</b> aparece no Início quando uma fatura ou um gasto fixo vence nos próximos 7 dias.</p><p class="hint">A notificação no celular existe no app Android do Orolon Caixinhas.</p>';
 }
 function renderAjustes(){
@@ -2250,6 +2346,7 @@ function disarm(){ clearTimeout(UI.armedT); UI.armed = null; }
 async function exportar(){
   const txt = JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2);
   const name = 'caixinhas-backup-' + today() + '.json';
+  if (NATIVO) { if (await enviarNativo(name, txt, 'application/json', 'Backup do Orolon Caixinhas')) { marcaBackup(); renderAll(); } return; }
   try {
     const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
     if (dl) { await dl.save({ filename: name, data: txt }); marcaBackup(); renderAll(); toast('Backup salvo'); return; }
@@ -2270,6 +2367,7 @@ function gerarCSV(itens){
 const linhaGasto = g => ({ data: g.data, tipo: 'Gasto', descricao: g.descricao, caixinha: cx(g.caixinha).nome, forma: g.forma || '', valor: g.valor, fixo: !!g.fixoId });
 const linhaEntrada = e => ({ data: e.data, tipo: 'Entrada', descricao: e.descricao, caixinha: '', forma: '', valor: e.valor, fixo: false });
 async function baixarArquivo(nome, txt, mime, boxId){
+  if (NATIVO) { await enviarNativo(nome, txt, mime, 'Planilha do Orolon Caixinhas'); return; }
   try {
     const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
     if (dl) { await dl.save({ filename: nome, data: txt }); toast('Arquivo salvo'); return; }
@@ -2450,14 +2548,30 @@ document.addEventListener('click', e => {
       navigator.share({ files: [f], title: 'Backup do Orolon Caixinhas' }).then(() => { marcaBackup(); renderAll(); toast('Backup enviado'); }, () => {});
       break;
     }
-    case 'bkp-pasta': (async () => {
+    case 'bkp-pasta': if (NATIVO) { (async () => {
+      let r; try { r = await PLUG.Cx.escolherPastaBackup(); } catch (e) { toast('Não deu para abrir o seletor de pastas'); return; }
+      if (!r || r.cancelado || !r.uri) return;
+      const nova = { name: r.nome || 'escolhida', uri: r.uri, nativa: true };
+      let ja = []; try { ja = soBackups(((await PLUG.Cx.listarBackups({ uri: r.uri })) || {}).backups); } catch (e) {}
+      Bkp.lista = null;
+      if (ja.length) { Bkp.pend = { pasta: nova, backups: ja }; renderBkp(); return; } // pasta com cópias: pergunta antes de gravar
+      await usarPastaNativa(nova);
+    })(); break; }
+    (async () => {
       let h; try { h = await window.showDirectoryPicker({ id: 'caixinhas-backup', mode: 'readwrite', startIn: 'documents' }); } catch (e) { return; }
       Bkp.pasta = h; Bkp.ultimo = null; Bkp.erro = false; await bkpOp('cfg', 'readwrite', s => s.put(h, 'pasta'));
       await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
       toast(Bkp.perm !== 'granted' ? 'Sem permissão para gravar nessa pasta' : gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');
     })(); break;
     case 'bkp-perm': (async () => { await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll(); if (gravou) toast('Backup gravado na pasta'); })(); break;
-    case 'bkp-parar': (async () => { await bkpOp('cfg', 'readwrite', s => s.delete('pasta')); Bkp.pasta = null; Bkp.perm = null; Bkp.erro = false; renderBkp(); renderAll(); toast('O app parou de gravar na pasta. Os arquivos que já estão lá ficam.'); })(); break;
+    case 'bkp-usar': if (Bkp.pend) usarPastaNativa(Bkp.pend.pasta); break;
+    case 'bkp-desistir': Bkp.pend = null; renderBkp(); break;
+    case 'bkp-ver': (async () => { try { Bkp.lista = soBackups(((await PLUG.Cx.listarBackups({ uri: Bkp.pasta.uri })) || {}).backups); } catch (e) { Bkp.lista = []; toast('Não deu para ler a pasta'); } renderBkp(); })(); break;
+    case 'bkp-doc': (async () => {
+      try { const r = await PLUG.Cx.lerBackup({ doc: id }); confirmarImport(JSON.parse(r.texto)); $('impConfirm').scrollIntoView({ block: 'center' }); }
+      catch (e) { toast('Essa cópia não pôde ser lida'); }
+    })(); break;
+    case 'bkp-parar': (async () => { if (NATIVO) { try { localStorage.removeItem(LS_PASTA_NAT); } catch (e) {} } else await bkpOp('cfg', 'readwrite', s => s.delete('pasta')); Bkp.lista = null; Bkp.pasta = null; Bkp.perm = null; Bkp.erro = false; renderBkp(); renderAll(); toast('O app parou de gravar na pasta. Os arquivos que já estão lá ficam.'); })(); break;
     case 'bkp-rest': case 'bkp-baixar': {
       const c = Bkp.copias.find(x => x.id === id); if (!c) break;
       if (act === 'bkp-baixar') { baixarJSON('caixinhas-backup-' + isoDate(new Date(c.quando)) + '.json', c.txt); break; }
@@ -2716,6 +2830,7 @@ function importarTema(texto){
 async function baixarTema(){
   const t = TM.atual(), txt = TM.json(t);
   const nome = (t.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'tema') + '.json';
+  if (NATIVO) { await enviarNativo(nome, txt, 'application/json', 'Tema do Orolon Caixinhas'); return; }
   try {
     const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
     if (dl) { await dl.save({ filename: nome, data: txt }); toast('Tema salvo'); return; }
@@ -2814,6 +2929,22 @@ function renderAll(){ aplicarFixos(); renderInicio(); renderMes(); renderCartao(
 
 $('ajMenu').addEventListener('click', e => { const b = e.target.closest('[data-parte]'); if (b) go('ajustes/' + b.dataset.parte); });
 $('ajVoltar').addEventListener('click', () => go('ajustes'));
+
+$('lembBox').addEventListener('change', e => {
+  if (e.target.id === 'lembLigar') { lembLigar(e.target.checked); return; }
+  if (e.target.id === 'lembAntes' || e.target.id === 'lembHora') { lsSet(LS_LEMB, Object.assign(lembCfg(), { antes: Number($('lembAntes').value), hora: Number($('lembHora').value) })); lembReagendar(); }
+});
+/* Botão voltar do Android: fecha uma coisa por vez; no Início, minimiza o app. */
+function voltarUmPasso(){
+  if (document.documentElement.hasAttribute('data-trava')) return false; // com o PIN na frente, voltar só sai do app
+  if (folhaAberta()) { fecharFolha(); return true; }
+  if (UI.abaVista === 'inicio') return false;
+  const antes = location.hash;
+  try { history.back(); } catch (e) {}
+  setTimeout(() => { if (location.hash === antes) go(UI.abaVista === 'ajustes' && UI.ajParte ? 'ajustes' : 'inicio'); }, 200); // sem histórico (app reaberto numa aba): sobe um nível
+  return true;
+}
+if (PLUG.App) { try { PLUG.App.addListener('backButton', () => { if (!voltarUmPasso()) { try { PLUG.App.minimizeApp(); } catch (e) {} } }); } catch (e) {} }
 
 /* ---------- Atalhos (data-go) ---------- */
 document.addEventListener('click', e => {
@@ -3160,8 +3291,8 @@ loadCalcInputs();
 renderAll(); route();
 if (pinCfg()) travar(); else document.documentElement.removeAttribute('data-trava');
 connectCloud();
-bkpIniciar();
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
+bkpIniciar(); lembAgendar();
+if (!window.Capacitor && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 })();
