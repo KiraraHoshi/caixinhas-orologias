@@ -216,8 +216,16 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .out .r.key span:first-child{color:var(--fg)}
 .out .r.key span:last-child{color:var(--accent);font-family:var(--display);font-size:1.25rem}
 .out .r.sub{font-size:.8rem;padding:4px 0 4px 12px}
+.aj-menu{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+.aj-menu button{display:flex;align-items:center;gap:12px;padding:14px;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--fg);width:100%}
+.aj-menu button:last-child{border-bottom:0}
+.aj-menu svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.aj-menu span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.aj-menu b{font-weight:600}.aj-menu small{color:var(--muted);font-size:.78rem}
+.aj-menu i{font-style:normal;color:var(--muted);font-size:1.2rem}
+.aj-voltar{align-self:flex-start}
 .fin-lado{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .fin-lado h4{margin:0 0 6px;font-size:.95rem}.fin-lado h4 small{font-weight:500;color:var(--muted);font-size:.74rem;margin-left:6px}
+.out .r .vnome{color:var(--fg);font-weight:600}
 .aviso-fin{margin:0;color:var(--warn);font-weight:600;font-size:.88rem}.aviso-fin:empty{display:none}
 .calc-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .calc-tabs button{flex:none;border:1px solid var(--line);background:var(--deep);border-radius:999px;padding:7px 13px;font-size:.85rem;font-weight:600;color:var(--muted)}
@@ -499,6 +507,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
     <div id="inBanner"></div>
     <div class="panel" id="inResumo"></div>
     <div class="panel" id="inCx"></div>
+    <div class="panel" id="inVencer" hidden></div>
     <div class="panel" id="inFatura"></div>
     <div class="panel" id="inMetas"></div>
     <div class="atalhos">
@@ -659,7 +668,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
     <div id="exBanner"></div>
     <div id="mesResumo"></div>
     <div class="boxes" id="mesBoxes"></div>
-    <p class="hint" style="margin:-6px 0 0"><button class="link" type="button" data-go="ajustes" data-focus="cxn-0">Editar caixinhas: criar, remover, reordenar</button></p>
+    <p class="hint" style="margin:-6px 0 0"><button class="link" type="button" data-go="ajustes/caixinhas" data-focus="cxn-0">Editar caixinhas: criar, remover, reordenar</button></p>
 
     <div class="flat">
       <div class="vhead"><h3>Lançamentos</h3><span class="hint" id="mesCount"></span></div>
@@ -1005,6 +1014,18 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
   <section class="view" id="v-ajustes" hidden>
     <div class="vhead"><div><p class="eyebrow">Ajustes</p><h2>Do seu jeito</h2></div></div>
 
+    <nav class="aj-menu" id="ajMenu" aria-label="Partes dos ajustes">
+      <button type="button" data-parte="caixinhas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v11H4zM4 8l2-4h12l2 4M10 12h4"/></svg><span><b>Caixinhas</b><small>Criar, apagar, cor, ícone e ordem</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="pagamento"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg><span><b>Pagamento e rendimento</b><small>Formas de pagamento, taxa e tabelas de INSS, IR e FGTS</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="aparencia"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M12 3.5a8.5 8.5 0 0 1 0 17"/></svg><span><b>Aparência</b><small>Temas e cores</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="pin"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span><b>Bloqueio por PIN</b><small>Pedir um código ao abrir</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="dados"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg><span><b>Backup e dados</b><small>Cópias, pasta do backup, planilha, importar e apagar</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="lembretes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5h4"/></svg><span><b>Lembretes</b><small>Avisos de contas a vencer</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="sobre"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/></svg><span><b>Sobre</b><small>Versão, privacidade e apoio</small></span><i aria-hidden="true">›</i></button>
+    </nav>
+    <button class="ghost aj-voltar" type="button" id="ajVoltar" hidden>‹ Ajustes</button>
+
+    <div class="aj-parte flat" data-parte="caixinhas" hidden>
     <div class="panel">
       <div class="vhead qh"><h3>Caixinhas</h3><button class="qm" type="button" data-act="qm" data-id="caixinhas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="cxList"></div>
@@ -1014,6 +1035,9 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       </div>
     </div>
 
+    </div>
+
+    <div class="aj-parte flat" data-parte="pagamento" hidden>
     <div class="panel">
       <div class="vhead qh"><h3>Pagamento e rendimento</h3><button class="qm" type="button" data-act="qm" data-id="selic" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div class="row">
@@ -1029,16 +1053,25 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       <div class="inner" id="tabEdit"></div>
     </details>
 
+    </div>
+
+    <div class="aj-parte flat" data-parte="aparencia" hidden>
     <div class="panel">
       <div class="vhead qh"><h3>Aparência</h3><button class="qm" type="button" data-act="qm" data-id="temas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="temaBox" class="flat"></div>
     </div>
 
+    </div>
+
+    <div class="aj-parte flat" data-parte="pin" hidden>
     <div class="panel">
       <div class="vhead qh"><h3>Bloqueio por PIN</h3><button class="qm" type="button" data-act="qm" data-id="pin" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="pinBox" class="flat"></div>
     </div>
 
+    </div>
+
+    <div class="aj-parte flat" data-parte="dados" hidden>
     <div class="panel">
       <div class="vhead qh"><h3>Seus dados</h3><button class="qm" type="button" data-act="qm" data-id="backup" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <p class="hint" id="ajOnde"></p>
@@ -1058,10 +1091,22 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       </div>
     </div>
 
+    </div>
+
+    <div class="aj-parte flat" data-parte="lembretes" hidden>
+    <div class="panel">
+      <div class="vhead qh"><h3>Lembretes</h3><button class="qm" type="button" data-act="qm" data-id="vencer" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <div id="lembBox" class="flat"></div>
+    </div>
+
+    </div>
+
+    <div class="aj-parte flat" data-parte="sobre" hidden>
     <div class="panel">
       <h3>Sobre</h3>
       <p class="hint">Orolon Caixinhas <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
       <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a> · <a href="#apoie">Apoie o projeto</a></p>
+    </div>
     </div>
   </section>
 </div>
@@ -1113,6 +1158,7 @@ const AJUDAS = {
   terceiros: 'Compras no seu cartão que são de outras pessoas. Marque como recebido quando a pessoa te pagar.',
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
+  vencer: 'Faturas de cartão e gastos fixos (fora os pagos no crédito, que já estão na fatura) que vencem de hoje até 7 dias. O item some quando o dia passa.',
   fin: 'Compara os dois sistemas de financiamento. No SAC a parcela começa maior e vai caindo; no PRICE ela é igual do começo ao fim e o total pago é maior. A amortização extra é um valor a mais pago todo mês, que encurta o prazo.',
   clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
   caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca o ícone e a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
@@ -1702,6 +1748,28 @@ function fatura(k){
   const terc = r2(itens.filter(i => i.c.dono).reduce((a,i)=>a+i.valor,0));
   return { itens, eu, terc, total: r2(eu + terc) };
 }
+/* Contas dos próximos dias: faturas (total do cartão, com o que é de outras pessoas) e gastos fixos.
+   Fixo no crédito fica de fora (já está na fatura), e também o fixo apagado naquele mês. A mesma lista alimenta os lembretes. */
+function aVencer(dias, de){
+  const ini = de ? new Date(de + 'T12:00:00') : new Date(), saida = [];
+  for (let n = 0; n <= dias; n++) {
+    const d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + n), data = isoDate(d), k = monthOf(data), ult = daysInMonth(k), dia = d.getDate();
+    const noDia = x => Math.min(ult, Math.max(1, x || 1)) === dia;
+    let F = null;
+    S.cartoes.forEach(ct => {
+      if (!noDia(ct.vence || 10)) return;
+      F = F || fatura(k);
+      const valor = r2(F.itens.filter(i => i.c.cartao === ct.id).reduce((a, i) => a + i.valor, 0));
+      if (valor > 0) saida.push({ tipo: 'fatura', id: ct.id, nome: 'Fatura ' + ct.nome, valor, data, em: n });
+    });
+    S.fixos.forEach(f => {
+      if (!noDia(f.dia) || f.forma === 'Crédito' || !(f.desde <= k) || (f.pulados || []).includes(k)) return;
+      saida.push({ tipo: 'fixo', id: f.id, nome: f.desc, valor: f.valor, data, em: n });
+    });
+  }
+  return saida;
+}
+const quandoTxt = n => n === 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias';
 function faturaDefault(dataIso, cartao){
   if (!dataIso || !cartao) return addMonths(thisMonth(), 1);
   const [y,m,d] = dataIso.split('-').map(Number);
@@ -2078,7 +2146,12 @@ function painelMover(c, idx){
     <label class="check"><input type="checkbox" id="cxmvLim" checked> Somar o limite padrão de “${esc(c.nome)}” a essa caixinha</label>
     <div class="btns"><button class="primary" type="button" data-act="cx-move-ok" data-i="${idx}">Levar e remover</button><button class="ghost" type="button" data-act="cx-move-no">Cancelar</button></div></div>`;
 }
+/* Lembretes: no site, só o aviso do Início; no app Android, também a notificação (ver Nativo). */
+function renderLembretes(){
+  $('lembBox').innerHTML = '<p class="hint">O cartão <b>A vencer</b> aparece no Início quando uma fatura ou um gasto fixo vence nos próximos 7 dias.</p><p class="hint">A notificação no celular existe no app Android do Orolon Caixinhas.</p>';
+}
 function renderAjustes(){
+  renderLembretes();
   const busy = $('v-ajustes').contains(document.activeElement) && document.activeElement.tagName === 'INPUT';
   if (!UI.cxDraft) { UI.cxDraft = clone(S.caixinhas).map(c => Object.assign(c, { limite: numOr(S.limitesPadrao[c.id], 0) })); UI.cxMoves = {}; UI.cxPend = null; }
   if (!busy) {
@@ -2696,14 +2769,24 @@ const TABS = ['inicio','guia','mes','cartao','metas','calc','apoie','ajustes'];
 /* A navegação não depende do endereço da página: dentro de uma página embutida (iframe isolado) o hash não muda.
    Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
 let TAB = null;
-function go(t){
+const PARTES = ['caixinhas','pagamento','aparencia','pin','dados','lembretes','sobre'];
+function go(alvo){
+  let [t, parte] = String(alvo).split('/');
   if (!TABS.includes(t)) t = 'inicio';
-  TAB = t;
-  try { if (location.hash !== '#' + t) history.pushState(null, '', '#' + t); } catch (e) {}
+  TAB = t; UI.ajParte = t === 'ajustes' && PARTES.includes(parte) ? parte : null;
+  const h = '#' + t + (UI.ajParte ? '/' + UI.ajParte : '');
+  try { if (location.hash !== h) history.pushState(null, '', h); } catch (e) {}
   route();
 }
+/* Ajustes: a lista de partes, ou uma parte só. */
+function mostrarAjustes(){
+  const parte = UI.ajParte || null;
+  $('ajMenu').hidden = !!parte; $('ajVoltar').hidden = !parte;
+  document.querySelectorAll('.aj-parte').forEach(x => { x.hidden = x.dataset.parte !== parte; });
+}
 function route(){
-  const h = (location.hash || '').slice(1);
+  const [h, hp] = (location.hash || '').slice(1).split('/');
+  if (!TAB) UI.ajParte = h === 'ajustes' && PARTES.includes(hp) ? hp : null; // veio do endereço (recarregar, voltar do aparelho)
   const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio', calc: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -2716,18 +2799,21 @@ function route(){
   if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
   if (t === 'calc') renderCalc();
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
-  if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); }
+  if (t === 'ajustes') { UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); }
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { TAB = null; route(); });
 window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
-  const t = a.getAttribute('href').slice(1); if (!TABS.includes(t)) return;
+  const t = a.getAttribute('href').slice(1); if (!TABS.includes(t.split('/')[0])) return;
   e.preventDefault(); go(t);
 });
 
 function renderAll(){ aplicarFixos(); renderInicio(); renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
+
+$('ajMenu').addEventListener('click', e => { const b = e.target.closest('[data-parte]'); if (b) go('ajustes/' + b.dataset.parte); });
+$('ajVoltar').addEventListener('click', () => go('ajustes'));
 
 /* ---------- Atalhos (data-go) ---------- */
 document.addEventListener('click', e => {
@@ -2955,6 +3041,10 @@ function renderInicio(){
     desenharInicio();
   }
   Vis.alvo = alvoTxt;
+  const venc = aVencer(7);
+  $('inVencer').hidden = !venc.length;
+  $('inVencer').innerHTML = venc.length ? `<div class="vhead"><h3>A vencer</h3>${qm('vencer')}</div><div class="out">${venc.map(v =>
+    `<div class="r"><span><b class="vnome">${esc(v.nome)}</b> · ${quandoTxt(v.em)}</span><span class="num">${fmt(v.valor)}</span></div>`).join('')}</div>` : '';
   const F = fatura(k);
   $('inFatura').innerHTML = S.cartoes.length ? `<div class="vhead"><h3>Fatura que vence em ${esc(monthLabel(k, true))}</h3>${qm('fatura')}<button class="link" type="button" data-go="cartao">Ver cartão</button></div>
       <div class="total" style="border:0;padding:0"><div><span class="lbl">Total</span><span class="big num" style="font-size:1.4rem">${fmt(F.total)}</span></div><div class="side">sua parte <b class="num">${fmt(F.eu)}</b>${F.terc ? `<br>de terceiros <b class="num">${fmt(F.terc)}</b>` : ''}</div></div>`

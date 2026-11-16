@@ -95,6 +95,17 @@ const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
 const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
 const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-calc="' + qual + '"]'); };
+// estado com contas em datas relativas a hoje: fatura amanhã, fixo em 3 dias, e casos que não devem aparecer
+const semearContas = (p) => p.avaliar(() => {
+  const pad = (n) => String(n).padStart(2, "0"), mesDe = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1);
+  const em = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+  const hoje = new Date(), antes = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
+  const fixo = (id, desc, valor, forma, d, pulados) => ({ id, desc, valor, caixinha: "a", forma, dia: d.getDate(), desde: mesDe(hoje), pulados: pulados || [] });
+  localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Contas", cor: "#9C9BF5" }], limitesPadrao: { a: 1000 },
+    cartoes: [{ id: "k1", nome: "Nubank", fecha: em(1).getDate() > 5 ? em(1).getDate() - 5 : 1, vence: em(1).getDate() }, { id: "k2", nome: "Vazio", fecha: 1, vence: em(2).getDate() }],
+    compras: [{ id: "c1", cartao: "k1", desc: "Streaming", valorParcela: 44.9, parcelas: 0, inicio: mesDe(antes), dono: "" }],
+    fixos: [fixo("f1", "Internet", 100, "Pix", em(3)), fixo("f2", "Netflix", 40, "Crédito", em(3)), fixo("f3", "Academia", 90, "Pix", em(2), [mesDe(em(2))]), fixo("f4", "Seguro", 70, "Pix", em(10))] }));
+});
 const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a.playState === "running").length);
 // aporta na meta cujo cartão contém o nome dado
 const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
@@ -546,6 +557,50 @@ const TESTES = {
     igual(await p.texto('[data-act="lista-toda"]'), "Mostrar só os mais recentes", "botão de recolher");
     await p.aba("inicio"); await p.aba("mes");
     igual(await itens(), 8, "ao voltar para a tela, a lista está curta de novo");
+  },
+  "Início avisa o que vence nos próximos 7 dias": async (p) => {
+    await semearContas(p);
+    await p.recarregar();
+    const t = await p.texto("#inVencer");
+    certo(t.includes("A vencer"), "o cartão A vencer não apareceu: " + t);
+    certo(/Fatura Nubank.*amanhã.*R\$ 44,90/.test(t), "fatura de amanhã com o total do cartão: " + t);
+    certo(/Internet.*em 3 dias.*R\$ 100,00/.test(t), "gasto fixo em 3 dias: " + t);
+    certo(t.indexOf("Fatura Nubank") < t.indexOf("Internet"), "a ordem é pela data: " + t);
+    certo(!t.includes("Netflix"), "fixo no crédito não entra (já está na fatura): " + t);
+    certo(!t.includes("Academia"), "fixo apagado neste mês não entra: " + t);
+    certo(!t.includes("Seguro"), "o que vence depois de 7 dias não entra: " + t);
+    certo(!t.includes("Fatura Vazio"), "cartão sem fatura não entra: " + t);
+    await p.print("13-a-vencer");
+  },
+  "Sem nada a vencer, o cartão A vencer não aparece": async (p) => {
+    await p.avaliar(() => { localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 100 } })); });
+    await p.recarregar();
+    igual(await p.visivel("#inVencer"), false, "cartão A vencer sem contas");
+  },
+  "Ajustes abre numa lista de partes e mostra uma por vez": async (p) => {
+    await comExemplo(p); await p.aba("ajustes");
+    igual(await p.avaliar(() => [...document.querySelectorAll("#ajMenu [data-parte]")].map((b) => b.dataset.parte).join(",")), "caixinhas,pagamento,aparencia,pin,dados,lembretes,sobre", "partes dos Ajustes");
+    igual(await p.visivel("#cxList"), false, "na lista, nenhuma parte fica aberta");
+    await p.print("14-ajustes-lista");
+    await p.clicar('#ajMenu [data-parte="aparencia"]');
+    igual(await p.avaliar(() => location.hash), "#ajustes/aparencia", "o endereço guarda a parte");
+    certo(await p.visivel("#temaBox"), "a parte Aparência devia aparecer");
+    igual(await p.visivel("#cxList"), false, "só uma parte por vez");
+    igual(await p.visivel("#ajMenu"), false, "a lista some quando uma parte abre");
+    await p.print("14-ajustes-parte");
+    await p.recarregar();
+    certo(await p.visivel("#temaBox"), "recarregar mantém a parte aberta");
+    await p.clicar("#ajVoltar");
+    certo(await p.visivel("#ajMenu"), "voltar mostra a lista");
+    igual(await p.avaliar(() => location.hash), "#ajustes", "endereço da lista");
+    await p.clicar('#ajMenu [data-parte="pin"]');
+    await p.avaliar(() => history.back()); await p.espera(200);
+    certo(await p.visivel("#ajMenu"), "o voltar do aparelho fecha a parte e mostra a lista");
+    await p.aba("mes"); await p.clicar('[data-go="ajustes/caixinhas"]');
+    certo(await p.visivel("#cxList"), "o atalho Editar caixinhas abre direto a parte Caixinhas");
+    await p.aba("ajustes/lembretes");
+    certo((await p.texto("#lembBox")).includes("A vencer"), "parte Lembretes: " + await p.texto("#lembBox"));
+    await p.tamanho(900, 800); await p.aba("ajustes"); await p.print("14-ajustes-pc");
   },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
