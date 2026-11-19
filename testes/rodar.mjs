@@ -1417,21 +1417,56 @@ const TESTES = {
     await p.espera(600);
     igual(await folha(), true, "destravado, a folha abre");
   } },
-  "Android: o PIN que trava com a folha do widget aberta fecha a folha e a devolve depois do código": { nativo: true, fn: async (p) => {
+  "Android: o PIN que trava com a folha aberta só tira o foco; depois do código a folha está como estava (edição, gasto novo, widget)": { nativo: true, fn: async (p) => {
     await comExemplo(p);
     const folha = () => p.avaliar(() => !document.querySelector("#folhaGasto").hidden);
+    const focoNaFolha = () => p.avaliar(() => !!document.activeElement && !!document.activeElement.closest("#folhaGasto"));
+    // trava e devolve se algum campo da folha ainda tinha o foco logo depois, antes de a tela se redesenhar
+    // (o Chrome tira sozinho o foco de campo escondido só no redesenho seguinte; até lá o teclado ainda digitaria nele)
+    let focoNaHora = null;
+    const travarAgora = () => p.avaliar(() => { document.querySelector('[data-pin="agora"]').click(); const a = document.activeElement; return !!a && !!a.closest("#folhaGasto"); }).then(async (f) => { focoNaHora = f; await p.espera(300); });
+    const codigo = async () => { for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`); await p.espera(600); };
     await p.aba("ajustes/pin"); await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]'); await p.espera(400);
-    await p.aba("inicio");
-    // o toque no widget chega antes de o app se travar ao voltar do segundo plano
+    // 1) edição de um gasto, com o valor mudado e ainda não salvo
+    await p.aba("mes");
+    const id = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc")].find((b) => b.textContent.includes("Uber")).dataset.id);
+    const guardado = () => p.avaliar((id) => { for (const m of Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses)) for (const g of m.gastos || []) if (g.id === id) return g.valor; return null; }, id);
+    await p.clicar('.n-lanc[data-id="' + id + '"]');
+    igual(await p.texto("#gHead"), "Editar gasto", "a folha abriu em edição");
+    await p.digitar("#gValor", "77,7"); await p.avaliar(() => document.querySelector("#gValor").focus());
+    await travarAgora();
+    certo(await p.visivel("#trava"), "o PIN travou o app");
+    igual(focoNaHora, false, "com o app travado, nenhum campo da folha fica com o foco (o teclado não digita por trás da trava) (na hora da trava)"); igual(await focoNaFolha(), false, "com o app travado, nenhum campo da folha fica com o foco (o teclado não digita por trás da trava)");
+    await codigo();
+    igual(await folha(), true, "depois do código a folha continua aberta");
+    igual(await p.texto("#gHead"), "Editar gasto", "e continua em edição");
+    igual(await p.avaliar(() => document.querySelector("#gValor").value), "77,7", "com o valor que a pessoa tinha mudado");
+    igual(await guardado(), 18.5, "o gasto guardado não mudou (nada foi salvo nem desfeito)");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // 2) gasto novo com valor e descrição digitados
+    await p.clicar("#fab"); await p.digitar("#gValor", "12,34"); await p.digitar("#gDesc", "Pão de queijo");
+    await p.avaliar(() => document.querySelector("#gDesc").focus());
+    await travarAgora();
+    igual(focoNaHora, false, "travado com a folha nova aberta: sem foco nela (na hora da trava)"); igual(await focoNaFolha(), false, "travado com a folha nova aberta: sem foco nela");
+    await codigo();
+    igual(await p.texto("#gHead"), "Lançar gasto", "a folha nova continua nova");
+    igual(await p.avaliar(() => [document.querySelector("#gValor").value, document.querySelector("#gDesc").value].join("|")), "12,34|Pão de queijo", "o que foi digitado continua lá");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // 3) folha aberta pelo widget um instante antes de travar: continua lá depois do código
     await p.avaliar(() => window.__nativo.urlAberta({ url: "caixinhas://lancar" })); await p.espera(300);
     igual(await folha(), true, "a folha abriu pelo widget");
-    await p.avaliar(() => { document.querySelector("#gValor").focus(); document.querySelector('[data-pin="agora"]').click(); }); await p.espera(300);
-    certo(await p.visivel("#trava"), "o PIN travou o app");
-    igual(await folha(), false, "com o PIN na frente, a folha fecha (o teclado não segue digitando nela escondida)");
-    igual(await p.avaliar(() => !!document.activeElement && !!document.activeElement.closest("#folhaGasto")), false, "nenhum campo da folha fica com o foco");
-    for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
-    await p.espera(600);
-    igual(await folha(), true, "depois do código, a folha de lançar volta");
+    await p.avaliar(() => document.querySelector("#gValor").focus());
+    await travarAgora();
+    igual(focoNaHora, false, "travado com a folha do widget: sem foco nela (na hora da trava)"); igual(await focoNaFolha(), false, "travado com a folha do widget: sem foco nela");
+    await codigo();
+    igual(await folha(), true, "depois do código, a folha aberta pelo widget continua ali");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // 4) o toque no widget com o app já travado: a folha só abre depois do código
+    await travarAgora();
+    await p.avaliar(() => window.__nativo.urlAberta({ url: "caixinhas://lancar" })); await p.espera(300);
+    igual(await folha(), false, "travado, o toque no widget espera o código");
+    await codigo();
+    igual(await folha(), true, "depois do código, a folha abre");
   } },
   "Android: o botão de apoio pelo GitHub não aparece no app": { nativo: true, fn: async (p) => {
     await comExemplo(p);

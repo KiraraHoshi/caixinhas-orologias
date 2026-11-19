@@ -4250,9 +4250,9 @@ async function salvarPin(pin, tempo){
 }
 function travar(){
   if (!pinCfg()) return;
-  // folha aberta (ex.: pelo widget, um instante antes de o app travar ao voltar): ela fecha, para o teclado não seguir
-  // digitando num campo escondido, e volta depois do código (ver destravar)
-  if (folhaAberta()) { fecharFolha(); Widget.pendente = true; }
+  // a folha aberta (gasto novo, edição ou vinda do widget) fica como está, escondida pela trava, e volta igual depois do código;
+  // só o foco sai, para o teclado sumir e nada ser digitado num campo escondido
+  try { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); } catch (e) {}
   document.documentElement.setAttribute('data-trava', '');
   $('travaPin').value = ''; $('travaEsq').innerHTML = ''; Trava.zerar = false;
   $('travaMsg').textContent = 'Digite o seu PIN.';
