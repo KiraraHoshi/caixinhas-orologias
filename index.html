@@ -1911,8 +1911,10 @@ function ouvirWidget(){
   try { PLUG.App.getLaunchUrl().then(r => abrirPeloWidget(r && r.url), () => {}); } catch (e) {}
 }
 const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
-  podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null, marca: null };
+  podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null, marca: null,
+  sub: false }; // PC: true = grava na subpasta BKP_SUB da pasta escolhida; 'decidir' = escolha nova, decide quando houver permissão
 const BKP_DIAS = 7, BKP_ANTES = 3, BKP_ARQ = /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/, LS_BKP_PASTA = 'caixinhas-orologia-backup-pasta';
+const BKP_SUB = 'Orolon Caixinhas'; // pasta que o app cria dentro do lugar escolhido para o backup
 function bkpTxt(){ return JSON.stringify(Object.assign({ app: 'caixinhas-orologia', exportado: new Date().toISOString() }, S), null, 2); }
 function contaLanc(s){ return Object.values(s.meses || {}).reduce((a, m) => a + (m.gastos || []).length + (m.entradas || []).length, 0); }
 function temExemplo(){ return Object.values(S.meses).some(m => (m.gastos || []).some(g => g.ex)) || S.compras.some(c => c.ex) || S.metas.some(m => m.ex); }
@@ -1950,22 +1952,48 @@ async function bkpPerm(pedir){
     if (p !== 'granted' && pedir) p = await Bkp.pasta.requestPermission({ mode: 'readwrite' });
     Bkp.perm = p;
   } catch (e) { Bkp.perm = 'denied'; }
+  if (Bkp.perm === 'granted') await bkpDecidir();
   return Bkp.perm;
 }
+/* PC, pasta recém-escolhida (Bkp.sub === 'decidir'): onde gravar. A pasta que já se chama BKP_SUB ou que já tem cópias soltas
+   continua sendo usada como antes; nas outras o app usa (ou cria) a subpasta BKP_SUB. Se não der para criar, usa a escolhida.
+   A permissão continua sendo a da pasta escolhida; a decisão fica guardada ('sub' no cfg; sem ela, a pasta escolhida). */
+async function bkpDecidir(){
+  if (Bkp.sub !== 'decidir' || !Bkp.pasta || Bkp.pasta.nativa) return;
+  let sub = false;
+  try {
+    let naEscolhida = Bkp.pasta.name === BKP_SUB;
+    if (!naEscolhida) for await (const n of Bkp.pasta.keys()) if (BKP_ARQ_NAT.test(n)) { naEscolhida = true; break; }
+    if (!naEscolhida) { await Bkp.pasta.getDirectoryHandle(BKP_SUB, { create: true }); sub = true; }
+  } catch (e) {}
+  Bkp.sub = sub; await bkpOp('cfg', 'readwrite', s => s.put(sub, 'sub'));
+}
+// PC: a pasta onde os arquivos vão. A subpasta é aberta a cada gravação e criada de novo se a pessoa a apagou.
+async function bkpDestino(){
+  if (Bkp.sub !== true) return Bkp.pasta;
+  try { return await Bkp.pasta.getDirectoryHandle(BKP_SUB, { create: true }); } catch (e) { return Bkp.pasta; }
+}
+function bkpNome(pasta){ return (pasta.name || 'escolhida') + (!pasta.nativa && Bkp.sub === true ? '/' + BKP_SUB : ''); } // no Android o nome já vem do plugin
+// Android: a pasta para o plugin. "sub" = documento da subpasta do app dentro da árvore escolhida (não existe nas pastas de antes)
+function argPasta(pasta){ return pasta.sub ? { uri: pasta.uri, sub: pasta.sub } : { uri: pasta.uri }; }
+function guardarPastaNat(pasta){ lsSet(LS_PASTA_NAT, Object.assign({ uri: pasta.uri, nome: pasta.name }, pasta.sub ? { sub: pasta.sub } : {})); }
 async function bkpNaPasta(){
   if (!Bkp.pasta || Bkp.perm !== 'granted' || !hasData(S) || temExemplo()) return false;
   if (Bkp.pasta.nativa) {
     try {
-      const m = marcaAparelho();
-      await PLUG.Cx.gravarBackup({ uri: Bkp.pasta.uri, nome: 'caixinhas-backup-' + today() + '-' + m + '.json', texto: bkpTxt(), manter: BKP_DIAS, grupo: '-' + m + '.json' });
+      const m = marcaAparelho(), pasta = Bkp.pasta;
+      const r = await PLUG.Cx.gravarBackup(Object.assign(argPasta(pasta), { nome: 'caixinhas-backup-' + today() + '-' + m + '.json', texto: bkpTxt(), manter: BKP_DIAS, grupo: '-' + m + '.json' }));
+      // a subpasta tinha sumido e o plugin criou outra: as próximas contas usam a nova
+      if (pasta.sub && r && typeof r.sub === 'string' && r.sub && r.sub !== pasta.sub && Bkp.pasta === pasta) { pasta.sub = r.sub; guardarPastaNat(pasta); }
       Bkp.erro = false; Bkp.ultimo = Date.now(); lsSet(LS_BKP_PASTA, Bkp.ultimo); marcaBackup(); return true;
     } catch (e) { Bkp.erro = true; return false; }
   }
   try {
-    const arq = await Bkp.pasta.getFileHandle('caixinhas-backup-' + today() + '.json', { create: true }), w = await arq.createWritable();
+    const d = await bkpDestino();
+    const arq = await d.getFileHandle('caixinhas-backup-' + today() + '.json', { create: true }), w = await arq.createWritable();
     await w.write(bkpTxt()); await w.close();
-    const nomes = []; for await (const n of Bkp.pasta.keys()) if (BKP_ARQ.test(n)) nomes.push(n);
-    for (const velho of nomes.sort().reverse().slice(BKP_DIAS)) { try { await Bkp.pasta.removeEntry(velho); } catch (e) {} }
+    const nomes = []; for await (const n of d.keys()) if (BKP_ARQ.test(n)) nomes.push(n);
+    for (const velho of nomes.sort().reverse().slice(BKP_DIAS)) { try { await d.removeEntry(velho); } catch (e) {} }
     Bkp.erro = false; Bkp.ultimo = Date.now(); lsSet(LS_BKP_PASTA, Bkp.ultimo); marcaBackup(); return true;
   } catch (e) { Bkp.erro = true; return false; }
 }
@@ -1985,12 +2013,12 @@ const BKP_ARQ_NAT = /^caixinhas-backup-\d{4}-\d{2}-\d{2}(?:-[a-z0-9]{4})?\.json$
 function soBackups(l){ return (l || []).filter(b => b && BKP_ARQ_NAT.test(b.nome || '')); } // outros arquivos da pasta não contam
 function renderBkp(){
   const box = $('bkpBox'); if (!box) return;
-  const nome = Bkp.pasta ? esc(Bkp.pasta.name || 'escolhida') : '';
+  const nome = Bkp.pasta ? esc(bkpNome(Bkp.pasta)) : '';
   let pasta;
   if (!Bkp.podePasta) pasta = '<p class="hint">Este navegador não deixa o app gravar numa pasta sozinho. Use “Enviar backup” ou “Exportar backup” de vez em quando e guarde o arquivo fora do aparelho.</p>';
   else if (Bkp.pend) pasta = `<p class="hint warn">A pasta “${esc(Bkp.pend.pasta.name)}” já tem ${Bkp.pend.backups.length === 1 ? 'uma cópia' : Bkp.pend.backups.length + ' cópias'} de backup. Nada foi gravado ainda. Se elas são de outro aparelho seu, você pode restaurar uma antes de continuar.</p>${listaPasta(Bkp.pend.backups)}<div class="btns"><button class="primary" type="button" data-act="bkp-usar">Usar esta pasta e começar a gravar</button><button class="ghost" type="button" data-act="bkp-desistir">Cancelar</button></div>`;
-  else if (!Bkp.pasta && NATIVO) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes deste aparelho. Se for uma pasta que sincroniza com a nuvem, o backup sai do celular sem precisar de conta no app.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
-  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app.</p><p class="hint" id="bkpDica">Crie uma pasta só para isso, por exemplo “Backup Caixinhas” dentro de Documentos. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
+  else if (!Bkp.pasta && NATIVO) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes deste aparelho. Se for uma pasta que sincroniza com a nuvem, o backup sai do celular sem precisar de conta no app.</p><p class="hint">O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
+  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app. O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><p class="hint" id="bkpDica">Crie uma pasta só para isso, por exemplo “Backup Caixinhas” dentro de Documentos. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p>${Bkp.lista ? (Bkp.lista.length ? listaPasta(Bkp.lista) : '<p class="hint">A pasta ainda não tem cópias.</p>') : ''}<div class="btns">${Bkp.pasta.nativa && !Bkp.lista ? '<button class="ghost" type="button" data-act="bkp-ver">Ver cópias da pasta</button>' : ''}<button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
@@ -2007,14 +2035,18 @@ async function bkpIniciar(){
     // a marca guardada é a do antigo, e usá-la faria o novo trocar e apagar as cópias do antigo.
     try { const r = await PLUG.Cx.aparelho(); if (r && /^[a-z0-9]{4}$/.test(r.marca || '')) { Bkp.marca = r.marca; lsSet(LS_APARELHO, r.marca); } } catch (e) {}
   }
-  if (NATIVO) { const g = lsGet(LS_PASTA_NAT); Bkp.pasta = g && g.uri ? { name: g.nome || 'escolhida', uri: g.uri, nativa: true } : null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
-  else if (Bkp.podePasta) { Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
+  if (NATIVO) { const g = lsGet(LS_PASTA_NAT); Bkp.pasta = g && g.uri ? { name: g.nome || 'escolhida', uri: g.uri, nativa: true, sub: typeof g.sub === 'string' ? g.sub : '' } : null; Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false); }
+  else if (Bkp.podePasta) {
+    Bkp.pasta = (await bkpOp('cfg', 'readonly', s => s.get('pasta'))) || null;
+    const sub = await bkpOp('cfg', 'readonly', s => s.get('sub')); Bkp.sub = sub === true || sub === 'decidir' ? sub : false; // pasta de antes desta versão: sem subpasta
+    Bkp.ultimo = lsGet(LS_BKP_PASTA); await bkpPerm(false);
+  }
   try { if (hasData(S) && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
   renderBkp(); renderInicio(); renderMes();
   if (hasData(S)) bkpAgendar();
 }
 async function usarPastaNativa(pasta){
-  Bkp.pend = null; Bkp.lista = null; Bkp.pasta = pasta; Bkp.ultimo = null; Bkp.erro = false; lsSet(LS_PASTA_NAT, { uri: pasta.uri, nome: pasta.name });
+  Bkp.pend = null; Bkp.lista = null; Bkp.pasta = pasta; Bkp.ultimo = null; Bkp.erro = false; guardarPastaNat(pasta);
   await bkpPerm(false); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
   toast(gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');
 }
@@ -3427,27 +3459,28 @@ document.addEventListener('click', e => {
     case 'bkp-pasta': if (NATIVO) { (async () => {
       let r; try { r = await PLUG.Cx.escolherPastaBackup(); } catch (e) { toast('Não deu para abrir o seletor de pastas'); return; }
       if (!r || r.cancelado || !r.uri) return;
-      const nova = { name: r.nome || 'escolhida', uri: r.uri, nativa: true };
-      let ja = []; try { ja = soBackups(((await PLUG.Cx.listarBackups({ uri: r.uri })) || {}).backups); } catch (e) {}
+      // o plugin decide a subpasta (achada ou criada dentro da escolhida) e devolve o documento dela em "sub" e o nome com ela
+      const nova = { name: r.nome || 'escolhida', uri: r.uri, nativa: true, sub: typeof r.sub === 'string' ? r.sub : '' };
+      let ja = []; try { ja = soBackups(((await PLUG.Cx.listarBackups(argPasta(nova))) || {}).backups); } catch (e) {}
       Bkp.lista = null;
       if (ja.length) { Bkp.pend = { pasta: nova, backups: ja }; renderBkp(); return; } // pasta com cópias: pergunta antes de gravar
       await usarPastaNativa(nova);
     })(); break; }
     (async () => {
       let h; try { h = await window.showDirectoryPicker({ id: 'caixinhas-backup', mode: 'readwrite', startIn: 'documents' }); } catch (e) { return; }
-      Bkp.pasta = h; Bkp.ultimo = null; Bkp.erro = false; await bkpOp('cfg', 'readwrite', s => s.put(h, 'pasta'));
+      Bkp.pasta = h; Bkp.sub = 'decidir'; Bkp.ultimo = null; Bkp.erro = false; await bkpOp('cfg', 'readwrite', s => { s.put(h, 'pasta'); s.put('decidir', 'sub'); });
       await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll();
       toast(Bkp.perm !== 'granted' ? 'Sem permissão para gravar nessa pasta' : gravou ? 'Backup gravado na pasta' : Bkp.erro ? 'Não deu para gravar nessa pasta' : 'Pasta escolhida');
     })(); break;
     case 'bkp-perm': (async () => { await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll(); if (gravou) toast('Backup gravado na pasta'); })(); break;
     case 'bkp-usar': if (Bkp.pend) usarPastaNativa(Bkp.pend.pasta); break;
     case 'bkp-desistir': Bkp.pend = null; renderBkp(); break;
-    case 'bkp-ver': (async () => { try { Bkp.lista = soBackups(((await PLUG.Cx.listarBackups({ uri: Bkp.pasta.uri })) || {}).backups); } catch (e) { Bkp.lista = []; toast('Não deu para ler a pasta'); } renderBkp(); })(); break;
+    case 'bkp-ver': (async () => { try { Bkp.lista = soBackups(((await PLUG.Cx.listarBackups(argPasta(Bkp.pasta))) || {}).backups); } catch (e) { Bkp.lista = []; toast('Não deu para ler a pasta'); } renderBkp(); })(); break;
     case 'bkp-doc': (async () => {
       try { const r = await PLUG.Cx.lerBackup({ doc: id }); confirmarImport(JSON.parse(r.texto)); $('impConfirm').scrollIntoView({ block: 'center' }); }
       catch (e) { toast('Essa cópia não pôde ser lida'); }
     })(); break;
-    case 'bkp-parar': (async () => { if (NATIVO) { try { localStorage.removeItem(LS_PASTA_NAT); } catch (e) {} } else await bkpOp('cfg', 'readwrite', s => s.delete('pasta')); Bkp.lista = null; Bkp.pasta = null; Bkp.perm = null; Bkp.erro = false; renderBkp(); renderAll(); toast('O app parou de gravar na pasta. Os arquivos que já estão lá ficam.'); })(); break;
+    case 'bkp-parar': (async () => { if (NATIVO) { try { localStorage.removeItem(LS_PASTA_NAT); } catch (e) {} } else await bkpOp('cfg', 'readwrite', s => { s.delete('pasta'); s.delete('sub'); }); Bkp.lista = null; Bkp.pasta = null; Bkp.sub = false; Bkp.perm = null; Bkp.erro = false; renderBkp(); renderAll(); toast('O app parou de gravar na pasta. Os arquivos que já estão lá ficam.'); })(); break;
     case 'bkp-rest': case 'bkp-baixar': {
       const c = Bkp.copias.find(x => x.id === id); if (!c) break;
       if (act === 'bkp-baixar') { baixarJSON('caixinhas-backup-' + isoDate(new Date(c.quando)) + '.json', c.txt); break; }

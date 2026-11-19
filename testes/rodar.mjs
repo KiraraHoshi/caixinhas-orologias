@@ -123,14 +123,17 @@ function capacitorFalso() {
       widget: async (a) => { N.chamadas.push(["widget", JSON.parse(JSON.stringify(a))]); },
       compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
       aparelho: async () => ({ marca: "tst1" }),
-      escolherPastaBackup: async () => ({ uri: "content://pasta-de-teste", nome: "Backup" }),
-      listarBackups: async () => ({ backups: Object.keys(ler("__pasta", {})).map((n) => ({ doc: n, nome: n, modificado: 0 })) }),
+      // "__escolha" no localStorage = o que o seletor do Android devolve (com "sub", o plugin achou ou criou a subpasta do app)
+      escolherPastaBackup: async () => ler("__escolha", { uri: "content://pasta-de-teste", nome: "Backup" }),
+      listarBackups: async (a) => { N.chamadas.push(["listarBackups", { uri: a.uri, sub: a.sub }]); return { backups: Object.keys(ler("__pasta", {})).map((n) => ({ doc: n, nome: n, modificado: 0 })) }; },
       lerBackup: async ({ doc }) => ({ texto: ler("__pasta", {})[doc] }),
+      // "__devolve" = o que a gravação responde (ex.: { sub } quando o plugin recriou a subpasta apagada)
       gravarBackup: async (a) => {
-        N.chamadas.push(["gravarBackup", { nome: a.nome, grupo: a.grupo, manter: a.manter }]);
+        N.chamadas.push(["gravarBackup", { nome: a.nome, grupo: a.grupo, manter: a.manter, uri: a.uri, sub: a.sub }]);
         const o = ler("__pasta", {}); o[a.nome] = a.texto;
         Object.keys(o).filter((n) => n.endsWith(a.grupo)).sort().reverse().slice(a.manter).forEach((n) => delete o[n]);
         localStorage.setItem("__pasta", JSON.stringify(o));
+        return ler("__devolve", undefined);
       },
     },
     LocalNotifications: {
@@ -246,6 +249,21 @@ const importarBackup = async (p, obj) => {
   await p.clicar('[data-act="imp-ok"]'); await p.espera(250);
 };
 const guardado = (p) => p.avaliar(() => JSON.parse(localStorage.getItem("caixinhas-orologia-v1")));
+// Pasta do backup no PC: a janela de escolher pasta não abre sem pessoa, então os testes usam a pasta particular do navegador,
+// que tem os mesmos comandos. "caminho" = subpastas a partir dela. SUBPASTA é a pasta que o app cria no lugar escolhido.
+const SUBPASTA = "Orolon Caixinhas";
+// o que há na pasta (pastas terminam em "/"), em ordem; null se ela não existe
+const pastaPC = (p, caminho = []) => p.avaliar(async (caminho) => {
+  try { let d = await navigator.storage.getDirectory(); for (const n of caminho) d = await d.getDirectoryHandle(n);
+    const r = []; for await (const [n, h] of d.entries()) r.push(h.kind === "directory" ? n + "/" : n); return r.sort(); } catch (e) { return null; }
+}, caminho);
+const lerPC = (p, caminho, nome) => p.avaliar(async (caminho, nome) => { try { let d = await navigator.storage.getDirectory(); for (const n of caminho) d = await d.getDirectoryHandle(n); return await (await (await d.getFileHandle(nome)).getFile()).text(); } catch (e) { return null; } }, caminho, nome);
+const criarPC = (p, caminho, nome, texto) => p.avaliar(async (caminho, nome, texto) => { let d = await navigator.storage.getDirectory(); for (const n of caminho) d = await d.getDirectoryHandle(n, { create: true }); if (nome) { const w = await (await d.getFileHandle(nome, { create: true })).createWritable(); await w.write(texto); await w.close(); } }, caminho, nome, texto);
+// o seletor de pastas devolve a pasta do caminho dado
+const seletorPC = (p, caminho = []) => p.avaliar((caminho) => { window.showDirectoryPicker = async () => { let d = await navigator.storage.getDirectory(); for (const n of caminho) d = await d.getDirectoryHandle(n, { create: true }); return d; }; }, caminho);
+const arqHoje = (p) => p.avaliar(() => { const d = new Date(); return "caixinhas-backup-" + d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + ".json"; });
+// com um gasto lançado (o primeiro arquivo sai na hora), escolhe a pasta pelo botão dos Ajustes
+const escolherPastaPC = async (p, caminho) => { await seletorPC(p, caminho); await p.clicar('[data-act="onb-skip"]'); await lancar(p, 50, "Cinema"); await p.aba("ajustes/dados"); await p.clicar('[data-act="bkp-pasta"]'); await p.espera(600); };
 // texto canônico (chaves em ordem): compara dados sem depender da ordem das chaves
 const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((c) => [c, x[c]])) : x));
 // confere que cada campo do backup voltou igual depois da importação. O app só pode ter acrescentado o que é dele:
@@ -705,25 +723,80 @@ const TESTES = {
     igual(await p.avaliar(() => Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses)[0].gastos[0].descricao), "Cinema", "gasto de volta depois de restaurar");
   },
   "Backup automático grava um arquivo por dia na pasta escolhida": async (p) => {
-    // a janela de escolher pasta não abre sem pessoa: usamos a pasta particular do navegador, que tem os mesmos comandos
-    await p.avaliar(() => { window.showDirectoryPicker = () => navigator.storage.getDirectory(); });
-    await p.clicar('[data-act="onb-skip"]');
-    await p.clicar("#fab"); await p.digitar("#gValor", "50"); await p.digitar("#gDesc", "Cinema"); await p.clicar("#gBtn");
-    await p.aba("ajustes");
-    await p.clicar('[data-act="bkp-pasta"]');
-    await p.espera(600);
-    const hoje = await p.avaliar(() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
-    const ler = () => p.avaliar(async (nome) => { const d = await navigator.storage.getDirectory(); try { return await (await (await d.getFileHandle(nome)).getFile()).text(); } catch (e) { return null; } }, "caixinhas-backup-" + hoje + ".json");
+    await escolherPastaPC(p, []);
+    const arq = await arqHoje(p), ler = () => lerPC(p, [SUBPASTA], arq); // pasta vazia: o app grava na subpasta que criou
     certo((await ler() || "").includes("Cinema"), "o arquivo do dia não foi gravado na pasta");
     certo((await p.texto("#bkpBox")).includes("Gravando na pasta"), "o estado da pasta não apareceu");
     await p.clicar("#fab"); await p.digitar("#gValor", "20"); await p.digitar("#gDesc", "Pipoca"); await p.clicar("#gBtn");
     await p.espera(1900);
     certo((await ler() || "").includes("Pipoca"), "o arquivo não foi atualizado depois de um novo gasto");
     // arquivos antigos: sobram só os 7 mais recentes
-    await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); for (let i = 1; i <= 9; i++) { const w = await (await d.getFileHandle("caixinhas-backup-2020-01-0" + i + ".json", { create: true })).createWritable(); await w.write("{}"); await w.close(); } });
+    for (let i = 1; i <= 9; i++) await criarPC(p, [SUBPASTA], "caixinhas-backup-2020-01-0" + i + ".json", "{}");
     await p.clicar("#fab"); await p.digitar("#gValor", "5"); await p.digitar("#gDesc", "Bala"); await p.clicar("#gBtn");
     await p.espera(1900);
-    igual(await p.avaliar(async () => { const d = await navigator.storage.getDirectory(); let n = 0; for await (const k of d.keys()) if (k.startsWith("caixinhas-backup-")) n++; return n; }), 7, "arquivos de backup na pasta");
+    igual((await pastaPC(p, [SUBPASTA])).filter((n) => n.startsWith("caixinhas-backup-")).length, 7, "arquivos de backup na pasta");
+  },
+  "Pasta do backup no PC: na pasta vazia o app cria “Orolon Caixinhas”, grava dentro e recria se for apagada": async (p) => {
+    await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes("cria uma pasta “Orolon Caixinhas”"), "a ajuda de escolher a pasta conta da subpasta: " + await p.texto("#bkpBox"));
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => { localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })); window.TemaCx.aplicar(window.TemaCx.porId(tema)); }, tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) { await p.tamanho(w, h); await p.espera(150); await p.avaliar(() => document.querySelector("#bkpBox").scrollIntoView()); await p.print(`31-backup-escolher-${tema}-${w}`); }
+    }
+    await p.tamanho(360, 780);
+    await escolherPastaPC(p, []);
+    const arq = await arqHoje(p);
+    igual(JSON.stringify(await pastaPC(p)), JSON.stringify([SUBPASTA + "/"]), "na pasta escolhida fica só a subpasta, nada solto");
+    certo((await lerPC(p, [SUBPASTA], arq) || "").includes("Cinema"), "o arquivo do dia vai para dentro da subpasta");
+    const gravando = "Gravando na pasta “escolhida/Orolon Caixinhas”"; // a pasta particular do navegador não tem nome: o app mostra "escolhida"
+    certo((await p.texto("#bkpBox")).includes(gravando), "o nome mostrado indica a subpasta: " + await p.texto("#bkpBox"));
+    await p.avaliar(() => document.querySelector("#bkpBox").scrollIntoView()); await p.espera(3600);
+    for (const tema of ["dia", "noite"]) {
+      await p.avaliar((tema) => { localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })); window.TemaCx.aplicar(window.TemaCx.porId(tema)); }, tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) { await p.tamanho(w, h); await p.espera(150); await p.avaliar(() => document.querySelector("#bkpBox").scrollIntoView()); await p.print(`31-backup-gravando-${tema}-${w}`); }
+    }
+    await p.tamanho(360, 780);
+    await p.recarregar(); await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes(gravando), "a subpasta continua depois de reabrir: " + await p.texto("#bkpBox"));
+    // a pessoa apagou a subpasta: a próxima gravação cria de novo
+    await p.avaliar(async (n) => (await navigator.storage.getDirectory()).removeEntry(n, { recursive: true }), SUBPASTA);
+    await lancar(p, 20, "Pipoca"); await p.espera(1900);
+    certo((await lerPC(p, [SUBPASTA], arq) || "").includes("Pipoca"), "a subpasta apagada volta na gravação seguinte");
+    igual(JSON.stringify(await pastaPC(p)), JSON.stringify([SUBPASTA + "/"]), "nada solto na pasta escolhida depois de recriar");
+  },
+  "Pasta do backup no PC: a pasta que já se chama “Orolon Caixinhas” não ganha outra dentro": async (p) => {
+    await escolherPastaPC(p, [SUBPASTA]);
+    igual(JSON.stringify(await pastaPC(p, [SUBPASTA])), JSON.stringify([await arqHoje(p)]), "grava direto na pasta, sem aninhar");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Orolon Caixinhas”"), "nome mostrado sem repetir: " + await p.texto("#bkpBox"));
+  },
+  "Pasta do backup no PC: pasta com cópias soltas continua sendo usada como antes": async (p) => {
+    await criarPC(p, [], "caixinhas-backup-2020-01-01.json", "{}");
+    await escolherPastaPC(p, []);
+    igual(JSON.stringify(await pastaPC(p)), JSON.stringify(["caixinhas-backup-2020-01-01.json", await arqHoje(p)].sort()), "grava ao lado das cópias, sem criar subpasta");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “escolhida”"), "nome mostrado sem subpasta: " + await p.texto("#bkpBox"));
+  },
+  "Pasta do backup no PC: a subpasta que já existe é usada e a cópia do celular fica": async (p) => {
+    const outro = "caixinhas-backup-2026-01-01-zzzz.json";
+    await criarPC(p, [SUBPASTA], outro, "{}");
+    await escolherPastaPC(p, []);
+    igual(JSON.stringify(await pastaPC(p)), JSON.stringify([SUBPASTA + "/"]), "nada solto na pasta escolhida");
+    igual(JSON.stringify(await pastaPC(p, [SUBPASTA])), JSON.stringify([await arqHoje(p), outro].sort()), "grava na subpasta que já existia e não apaga a cópia do outro aparelho");
+  },
+  "Pasta do backup no PC: se não der para criar a subpasta, grava na pasta escolhida sem erro": async (p) => {
+    await criarPC(p, [], SUBPASTA, "não é pasta"); // um arquivo com o nome da subpasta: criar a pasta falha
+    await escolherPastaPC(p, []);
+    certo((await lerPC(p, [], await arqHoje(p)) || "").includes("Cinema"), "o arquivo do dia vai para a pasta escolhida");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “escolhida”"), "nome mostrado sem subpasta: " + await p.texto("#bkpBox"));
+  },
+  "Pasta do backup no PC: a pasta escolhida antes desta versão continua recebendo os arquivos": async (p) => {
+    await p.clicar('[data-act="onb-skip"]'); await lancar(p, 50, "Cinema");
+    // como a 1.9 e a 2.0 de antes guardavam: só a pasta, sem o campo da subpasta
+    await p.avaliar(async () => { const h = await navigator.storage.getDirectory(); await new Promise((ok, erro) => { const rq = indexedDB.open("caixinhas-orologia-copias", 1); rq.onerror = erro; rq.onsuccess = () => { const tx = rq.result.transaction("cfg", "readwrite"); tx.objectStore("cfg").put(h, "pasta"); tx.oncomplete = () => { rq.result.close(); ok(); }; tx.onerror = erro; }; }); });
+    await p.recarregar(); await p.espera(1900);
+    certo((await lerPC(p, [], await arqHoje(p)) || "").includes("Cinema"), "grava onde gravava");
+    igual(await pastaPC(p, [SUBPASTA]), null, "sem subpasta para quem já tinha pasta");
+    await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “escolhida”"), "nome mostrado sem subpasta: " + await p.texto("#bkpBox"));
   },
   "Abertura longa toca toda vez que o app abre; ao voltar para o Início, a curta": { movimento: true, fn: async (p) => {
     await comExemplo(p);
@@ -1487,6 +1560,55 @@ const TESTES = {
     certo((await p.texto("#impConfirm")).includes("Backup com 2 gastos"), "restaurar a cópia escolhida pede confirmação: " + await p.texto("#impConfirm"));
     await p.clicar('[data-act="bkp-parar"]'); await p.espera(300); await p.recarregar(); await p.aba("ajustes/dados");
     certo(!(await p.texto("#bkpBox")).includes("Gravando na pasta"), "parar de usar a pasta vale depois de reabrir");
+  } },
+  // A escolha da subpasta no Android é do plugin (Java, só o aparelho prova). Aqui: o app passa a subpasta que o plugin devolve
+  // em toda conta com a pasta, mostra o nome que ele dá e guarda a subpasta nova quando o plugin recria uma apagada.
+  "Android: a subpasta que o plugin devolve vale para conferir, gravar e listar": { nativo: true, fn: async (p) => {
+    const outro = "caixinhas-backup-2026-01-01-zzzz.json";
+    await p.avaliar((outro) => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+      localStorage.setItem("__escolha", JSON.stringify({ uri: "content://arvore", nome: "Backups/Orolon Caixinhas", sub: "doc-sub" }));
+      localStorage.setItem("__pasta", JSON.stringify({ [outro]: "{}" })); // a subpasta que já existia tem a cópia de outro celular
+    }, outro);
+    await p.recarregar(); await p.aba("ajustes/dados");
+    const ult = (qual) => p.avaliar((qual) => (window.__nativo.chamadas.filter((x) => x[0] === qual).pop() || [])[1] || null, qual);
+    const gravacoes = () => p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "gravarBackup").length);
+    await p.clicar('[data-act="bkp-pasta"]'); await p.espera(300);
+    igual(JSON.stringify(await ult("listarBackups")), JSON.stringify({ uri: "content://arvore", sub: "doc-sub" }), "a conferência de cópias olha dentro da subpasta");
+    certo((await p.texto("#bkpBox")).includes("A pasta “Backups/Orolon Caixinhas” já tem uma cópia"), "pergunta antes de gravar na subpasta com cópia: " + await p.texto("#bkpBox"));
+    igual(await gravacoes(), 0, "nada é gravado antes da resposta");
+    await p.clicar('[data-act="bkp-usar"]'); await p.espera(400);
+    const g = await ult("gravarBackup");
+    igual(g.uri + "|" + g.sub, "content://arvore|doc-sub", "a gravação vai para a subpasta");
+    certo(await p.avaliar((outro) => outro in JSON.parse(localStorage.getItem("__pasta")), outro), "a cópia do outro aparelho foi apagada");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backups/Orolon Caixinhas”"), "nome que o plugin deu: " + await p.texto("#bkpBox"));
+    // a pessoa apagou a subpasta e o plugin criou outra ao gravar: o app guarda a nova para as próximas vezes
+    await p.avaliar(() => localStorage.setItem("__devolve", JSON.stringify({ sub: "doc-sub-2" })));
+    await lancar(p, 12, "Café"); await p.espera(1900);
+    await p.avaliar(() => localStorage.removeItem("__devolve"));
+    await p.recarregar(); await p.espera(1900);
+    igual((await ult("gravarBackup") || {}).sub, "doc-sub-2", "depois de reabrir, grava na subpasta recriada");
+    await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backups/Orolon Caixinhas”"), "o nome continua: " + await p.texto("#bkpBox"));
+    await p.clicar('[data-act="bkp-ver"]'); await p.espera(300);
+    igual((await ult("listarBackups") || {}).sub, "doc-sub-2", "ver cópias da pasta olha a subpasta");
+  } },
+  "Android: a pasta escolhida antes desta versão (sem subpasta) continua igual": { nativo: true, fn: async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+      localStorage.setItem("caixinhas-orologia-pasta", JSON.stringify({ uri: "content://pasta-de-teste", nome: "Backup" }));
+    });
+    await p.recarregar(); await p.espera(1900);
+    const g = await p.avaliar(() => (window.__nativo.chamadas.filter((x) => x[0] === "gravarBackup").pop() || [])[1] || null);
+    certo(g, "devia gravar na pasta guardada");
+    igual(JSON.stringify([g.uri, "sub" in g ? g.sub : "sem"]), JSON.stringify(["content://pasta-de-teste", "sem"]), "grava na pasta de sempre, sem subpasta");
+    igual(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-pasta")), JSON.stringify({ uri: "content://pasta-de-teste", nome: "Backup" }), "o que estava guardado não muda");
+    await p.aba("ajustes/dados");
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backup”"), "nome de sempre: " + await p.texto("#bkpBox"));
   } },
   "Android: lembretes pedem permissão só ao ligar e não mostram valores": { nativo: true, fn: async (p) => {
     await semearContas(p); await p.recarregar(); await p.espera(1000);

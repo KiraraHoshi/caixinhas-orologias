@@ -40,7 +40,7 @@ Tudo em detalhe no [histórico de versões](CHANGELOG.md).
 - **Metas:** alvo, saldo, aporte mensal e rendimento, com o prazo calculado por juros compostos.
 - **Calculadoras:** salário líquido (INSS progressivo, IRRF com a redução de 2026), adicional noturno com hora reduzida e DSR, 13º salário, férias com 1/3 e abono, saque-aniversário do FGTS, **financiamento de imóvel** (SAC e PRICE lado a lado, correção, amortização extra, saldo devedor e aviso quando a parcela passa de 30% da renda), juros compostos e "quanto guardar por mês".
 - **Aparência:** 14 temas, editor para criar o seu com verificação de contraste e o Visual leve (veja [Temas](#temas)).
-- **Backup:** cópia automática diária neste aparelho, pasta do backup (no Chrome e no Edge do computador e no app Android), exportar e importar em JSON.
+- **Backup:** cópia automática diária neste aparelho, pasta do backup (no Chrome e no Edge do computador e no app Android; o app cria ali dentro a pasta "Orolon Caixinhas" e grava nela), exportar e importar em JSON.
 - **Bloqueio por PIN:** de 4 a 6 números para abrir o app neste aparelho. Os dados não são criptografados e o PIN não entra no backup; quem esquece o PIN só entra apagando os dados.
 - **Guia e ajuda:** "Como usar" e botões "?" nas seções que mais geram dúvida.
 - **Tabelas de impostos editáveis**, para atualizar quando o governo mudar.

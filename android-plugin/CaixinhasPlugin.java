@@ -123,28 +123,116 @@ public class CaixinhasPlugin extends Plugin {
         startActivityForResult(call, i, "depoisDaPastaBackup");
     }
 
+    // A permissão continua sendo a da pasta escolhida (a árvore). Dentro dela o app usa a subpasta SUBPASTA, que é um documento
+    // da mesma árvore: não precisa de permissão nova. O app guarda o documento da subpasta ("sub") e o manda de volta em cada conta.
     @ActivityCallback
     private void depoisDaPastaBackup(PluginCall call, ActivityResult res) {
-        JSObject r = new JSObject();
         Intent d = res.getData();
-        if (res.getResultCode() != Activity.RESULT_OK || d == null || d.getData() == null) { r.put("cancelado", true); call.resolve(r); return; }
-        Uri arvore = d.getData();
+        if (res.getResultCode() != Activity.RESULT_OK || d == null || d.getData() == null) { JSObject r = new JSObject(); r.put("cancelado", true); call.resolve(r); return; }
+        final Uri arvore = d.getData();
         try {
             getContext().getContentResolver().takePersistableUriPermission(arvore, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         } catch (Exception e) { /* sem permissão permanente: a gravação vai avisar */ }
-        String id = DocumentsContract.getTreeDocumentId(arvore);
-        int k = id.indexOf(':');
-        r.put("uri", arvore.toString());
-        r.put("nome", k >= 0 && k < id.length() - 1 ? id.substring(k + 1) : id);
-        call.resolve(r);
+        new Thread(() -> { // olhar e criar pastas pode demorar (pastas da nuvem): fora da tela
+            try {
+                String id = DocumentsContract.getTreeDocumentId(arvore);
+                int k = id.indexOf(':');
+                String nome = k >= 0 && k < id.length() - 1 ? id.substring(k + 1) : id;
+                String sub = null;
+                String nomeSub = null;
+                try {
+                    sub = escolherSubpasta(arvore, id, nome);
+                    if (sub != null) nomeSub = nomeDe(DocumentsContract.buildDocumentUriUsingTree(arvore, sub));
+                } catch (Exception e) { sub = null; /* não deu para olhar ou criar: grava na própria pasta, como antes */ }
+                JSObject r = new JSObject();
+                r.put("uri", arvore.toString());
+                if (sub != null) {
+                    r.put("sub", sub);
+                    r.put("nome", nome + "/" + (nomeSub != null ? nomeSub : SUBPASTA));
+                } else {
+                    r.put("nome", nome);
+                }
+                call.resolve(r);
+            } catch (Exception e) {
+                call.reject("falha-na-pasta: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // Nome exato da pasta que o app cria dentro do lugar escolhido para o backup.
+    private static final String SUBPASTA = "Orolon Caixinhas";
+
+    // Pasta recém-escolhida: devolve o documento da subpasta onde gravar, ou null para gravar na própria pasta.
+    // A pasta que já se chama SUBPASTA ou que já tem cópias soltas fica como está (quem tinha backup ali continua achando);
+    // nas outras, usa a subpasta que já existe (celular novo apontando para o mesmo lugar) ou cria uma.
+    private String escolherSubpasta(Uri arvore, String raiz, String nomeCaminho) {
+        String nomeRaiz = nomeDe(DocumentsContract.buildDocumentUriUsingTree(arvore, raiz));
+        if (nomeRaiz == null) { int b = nomeCaminho.lastIndexOf('/'); nomeRaiz = b >= 0 ? nomeCaminho.substring(b + 1) : nomeCaminho; }
+        if (SUBPASTA.equals(nomeRaiz)) return null;
+        if (!backupsDa(arvore, raiz).isEmpty()) return null;
+        String sub = subpastaEm(arvore, raiz);
+        return sub != null ? sub : criarSubpasta(arvore, raiz);
+    }
+
+    // Nome de um documento, como o provedor mostra (null se ele não disser)
+    private String nomeDe(Uri doc) {
+        String[] campos = { DocumentsContract.Document.COLUMN_DISPLAY_NAME };
+        try (Cursor c = getContext().getContentResolver().query(doc, campos, null, null, null)) {
+            if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getString(0);
+        } catch (Exception e) { /* sem nome */ }
+        return null;
+    }
+
+    // A subpasta SUBPASTA (nome exato, tipo pasta) dentro da pasta "pai", ou null
+    private String subpastaEm(Uri arvore, String pai) {
+        Uri filhos = DocumentsContract.buildChildDocumentsUriUsingTree(arvore, pai);
+        String[] campos = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE };
+        try (Cursor c = getContext().getContentResolver().query(filhos, campos, null, null, null)) {
+            if (c != null) {
+                while (c.moveToNext()) {
+                    if (!c.isNull(1) && SUBPASTA.equals(c.getString(1)) && DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) return c.getString(0);
+                }
+            }
+        }
+        return null;
+    }
+
+    // Cria a subpasta e devolve o documento que o provedor deu, seja qual for o nome (alguns dão "Orolon Caixinhas (1)"); null se não deu
+    private String criarSubpasta(Uri arvore, String pai) {
+        try {
+            Uri nova = DocumentsContract.createDocument(getContext().getContentResolver(), DocumentsContract.buildDocumentUriUsingTree(arvore, pai), DocumentsContract.Document.MIME_TYPE_DIR, SUBPASTA);
+            return nova == null ? null : DocumentsContract.getDocumentId(nova);
+        } catch (Exception e) { return null; }
+    }
+
+    // O documento guardado ainda existe e é uma pasta? (a pessoa pode ter apagado a subpasta no gerenciador de arquivos)
+    private boolean pastaExiste(Uri arvore, String doc) {
+        String[] campos = { DocumentsContract.Document.COLUMN_MIME_TYPE };
+        try (Cursor c = getContext().getContentResolver().query(DocumentsContract.buildDocumentUriUsingTree(arvore, doc), campos, null, null, null)) {
+            return c != null && c.moveToFirst() && DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(0));
+        } catch (Exception e) { return false; }
+    }
+
+    // Pasta das cópias: a subpasta guardada quando ela existe; sem subpasta (pastas de antes desta versão), a pasta escolhida.
+    // Ao gravar (recriar = true), a subpasta que sumiu é achada pelo nome ou criada de novo; se não der, a pasta escolhida.
+    // Devolve { documento da pasta, documento da subpasta recriada ou null }.
+    private String[] pastaDasCopias(Uri arvore, String sub, boolean recriar) {
+        String raiz = DocumentsContract.getTreeDocumentId(arvore);
+        if (sub == null || sub.isEmpty()) return new String[] { raiz, null };
+        if (pastaExiste(arvore, sub)) return new String[] { sub, null };
+        if (!recriar) return new String[] { raiz, null };
+        String nova;
+        try { nova = subpastaEm(arvore, raiz); } catch (Exception e) { nova = null; }
+        if (nova == null) nova = criarSubpasta(arvore, raiz);
+        return nova == null ? new String[] { raiz, null } : new String[] { nova, nova };
     }
 
     private static boolean ehBackup(String nome) { return nome != null && nome.startsWith("caixinhas-backup-") && nome.endsWith(".json"); }
 
-    // Cada backup da pasta vira { id do documento, nome, modificado }
-    private ArrayList<String[]> backupsDa(Uri arvore) {
+    // Cada backup da pasta "pai" (documento da árvore) vira { id do documento, nome, modificado }
+    private ArrayList<String[]> backupsDa(Uri arvore, String pai) {
         ArrayList<String[]> r = new ArrayList<>();
-        Uri filhos = DocumentsContract.buildChildDocumentsUriUsingTree(arvore, DocumentsContract.getTreeDocumentId(arvore));
+        Uri filhos = DocumentsContract.buildChildDocumentsUriUsingTree(arvore, pai);
         String[] campos = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_LAST_MODIFIED };
         try (Cursor c = getContext().getContentResolver().query(filhos, campos, null, null, null)) {
             if (c != null) {
@@ -168,14 +256,16 @@ public class CaixinhasPlugin extends Plugin {
         final String texto = call.getString("texto");
         final int manter = Math.max(1, call.getInt("manter", 7));
         final String grupo = call.getString("grupo"); // final do nome das cópias deste aparelho: só elas entram na limpeza
+        final String sub = call.getString("sub"); // documento da subpasta do app (pastas escolhidas antes desta versão não têm)
         if (uriTxt == null || texto == null || !ehBackup(nome)) { call.reject("dados-invalidos"); return; }
         new Thread(() -> {
             try {
                 Uri arvore = Uri.parse(uriTxt);
                 ContentResolver cr = getContext().getContentResolver();
-                Uri pasta = DocumentsContract.buildDocumentUriUsingTree(arvore, DocumentsContract.getTreeDocumentId(arvore));
+                String[] alvo = pastaDasCopias(arvore, sub, true);
+                Uri pasta = DocumentsContract.buildDocumentUriUsingTree(arvore, alvo[0]);
                 Uri novo = null; // a cópia de hoje é regravada no lugar: se a gravação falhar, a anterior não some antes
-                for (String[] b : backupsDa(arvore)) if (nome.equals(b[1])) { novo = DocumentsContract.buildDocumentUriUsingTree(arvore, b[0]); break; }
+                for (String[] b : backupsDa(arvore, alvo[0])) if (nome.equals(b[1])) { novo = DocumentsContract.buildDocumentUriUsingTree(arvore, b[0]); break; }
                 if (novo == null) novo = DocumentsContract.createDocument(cr, pasta, "application/json", nome);
                 if (novo == null) { call.reject("sem-acesso"); return; }
                 try (OutputStream o = cr.openOutputStream(novo, "wt")) {
@@ -183,10 +273,12 @@ public class CaixinhasPlugin extends Plugin {
                     o.write(texto.getBytes(StandardCharsets.UTF_8));
                 }
                 ArrayList<String[]> todos = new ArrayList<>();
-                for (String[] b : backupsDa(arvore)) if (grupo != null && b[1].endsWith(grupo)) todos.add(b); // nunca apaga cópia de outro aparelho
+                for (String[] b : backupsDa(arvore, alvo[0])) if (grupo != null && b[1].endsWith(grupo)) todos.add(b); // nunca apaga cópia de outro aparelho
                 Collections.sort(todos, (x, y) -> y[1].compareTo(x[1])); // o nome traz a data: o mais novo vem primeiro
                 for (int n = manter; n < todos.size(); n++) apagarDocumento(arvore, todos.get(n)[0]);
-                call.resolve();
+                JSObject r = new JSObject();
+                if (alvo[1] != null) r.put("sub", alvo[1]); // subpasta recriada: o app guarda a nova
+                call.resolve(r);
             } catch (Exception e) {
                 call.reject("falha-no-backup: " + e.getMessage());
             }
@@ -196,12 +288,13 @@ public class CaixinhasPlugin extends Plugin {
     @PluginMethod
     public void listarBackups(PluginCall call) {
         final String uriTxt = call.getString("uri");
+        final String sub = call.getString("sub"); // documento da subpasta do app, quando há
         if (uriTxt == null) { call.reject("sem-uri"); return; }
         new Thread(() -> {
             try {
                 Uri arvore = Uri.parse(uriTxt);
                 JSArray lista = new JSArray();
-                for (String[] b : backupsDa(arvore)) {
+                for (String[] b : backupsDa(arvore, pastaDasCopias(arvore, sub, false)[0])) {
                     JSObject m = new JSObject();
                     m.put("doc", DocumentsContract.buildDocumentUriUsingTree(arvore, b[0]).toString());
                     m.put("nome", b[1]);

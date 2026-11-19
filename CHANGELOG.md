@@ -40,6 +40,9 @@ A versão preparada para levar o Orolon Caixinhas à Google Play (ainda não pub
 - O arco e os anéis se enchem, os números contam até o valor, os gráficos se desenham ao aparecer, a troca de tela tem uma passagem curta e a folha de lançar entra com uma mola leve.
 - Com "reduzir movimento" ligado no aparelho, nada se move: tudo aparece pronto.
 
+### Backup
+- **O backup automático cria a própria pasta:** ao escolher onde guardar (no celular ou no computador), o app cria ali dentro a pasta **"Orolon Caixinhas"** e grava nela. Se o lugar escolhido já se chama assim, ou já tem cópias do app, ele grava ali mesmo, como antes. Se já existe uma pasta "Orolon Caixinhas" (de outro celular, por exemplo), ele usa essa. Se a pasta for apagada, o app cria de novo na gravação seguinte. Quem já tinha escolhido a pasta continua gravando no mesmo lugar. Nenhuma permissão nova.
+
 ### Android
 - **Widget "Lançar gasto"** para a tela inicial: um botão que abre o app direto na folha de lançar e, embaixo, a sobra do mês e quanto dá por dia. Com o PIN ligado, o widget não mostra valores, e o app pede o PIN antes de abrir a folha.
 - **Ícone próprio na notificação** dos lembretes de contas a vencer.
