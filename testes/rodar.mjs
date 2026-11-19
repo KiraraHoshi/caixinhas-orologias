@@ -318,6 +318,35 @@ const coresSobreFundo = (p, sel) => p.avaliar((sel) => {
 }, sel);
 
 const TESTES = {
+  "Os dados ficam só no aparelho, mesmo com um objeto de conta injetado na página": async (p) => {
+    // objeto que um ambiente hospedado antigo injetava na página; o app não pode mais usá-lo para nada
+    const nomeObj = ["cl", "aude"].join("");
+    await p.injetar(`(() => {
+      const ch = window.__contaFalsa = [];
+      const doc = (id) => ({ set: async (d) => { ch.push(["set", id]); }, delete: async () => { ch.push(["delete", id]); } });
+      const banco = { collection: (c) => { ch.push(["collection", c]); return { doc, onSnapshot: (ok) => { ch.push(["onSnapshot"]); setTimeout(() => ok({ metadata: { fromCache: false }, empty: true, docChanges: () => [] }), 0); return () => {}; } }; } };
+      const usuario = { id: async () => "u1" };
+      const downloads = { save: async (o) => { ch.push(["save", o.filename]); } };
+      window[${JSON.stringify(nomeObj)}] = { use: async (n) => { ch.push(["use", n]); return n === "db" ? banco : n === "user" ? usuario : n === "downloads" ? downloads : null; } };
+      window.__baixados = [];
+      const clique = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () { if (this.download) { window.__baixados.push(this.download); return; } return clique.call(this); };
+    })();`);
+    await p.recarregar(); await p.espera(300);
+    igual(await p.texto("#syncTxt"), "Salvo no aparelho", "indicador ao abrir");
+    await comExemplo(p);
+    await lancar(p, 12.34, "Pão da esquina"); await p.espera(300);
+    const dados = await guardado(p);
+    certo(Object.values(dados.meses).some((m) => (m.gastos || []).some((g) => g.descricao === "Pão da esquina" && g.valor === 12.34)), "o lançamento devia estar no localStorage (caixinhas-orologia-v1)");
+    igual(await p.texto("#syncTxt"), "Salvo no aparelho", "indicador depois de lançar");
+    await p.aba("ajustes/dados");
+    await p.clicar('[data-act="exp"]'); await p.espera(300);
+    const baixados = await p.avaliar(() => window.__baixados);
+    certo(baixados.length === 1 && /^caixinhas-backup-\d{4}-\d{2}-\d{2}\.json$/.test(baixados[0]), "o backup devia sair pelo download do navegador: " + JSON.stringify(baixados));
+    certo(!!(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-backup"))), "o download do navegador marca o backup como feito");
+    certo(!/conta/i.test(await p.texto("#ajOnde")), "o texto de onde ficam os dados não fala em conta");
+    igual(JSON.stringify(await p.avaliar(() => window.__contaFalsa)), "[]", "o app não devia chamar nada do objeto injetado");
+  },
   "primeira abertura mostra as boas-vindas e o botão Lançar": async (p) => {
     certo(await p.visivel("#inOnb .onb"), "boas-vindas não apareceram");
     certo(await p.visivel("#fab"), "botão Lançar não apareceu");

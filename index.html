@@ -2078,71 +2078,18 @@ function confirmarImport(o){
 }
 const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
-/* ---------- Armazenamento: conta do ambiente que hospeda a página (db) quando houver, senão este navegador ---------- */
-const Cloud = { on:false, col:null, pend:{}, chain:{}, seeded:false };
+/* ---------- Armazenamento: tudo fica neste aparelho ---------- */
 function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; $('sync').title = txt; }
-function mesDoc(k){ return S.meses[k] || { gastos: [] }; }
-function estadoDoc(){ const o = Object.assign({}, S); delete o.meses; return o; }
-function cloudWrite(id, data, del){
-  Cloud.pend[id] = (Cloud.pend[id] || 0) + 1;
-  const body = data ? clone(data) : null;
-  setSync('wait', 'Salvando…');
-  Cloud.chain[id] = (Cloud.chain[id] || Promise.resolve())
-    .then(() => del ? Cloud.col.doc(id).delete() : Cloud.col.doc(id).set(body))
-    .then(() => { if (!Object.values(Cloud.pend).some(n => n > 1)) setSync('ok', 'Salvo na sua conta'); },
-          e => { setSync('err', e && e.code === 'quota_exceeded' ? 'Espaço cheio' : 'Não salvou'); toast('Não deu para salvar na conta. Os dados ficaram neste aparelho.'); })
-    .finally(() => { Cloud.pend[id]--; });
-}
+// persist(opts) e persistAll(oldKeys) gravam o estado inteiro de uma vez; os argumentos ficam por compatibilidade com quem chama
 function persist(opts){
-  opts = opts || {};
   lsSet(LS_KEY, S); bkpAgendar(); lembAgendar(); mandarWidget();
-  if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
-  if (opts.estado) cloudWrite('estado', estadoDoc());
-  (opts.meses || []).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
+  setSync('ok', 'Salvo no aparelho');
 }
 function persistAll(oldKeys){
   lsSet(LS_KEY, S); bkpAgendar(); lembAgendar(); mandarWidget();
-  if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
-  cloudWrite('estado', estadoDoc());
-  Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
-  (oldKeys || []).filter(k => !S.meses[k]).forEach(k => cloudWrite('mes-' + k, null, true));
+  setSync('ok', 'Salvo no aparelho');
 }
 function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length || (m.entradas||[]).length) || s.compras.length || s.metas.length || (s.fixos||[]).length; }
-
-async function connectCloud(){
-  if (!window.hospedeiro || typeof window.hospedeiro.use !== 'function') { setSync('ok', 'Salvo no aparelho'); return; }
-  try {
-    const [db, user] = await Promise.all([window.hospedeiro.use('db'), window.hospedeiro.use('user')]);
-    const id = user ? await user.id() : null;
-    if (!db || !id) { setSync('ok', 'Salvo no aparelho'); return; }
-    Cloud.col = db.collection('data/users/' + id);
-    Cloud.on = true;
-    setSync('wait', 'Conectando…');
-    const timer = setTimeout(() => setSync('wait', 'Sem resposta da conta — usando este aparelho'), 10000);
-    Cloud.col.onSnapshot(snap => {
-      if (!snap.metadata.fromCache) clearTimeout(timer);
-      if (!Cloud.seeded && !snap.metadata.fromCache) {
-        Cloud.seeded = true;
-        if (snap.empty) { if (hasData(S)) persistAll([]); else setSync('ok', 'Salvo na sua conta'); return; }
-      }
-      let changed = false;
-      snap.docChanges().forEach(ch => {
-        const d = ch.doc, key = d.id;
-        if ((Cloud.pend[key] || 0) > 0) return;
-        if (ch.type === 'removed') { if (key.startsWith('mes-')) { delete S.meses[key.slice(4)]; changed = true; } return; }
-        const data = clone(d.data() || {});
-        if (key === 'estado') { const meses = S.meses; S = normalize(Object.assign(data, { meses })); changed = true; }
-        else if (key.startsWith('mes-')) { S.meses[key.slice(4)] = Object.assign({ gastos: [] }, data); changed = true; }
-      });
-      if (changed) { lsSet(LS_KEY, S); renderAll(); }
-      if (!snap.metadata.fromCache && !Object.values(Cloud.pend).some(n => n > 0)) setSync('ok', 'Salvo na sua conta');
-    }, err => {
-      clearTimeout(timer);
-      Cloud.on = false;
-      setSync('err', 'Conta indisponível — salvando neste aparelho');
-    });
-  } catch (e) { setSync('ok', 'Salvo no aparelho'); }
-}
 
 /* ---------- Regras do mês ---------- */
 function limites(k){ return Object.assign({}, S.limitesPadrao, (S.meses[k] && S.meses[k].limites) || {}); }
@@ -3198,7 +3145,7 @@ function renderAjustes(){
     $('ajTaxa').value = numStr(S.taxaRef);
     renderTabelas();
   }
-  $('ajOnde').textContent = (Cloud.on ? 'Seus dados ficam salvos na sua conta (só você vê) e também neste aparelho, para abrir rápido.' : 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.') + ' ' + backupTexto();
+  $('ajOnde').textContent = 'Seus dados ficam salvos só neste navegador. Se você limpar o navegador, formatar o computador ou trocar de aparelho, eles se perdem. Exporte um backup e guarde o arquivo fora do aparelho, como num pendrive, na nuvem ou num e-mail para você mesmo.' + ' ' + backupTexto();
   $('ver').textContent = 'v' + VERSION;
   renderBkp();
   renderPin();
@@ -3273,10 +3220,6 @@ async function exportar(){
   const name = 'caixinhas-backup-' + today() + '.json';
   if (NATIVO) { await enviarNativo(name, txt, 'application/json', 'Backup do Orolon Caixinhas'); return; } // não conta como backup feito: a pessoa pode desistir no compartilhamento
   try {
-    const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
-    if (dl) { await dl.save({ filename: name, data: txt }); marcaBackup(); renderAll(); toast('Backup salvo'); return; }
-  } catch (e) { if (e && e.code === 'declined') return; }
-  try {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); marcaBackup(); renderAll();
   } catch (e) {}
@@ -3293,10 +3236,6 @@ const linhaGasto = g => ({ data: g.data, tipo: 'Gasto', descricao: g.descricao, 
 const linhaEntrada = e => ({ data: e.data, tipo: 'Entrada', descricao: e.descricao, caixinha: '', forma: '', valor: e.valor, fixo: false });
 async function baixarArquivo(nome, txt, mime, boxId){
   if (NATIVO) { await enviarNativo(nome, txt, mime, 'Planilha do Orolon Caixinhas'); return; }
-  try {
-    const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
-    if (dl) { await dl.save({ filename: nome, data: txt }); toast('Arquivo salvo'); return; }
-  } catch (e) { if (e && e.code === 'declined') return; }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: mime })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Planilha gerada'); } catch (e) {}
   const box = $(boxId);
   if (box) { box.innerHTML = '<details class="plain"><summary>O download não começou? Mostrar o texto</summary><div class="inner"><p class="hint">Copie o texto e salve num arquivo .csv.</p><textarea readonly aria-label="Planilha em CSV"></textarea></div></details>'; box.querySelector('textarea').value = txt; }
@@ -3875,10 +3814,6 @@ async function baixarTema(){
   const t = TM.atual(), txt = TM.json(t);
   const nome = (t.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'tema') + '.json';
   if (NATIVO) { await enviarNativo(nome, txt, 'application/json', 'Tema do Orolon Caixinhas'); return; }
-  try {
-    const dl = window.hospedeiro && window.hospedeiro.use ? await window.hospedeiro.use('downloads') : null;
-    if (dl) { await dl.save({ filename: nome, data: txt }); toast('Tema salvo'); return; }
-  } catch (e) { if (e && e.code === 'declined') return; }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) {}
   mostrarTemaJSON(txt, 'Se o download não começou, copie o texto abaixo e salve num arquivo .json.');
 }
@@ -4511,7 +4446,7 @@ $('cData').value = today();
 loadCalcInputs();
 renderAll(); route();
 if (pinCfg()) travar(); else document.documentElement.removeAttribute('data-trava');
-connectCloud();
+setSync('ok', 'Salvo no aparelho');
 bkpIniciar(); lembAgendar();
 mandarWidget(); ouvirWidget(); // no app: valores frescos para o widget (o mês pode ter virado) e a folha se veio pelo toque nele
 if (!window.Capacitor && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
