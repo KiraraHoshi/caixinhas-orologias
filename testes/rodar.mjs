@@ -1704,6 +1704,19 @@ const TESTES = {
     igual(await varCss(p, "--glow"), "#33CC99", "mexer no brilho do tema em edição muda o clarão na hora");
     await p.clicar('[data-tm="salvar"]');
     igual((await temaExportado(p)).brilho, "#33CC99", "o tema salvo exporta o brilho escolhido");
+    // "Automático" tira o brilho escolhido: o clarão volta a seguir o destaque e o tema é salvo sem o campo
+    await p.clicar('[data-tm="criar"]');
+    await p.digitar("#tm-brilho", "#ff2200");
+    igual(await varCss(p, "--glow"), "#FF2200", "brilho escolhido no tema novo");
+    await p.avaliar(() => document.querySelector("#tm-brilho").scrollIntoView({ block: "center" })); await p.print("24-editor-tema-360");
+    await p.clicar('[data-tm="brilho-auto"]');
+    igual(await varCss(p, "--glow"), misturar("#6FB7FF", "#101820", 0.35), "Automático: o clarão volta a seguir o destaque");
+    await p.digitar("#tmNome", "Automático");
+    await p.clicar('[data-tm="salvar"]');
+    const auto = (await lerTemaGuardado(p)).meus.find((t) => t.nome === "Automático");
+    igual(auto && "brilho" in auto, false, "o tema salvo depois do Automático não tem brilho");
+    igual(await varCss(p, "--glow"), misturar("#6FB7FF", "#101820", 0.35), "e o clarão continua o derivado");
+    igual("brilho" in (await temaExportado(p)), false, "um tema sem brilho exporta sem o campo");
   },
   "Tema sem brilho continua valendo": async (p) => {
     await comExemplo(p);
@@ -1733,7 +1746,7 @@ const TESTES = {
     igual(await varCss(p, "--glow"), misturar("#FF8800", "#110E18", 0.35), "sem brilho, mudar o destaque muda o clarão");
     await p.clicar('[data-tm="cancelar"]');
     const ex = await temaExportado(p);
-    igual(ex.brilho, misturar("#9C9BF5", "#110E18", 0.35), "a exportação leva o brilho que está na tela");
+    igual("brilho" in ex, false, "tema sem brilho exporta sem o campo (reimportado, o clarão continua seguindo o destaque)");
     for (const k of ["formato", "versao", "nome", "fundo", "card", "texto", "suave", "destaque", "secundaria", "raio", "fonte"]) igual(ex[k], JSON.parse(antigo)[k], "campo " + k + " exportado igual");
     // um tema próprio da 1.9 (sem brilho) guardado no aparelho abre igual
     await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "tmeu1", meus: [{ id: "tmeu1", nome: "Meu roxo", fundo: "#1A1030", card: "#2A1F45", texto: "#F5F0FF", suave: "#B8A8D8", destaque: "#C78BFF", secundaria: "#FFD27A", raio: 16, fonte: "padrao" }] })));
@@ -1841,7 +1854,7 @@ const TESTES = {
     igual(await guardado(), undefined, "e nada é gravado");
     igual((await chave()).marcada, false, "a chave começa desligada");
     // 2) abertura com quadros lentos: liga sozinho, grava 'auto', avisa uma vez e aparece na chave
-    await p.injetar("window.__quadroLento = 45;");
+    await p.injetar("window.__quadroLento = 80;");
     await p.recarregar(); await p.espera(2200);
     igual(await leve(), true, "quadros lentos na abertura ligam o visual leve");
     igual(await guardado(), "auto", "o ligar sozinho fica gravado");
@@ -1859,7 +1872,7 @@ const TESTES = {
     igual(await guardado(), "nao", "desligado à mão fica gravado");
     igual(await p.avaliar(() => document.querySelector("#tgLeveNota").hidden), true, "a nota de automático some");
     await p.aba("inicio"); await p.recarregar(); await p.espera(2200);
-    igual(await p.avaliar(() => window.__quadroLento), 45, "a abertura continua lenta");
+    igual(await p.avaliar(() => window.__quadroLento), 80, "a abertura continua lenta");
     igual(await leve(), false, "depois de desligado à mão, não religa sozinho");
     igual(await guardado(), "nao", "continua 'nao'");
     igual(await avisosLeve(), 0, "nem avisa");
@@ -1871,7 +1884,43 @@ const TESTES = {
     // o tema escolhido e os temas próprios continuam na mesma chave
     igual((await lerTemaGuardado(p)).atual, "noite", "o tema continua guardado junto");
   } },
+  "Visual leve automático: 30 quadros por segundo e um tropeço só não ligam": { movimento: true, fn: async (p) => {
+    // aparelho em economia de bateria: o navegador limita a 30 quadros por segundo (todos com ~34 ms), sem lentidão de verdade
+    await comExemplo(p);
+    const leve = () => p.avaliar(() => document.documentElement.hasAttribute("data-leve"));
+    await p.injetar("window.__quadroLento = 34;");
+    await p.recarregar(); await p.espera(2200);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "a abertura longa tocou");
+    igual(await leve(), false, "30 quadros por segundo não ligam o visual leve");
+    igual((await lerTemaGuardado(p)).leve, undefined, "e nada é gravado");
+    // um tropeço só (ex.: fontes carregando a frio): um quadro de 400 ms no meio de quadros normais
+    await p.injetar("window.__quadroLento = [16, 16, 16, 400, 16];");
+    await p.recarregar(); await p.espera(2200);
+    igual(await leve(), false, "um quadro longo só não liga o visual leve");
+    igual((await lerTemaGuardado(p)).leve, undefined, "e nada é gravado");
+  } },
+  "Tema guardado estragado não impede o app de abrir": async (p) => {
+    await comExemplo(p);
+    for (const v of ["5", '"x"', "[]", "null", "true"]) {
+      await p.avaliar((v) => localStorage.setItem("caixinhas-orologia-tema", v), v);
+      await p.recarregar();
+      igual(await p.avaliar(() => typeof window.TemaCx), "object", "o motor de temas carrega com a chave " + v);
+      igual(await varCss(p, "--bg"), "#110E18", "abre no tema padrão com a chave " + v);
+      await p.aba("ajustes/aparencia");
+      await p.clicar('#temaBox [data-tm="usar"][data-id="dia"]');
+      igual(await varCss(p, "--bg"), "#F2F0F7", "a Aparência funciona com a chave " + v);
+      await p.clicar("#tgLeve"); await p.clicar("#tgLeve");
+      igual((await lerTemaGuardado(p)).atual, "dia", "e grava de novo com a chave " + v);
+      await p.aba("inicio");
+    }
+  },
   "Visual leve tira clarões e gradientes": async (p) => {
+    // a chave fica antes da Galeria: quem recebeu o aviso automático acha sem rolar muito
+    await p.aba("ajustes/aparencia");
+    const topo = await p.avaliar(() => document.querySelector("#tgLeve").getBoundingClientRect().top + scrollY);
+    certo(topo < 1170, "a chave do Visual leve devia estar no começo da Aparência (topo em " + topo + " px)");
+    igual(await p.avaliar(() => !!(document.querySelector("#tgLeve").compareDocumentPosition([...document.querySelectorAll("#temaBox h3")].find((h) => h.textContent.trim() === "Galeria")) & Node.DOCUMENT_POSITION_FOLLOWING)), true, "a chave vem antes do título Galeria");
+    await p.aba("inicio");
     await comExemplo(p);
     const visual = () => p.avaliar(() => {
       const cs = (q) => getComputedStyle(document.querySelector(q));
