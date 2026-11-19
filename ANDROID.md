@@ -79,6 +79,12 @@ O `index.html` percebe que está no app (`window.Capacitor`) e só então:
 - manda a sobra do mês ao widget "Lançar gasto" a cada salvamento e abre a folha de lançar quando o app vem pelo toque nele;
 - esconde o apoio pelo GitHub (links "Apoie o projeto" e a tela Apoie), que continua só no site.
 
+## Barras do sistema
+
+O app desenha de ponta a ponta em todo Android, como o Orolon Player 1.26.6: `SystemBars.insetsHandling: "native"` no `capacitor.config.json` e `EdgeToEdge.enable(this)` na `MainActivity` (posto pelo `scripts/plugin-android.mjs`). Em WebView 140 ou mais nova o Capacitor repassa o recuo das barras à página (`env(safe-area-inset-*)`, que as variáveis `--topo`/`--base` do `index.html` já usam); em WebView mais antiga o próprio Android recua a tela. O recuo entra uma vez só.
+
+**Regra:** o `EdgeToEdge.enable(this)` vem **depois** do `super.onCreate`. Chamado antes, ele cria a janela com a tela ainda no tema da abertura (`AppTheme.NoActionBarLaunch`, cujo fundo é a imagem de abertura), e essa imagem aparece como uma faixa espremida no topo; a `BridgeActivity` só troca o tema dentro do `super.onCreate`. O teste do script confere essa ordem.
+
 O service worker não entra no app: os arquivos já vêm dentro dele.
 
 ## Permissões
@@ -118,7 +124,3 @@ O ícone da notificação é o símbolo do app em uma cor só (`android-assets/r
 ## Ícone e tela de abertura
 
 `node scripts/gerar-icones.mjs` gera as imagens de `android-assets/` a partir de `icon-simbolo.svg`. As peças de `android-assets/res/` (widget e ícone da notificação) são escritas à mão.
-
-## Pendências
-
-- Barras do sistema: o conserto do Orolon Player (`SystemBars.insetsHandling: "native"` + `EdgeToEdge.enable(this)`) mostrou um defeito visual num celular de verdade em 19/11/2026 (faixa no topo e cabeçalho espremido) e **não** está aplicado aqui; o Caixinhas segue com o jeito da 1.9 (`"css"`, conferido no celular). Trazer o conserto final só depois de provado no Player.

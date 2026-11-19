@@ -43,6 +43,7 @@ A versão preparada para levar o Orolon Caixinhas à Google Play (ainda não pub
 ### Android
 - **Widget "Lançar gasto"** para a tela inicial: um botão que abre o app direto na folha de lançar e, embaixo, a sobra do mês e quanto dá por dia. Com o PIN ligado, o widget não mostra valores, e o app pede o PIN antes de abrir a folha.
 - **Ícone próprio na notificação** dos lembretes de contas a vencer.
+- **Tela de ponta a ponta:** o app passa a desenhar até as bordas, atrás das barras do sistema, para não deixar uma faixa vazia em cima e embaixo em celulares com o navegador do sistema mais antigo. É o mesmo conserto do Orolon Player.
 - O **APK de teste** agora se chama "Orolon Caixinhas (teste)" e, quando o app estiver na Google Play, fica instalado ao lado dele, cada um com os seus dados. Os dados de um APK de teste anterior à 2.0 não passam sozinhos para o novo: exporte um backup no antigo e importe no novo.
 - O link de apoio pelo GitHub fica só no site.
 - Continua sem a permissão de internet.

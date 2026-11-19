@@ -9,7 +9,7 @@ A **2.0 "Noite Orologia"** reúne o visual novo, a tela de Gráficos, o uso no c
 ## Próximos passos
 
 1. **Google Play, teste fechado.** O app ainda não foi criado no Play Console. Conta pessoal nova: 12 testadores inscritos por 14 dias seguidos antes de pedir a produção (foi a regra no Orolon Player; **a confirmar** na Central de Ajuda do Play Console). A ficha, as respostas do Console e as imagens estão em [`loja/`](loja/); o `.aab` sai pelo workflow "App Android (loja)" (veja [ANDROID.md](ANDROID.md)). Vale começar a juntar testadores cedo, inclusive em comunidades de desenvolvedores.
-2. **Barras do sistema no Android.** A 2.0 mantém o jeito da 1.9, que já foi conferido no celular. O conserto que o Orolon Player está testando (para celulares em que sobra uma faixa vazia em cima e embaixo) só vem para cá depois de provado lá.
+2. **Barras do sistema no Android.** Aplicado na 2.0 do mesmo jeito que no Orolon Player 1.26.6 (o app desenha de ponta a ponta, para não sobrar faixa vazia em cima e embaixo). **A confirmar** nos celulares: o do Jo-ah e o Galaxy S20 FE de um testador.
 3. **O que só o celular prova:** a notificação chegando na hora, a planilha exportada abrindo, restaurar um backup da pasta, o widget no tamanho 2x1 e se o visual pesa ou esquenta em celulares mais simples.
 4. **Pequenos acertos adiados:**
    - ao trocar a pasta do backup no Android, devolver a permissão da pasta antiga;

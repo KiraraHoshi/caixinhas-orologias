@@ -1508,10 +1508,10 @@ const TESTES = {
     igual(await p.abaAtual(), "apoie", "no site a tela Apoie abre");
     certo(await p.visivel('#v-apoie a[href*="github.com/sponsors"]'), "no site aparece o botão Apoiar no GitHub");
   },
-  "Android: o script monta widget, ícone e sufixo de teste no projeto gerado": async () => {
+  "Android: o script monta tela de ponta a ponta, widget, ícone e sufixo de teste no projeto gerado": async () => {
     const cfg = JSON.parse(readFileSync(join(RAIZ, "capacitor.config.json"), "utf8"));
-    // barras do sistema como na 1.9 (conferido no celular); o conserto do Player (native + EdgeToEdge) deu defeito num celular de verdade
-    igual(cfg.plugins.SystemBars.insetsHandling, "css", "barras do sistema pelo CSS, como na 1.9");
+    // barras do sistema como no Player 1.26.6 (conferido no celular do Jo-ah): recuo pelo Android, EdgeToEdge depois do super.onCreate
+    igual(cfg.plugins.SystemBars.insetsHandling, "native", "barras do sistema pelo Android, como no Player 1.26.6");
     igual(cfg.plugins.LocalNotifications.smallIcon, "ic_notif", "ícone próprio da notificação");
     const rodar = (pasta, loja) => spawnSync(process.execPath, [join(RAIZ, "scripts", "plugin-android.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "", CX_COM_INTERNET: "" }) });
     // projeto que o script não sabe ajustar: tem de parar com erro, não seguir em silêncio
@@ -1542,12 +1542,14 @@ const TESTES = {
         igual(r.status, 0, "o script terminou bem (" + (r.stderr || "").trim() + ")");
         const ler = (f) => readFileSync(join(proj, f), "utf8");
         const java = "src/main/java/com/joah/caixinhas/";
-        // MainActivity: plugin registrado antes de o Capacitor iniciar; sem o EdgeToEdge (barras como na 1.9)
+        // MainActivity: plugin registrado antes de o Capacitor iniciar; de ponta a ponta só DEPOIS do super.onCreate
+        // (antes, a janela nasce com o tema da abertura e a imagem dela vira uma faixa no topo: o defeito visto no Player 1.26.5)
         const main = ler(java + "MainActivity.java");
         certo(main.startsWith("package com.joah.caixinhas;"), "MainActivity com o pacote do app");
-        certo(!main.includes("EdgeToEdge"), "a MainActivity não liga o EdgeToEdge (deu defeito no celular)");
-        const iP = main.indexOf("registerPlugin(CaixinhasPlugin.class);"), iS = main.indexOf("super.onCreate(savedInstanceState);");
+        certo(main.includes("import androidx.activity.EdgeToEdge;"), "MainActivity importa o EdgeToEdge");
+        const iP = main.indexOf("registerPlugin(CaixinhasPlugin.class);"), iS = main.indexOf("super.onCreate(savedInstanceState);"), iE = main.indexOf("EdgeToEdge.enable(this);");
         certo(iP > 0 && iP < iS, "plugin registrado antes do super.onCreate");
+        certo(iE > iS && iS > 0, "EdgeToEdge.enable(this) só depois do super.onCreate (antes, a abertura vira uma faixa no topo)");
         certo(main.includes("FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY") && main.indexOf("setData(null)") < iS, "o endereço do widget sai antes do super.onCreate quando a tela é recriada");
         for (const f of ["CaixinhasPlugin.java", "LancarWidget.java"]) {
           const t = ler(java + f);

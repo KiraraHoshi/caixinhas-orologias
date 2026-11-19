@@ -270,7 +270,10 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .aj-menu span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.aj-menu b{font-weight:600}.aj-menu small{color:var(--muted);font-size:.78rem}
 .aj-menu i{font-style:normal;color:var(--muted);font-size:1.2rem}
 .aj-voltar{align-self:flex-start}
-/* Barras do sistema: no app Android a tela vai até atrás da barra de status e da de navegação. O Capacitor informa --safe-area-inset-* quando a WebView não informa. */
+/* Barras do sistema: no app Android a tela vai até atrás da barra de status e da de navegação (SystemBars "native", como no Orolon Player 1.26.6).
+   Com WebView 140+ e viewport-fit=cover (já na primeira meta), o Capacitor repassa o recuo e env(safe-area-inset-*) o traz; em WebView mais
+   antiga o próprio Android recua a tela e env() vale zero. Nos dois casos o recuo entra uma vez só. No modo "native" o Capacitor não injeta
+   --safe-area-inset-*: a var() fica como reserva e para os testes simularem um entalhe. */
 :root{--topo:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));--base:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px))}
 .nativo body{touch-action:pan-x pan-y}
 .copia-pasta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}

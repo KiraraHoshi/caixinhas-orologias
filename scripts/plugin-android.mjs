@@ -1,6 +1,6 @@
 // Ajusta o projeto Android gerado pelo Capacitor ("npx cap add android"), rodando na pasta do projeto (a que tem android/):
 // 1. copia o plugin "Caixinhas" e o widget "Lançar gasto" (android-plugin/) para o pacote do app;
-// 2. MainActivity: registra o plugin e faz o toque no widget valer uma vez;
+// 2. MainActivity: registra o plugin, faz o toque no widget valer uma vez e desenha de ponta a ponta (barras do sistema);
 // 3. copia os recursos de android-assets/res/ (widget, ícone da notificação) para res/;
 // 4. manifesto: registra o widget e tira a permissão de internet;
 // 5. APK de teste (sem CX_LOJA=1): identificador com ".teste" e nome "Orolon Caixinhas (teste)", para conviver com o da loja.
@@ -34,8 +34,10 @@ for (const f of ["CaixinhasPlugin.java", "LancarWidget.java"]) {
 }
 
 // 2. MainActivity: registra o plugin antes de o Capacitor iniciar.
-//    As barras do sistema ficam como na 1.9 (SystemBars "css" no capacitor.config.json, sem EdgeToEdge): o conserto do
-//    Orolon Player (native + EdgeToEdge) deu defeito num celular de verdade em 19/11/2026 e só vem para cá depois de provado lá.
+//    Desenha de ponta a ponta em todo Android (SystemBars "native" no capacitor.config.json + EdgeToEdge), como no
+//    Orolon Player 1.26.6. O EdgeToEdge.enable vem DEPOIS do super.onCreate: chamado antes, ele cria a janela com a
+//    tela ainda no tema da abertura (AppTheme.NoActionBarLaunch, cujo fundo é a imagem de abertura), e essa imagem vira
+//    uma faixa espremida no topo; a BridgeActivity só troca o tema dentro do super.onCreate.
 //    O toque no widget (caixinhas://lancar) vale uma vez: se o Android recria a tela (app reaberto pelos recentes,
 //    ou restaurado depois de fechado para liberar memória), o endereço sai antes de o Capacitor lê-lo.
 writeFileSync(main, `package ${pacote};
@@ -43,6 +45,7 @@ writeFileSync(main, `package ${pacote};
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import androidx.activity.EdgeToEdge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -56,6 +59,8 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(CaixinhasPlugin.class);
         super.onCreate(savedInstanceState);
+        // Só depois do super: antes, a janela nasce com o tema da abertura e a imagem dela vira uma faixa no topo.
+        EdgeToEdge.enable(this);
     }
 }
 `);
