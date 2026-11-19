@@ -95,6 +95,9 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
 const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: esperava ${JSON.stringify(b)}, veio ${JSON.stringify(a)}`); };
 const certo = (v, msg) => { if (!v) throw new Error(msg); };
 const lancar = async (p, valor, oQue) => { await p.clicar("#fab"); await p.digitar("#gValor", String(valor)); await p.digitar("#gDesc", oQue); await p.clicar("#gBtn"); };
+// aperta uma tecla como um teclado físico: o evento nasce no elemento com foco e sobe até o document.
+// Devolve false se o app chamou preventDefault (o atalho agiu e a tecla não chega ao campo).
+const tecla = (p, key, extra = {}) => p.avaliar((key, extra) => (document.activeElement || document.body).dispatchEvent(new KeyboardEvent("keydown", Object.assign({ key, bubbles: true, cancelable: true }, extra))), key, extra);
 const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-calc="' + qual + '"]'); };
 // Android de mentira: roda dentro da página antes do app (testes com { nativo: true }). Guarda o que o app pediu em window.__nativo.
 // A "pasta" e a permissão ficam no localStorage para sobreviver a um recarregar.
@@ -282,13 +285,17 @@ const TESTES = {
       await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
       for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
         await p.tamanho(w, h); await p.recarregar();
-        for (const t of ["inicio", "mes", "cartao", "metas", "ajustes"]) {
+        for (const t of ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/aparencia"]) {
           await p.aba(t);
           const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
           certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura em ${w}px no tema ${tema}`);
-          await p.print(`20-${t}-${tema}-${w}`);
-          if (t === "inicio") await p.print(`20-${t}-${tema}-${w}-inteira`, true);
+          const nome = t.replace("/", "-");
+          await p.print(`20-${nome}-${tema}-${w}`);
+          if (t === "inicio") await p.print(`20-${nome}-${tema}-${w}-inteira`, true);
         }
+        await p.aba("inicio"); await p.clicar("#fab"); await p.espera(150);
+        await p.print(`20-folha-${tema}-${w}`);
+        await p.clicar('.folha-topo [data-act="folha-fechar"]');
       }
     }
   },
@@ -807,6 +814,8 @@ const TESTES = {
     certo(await p.visivel("#ajMenu"), "sem histórico, voltar sobe da parte para a lista de Ajustes");
     await voltar();
     igual(await p.abaAtual(), "inicio", "sem histórico, voltar leva ao Início");
+    await p.aba("ajustes/sobre");
+    igual(await p.visivel("#atalhosTec"), false, "no app Android a linha dos atalhos de teclado não aparece");
   } },
   "Android: backup, planilha e cópias saem pelo compartilhamento": { nativo: true, fn: async (p) => {
     await comExemplo(p); await p.aba("ajustes/dados");
@@ -885,6 +894,180 @@ const TESTES = {
     igual((await N()).ag.length, 0, "sem permissão, nada é agendado");
     await p.print("15-lembretes-android");
   } },
+  "PC: barra lateral no lugar da barra de baixo": async (p) => {
+    await comExemplo(p);
+    await p.tamanho(1280, 800); await p.recarregar();
+    certo(await p.visivel("#lado"), "a barra lateral não apareceu em 1280");
+    certo(!(await p.visivel(".tabs")), "a barra de baixo devia sumir em 1280");
+    igual(await p.avaliar(() => [...document.querySelectorAll("#lado a[data-tab]")].map((a) => a.dataset.tab).join(",")), "inicio,mes,graficos,cartao,metas,calc,ajustes", "entradas da barra lateral");
+    certo(await p.visivel('#lado #ladoLancar[data-act="gasto-novo"]'), "o + Lançar da barra lateral não apareceu");
+    const atual = () => p.avaliar(() => [...document.querySelectorAll('#lado a[aria-current="page"]')].map((a) => a.dataset.tab).join(","));
+    igual(await atual(), "inicio", "Início marcado na barra lateral");
+    // o conteúdo começa depois da barra, sem ficar por baixo dela
+    const m = await p.avaliar(() => ({ lado: document.querySelector("#lado").getBoundingClientRect().right, cont: document.querySelector("#v-inicio").getBoundingClientRect().left }));
+    certo(m.cont >= m.lado, `o conteúdo começa em ${m.cont}px, embaixo da barra lateral (que vai até ${m.lado}px)`);
+    await p.clicar('#lado a[data-tab="graficos"]');
+    igual(await p.abaAtual(), "graficos", "Gráficos pela barra lateral");
+    igual(await atual(), "graficos", "Gráficos marcado na barra lateral");
+    await p.clicar('#lado a[data-tab="calc"]');
+    igual(await p.abaAtual(), "calc", "Calculadoras pela barra lateral");
+    igual(await atual(), "calc", "Calculadoras marcadas na barra lateral");
+    igual(await p.avaliar(() => document.querySelector('.tabs a[aria-current="page"]')?.dataset.tab), "inicio", "na barra de baixo as Calculadoras continuam acendendo o Início");
+    await p.aba("ajustes/pin");
+    igual(await atual(), "ajustes", "Ajustes marcado na barra lateral, também numa parte");
+    await p.aba("guia");
+    igual(await atual(), "inicio", "o Como usar acende o Início");
+    await p.clicar("#ladoLancar");
+    certo(await p.visivel("#folhaGasto"), "o + Lançar da barra lateral devia abrir a folha");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    await p.tamanho(360, 780); await p.espera(150);
+    certo(!(await p.visivel("#lado")), "a barra lateral devia sumir no celular");
+    certo(await p.visivel(".tabs"), "a barra de baixo devia voltar no celular");
+  },
+  "PC: Início em duas colunas, sem passar da largura": async (p) => {
+    await comExemplo(p);
+    // no celular a ordem continua a de uma coluna: arco, caixinhas, ritmo, A vencer/fatura/metas, últimos gastos, atalhos
+    const tops = () => p.avaliar(() => Object.fromEntries(["inResumo", "inCx", "inRitmo", "inFatura", "inMetas", "inUltimos"].map((id) => [id, Math.round(document.getElementById(id).getBoundingClientRect().top)]).concat([["atalhos", Math.round(document.querySelector("#v-inicio .atalhos").getBoundingClientRect().top)]])));
+    const t360 = await tops();
+    certo(t360.inResumo < t360.inCx && t360.inCx < t360.inRitmo && t360.inRitmo < t360.inFatura && t360.inFatura < t360.inMetas && t360.inMetas < t360.inUltimos && t360.inUltimos < t360.atalhos, "ordem do Início no celular: " + JSON.stringify(t360));
+    await p.tamanho(1280, 800); await p.recarregar();
+    certo(await p.avaliar(() => !!document.querySelector("#v-inicio .n-cols")), "o Início devia ter o contêiner de colunas .n-cols");
+    const r = await p.avaliar(() => { const a = document.querySelector("#arco").getBoundingClientRect(), c = document.querySelector("#inCx").getBoundingClientRect(); return { aL: a.left, aT: a.top, cL: c.left, cT: c.top }; });
+    certo(r.cL - r.aL > 200, "o arco e as caixinhas deviam ficar lado a lado: " + JSON.stringify(r));
+    certo(Math.abs(r.aT - r.cT) < 80, "o arco e as caixinhas deviam começar na mesma altura: " + JSON.stringify(r));
+    // coluna esquerda: arco, ritmo, últimos 6 meses (vazio e escondido até os gráficos); direita: caixinhas, A vencer, últimos gastos
+    const col = await p.avaliar(() => Object.fromEntries(["inResumo", "inRitmo", "seisIni", "inCx", "inVencer", "inUltimos"].map((id) => { const e = document.getElementById(id); return [id, e ? e.parentElement.dataset.col || "" : "falta"]; })));
+    igual(JSON.stringify(col), JSON.stringify({ inResumo: "esq", inRitmo: "esq", seisIni: "esq", inCx: "dir", inVencer: "dir", inUltimos: "dir" }), "colunas do Início");
+    igual(await p.avaliar(() => document.querySelector("#seisIni").hidden), true, "o Últimos 6 meses fica escondido até a etapa dos gráficos");
+    // no PC as caixinhas ficam em grade, sem rolar de lado
+    const g = await p.avaliar(() => { const b = [...document.querySelectorAll("#inCx .n-bloco")].map((x) => x.getBoundingClientRect()); const f = document.querySelector("#inCx .n-blocos"); return { linhas: new Set(b.map((x) => Math.round(x.top))).size, rola: f.scrollWidth > f.clientWidth + 1 }; });
+    certo(g.linhas >= 2 && !g.rola, "as caixinhas deviam ficar em grade no PC: " + JSON.stringify(g));
+    for (const [w, h] of [[900, 700], [1280, 800], [1920, 1080]]) {
+      await p.tamanho(w, h); await p.recarregar();
+      const s = await p.avaliar(() => ({ sobra: document.documentElement.scrollWidth - innerWidth, wrap: document.querySelector(".wrap").getBoundingClientRect().width }));
+      certo(s.sobra <= 0, `o Início passa ${s.sobra}px da largura em ${w}px`);
+      certo(s.wrap <= 1100.5, `o conteúdo devia ir até 1100px e tem ${s.wrap}px em ${w}px`);
+      await p.print(`21-inicio-pc-${w}`);
+    }
+  },
+  "Atalhos: N lança, / busca, números trocam de aba": async (p) => {
+    await comExemplo(p);
+    await p.tamanho(1280, 800); await p.recarregar();
+    await p.aba("ajustes/sobre");
+    const linha = await p.texto("#atalhosTec");
+    certo(await p.visivel("#atalhosTec") && /Atalhos de teclado/.test(linha) && /\bN\b/.test(linha) && /Esc/.test(linha) && /1/.test(linha) && /5/.test(linha), "Ajustes › Sobre lista os atalhos: " + linha);
+    await p.aba("inicio");
+    igual(await tecla(p, "n"), false, "o N devia ser tratado pelo app");
+    certo(await p.visivel("#folhaGasto"), "N devia abrir a folha de lançar");
+    igual(await p.avaliar(() => document.querySelector("#gHead").textContent), "Lançar gasto", "a folha abre para um gasto novo");
+    await p.espera(100);
+    await tecla(p, "Escape"); await p.espera(150);
+    certo(!(await p.visivel("#folhaGasto")), "Esc devia fechar a folha");
+    igual(await p.abaAtual(), "inicio", "fechar a folha não troca de aba");
+    igual(await tecla(p, "/"), false, "a barra não devia ser digitada no campo");
+    igual(await p.abaAtual(), "mes", "/ leva ao Mês");
+    igual(await p.avaliar(() => document.activeElement && document.activeElement.id), "fBusca", "/ põe o foco na busca");
+    igual(await p.avaliar(() => document.querySelector("#fBusca").value), "", "a busca começa vazia");
+    await p.avaliar(() => document.activeElement.blur());
+    for (const [k, aba] of [["3", "graficos"], ["4", "cartao"], ["5", "metas"], ["2", "mes"], ["1", "inicio"]]) {
+      await tecla(p, k);
+      igual(await p.abaAtual(), aba, `a tecla ${k}`);
+    }
+    await tecla(p, "4"); await tecla(p, "5");
+    await tecla(p, "Escape"); await p.espera(350);
+    igual(await p.abaAtual(), "cartao", "Esc fora da folha volta um passo");
+    await tecla(p, "N");
+    certo(await p.visivel("#folhaGasto"), "N maiúsculo (Caps Lock) também lança");
+  },
+  "Atalhos não disparam na hora errada": async (p) => {
+    await comExemplo(p);
+    await p.tamanho(1280, 800); await p.recarregar();
+    // digitando num campo: a tecla é do campo
+    await p.clicar("#ladoLancar"); await p.espera(100);
+    await p.avaliar(() => document.querySelector("#gDesc").focus());
+    igual(await tecla(p, "n"), true, "o n digitado em O que foi não pode ser engolido");
+    igual(await tecla(p, "2"), true, "o 2 digitado em O que foi não pode ser engolido");
+    igual(await tecla(p, "/"), true, "a / digitada em O que foi não pode ser engolida");
+    certo(await p.visivel("#folhaGasto"), "a folha devia continuar aberta");
+    igual(await p.abaAtual(), "inicio", "digitar num campo não troca de aba");
+    // com a folha aberta e o foco fora dos campos: só o Esc age
+    await p.avaliar(() => document.activeElement.blur());
+    await tecla(p, "2"); await tecla(p, "/");
+    igual(await p.abaAtual(), "inicio", "com a folha aberta os números não trocam de aba");
+    await tecla(p, "Escape"); await p.espera(150);
+    certo(!(await p.visivel("#folhaGasto")), "Esc fecha a folha");
+    // Ctrl, Alt e Meta: são do navegador (Ctrl+N abre janela, Alt+1 troca de aba do navegador)
+    for (const mod of ["ctrlKey", "altKey", "metaKey"]) {
+      igual(await tecla(p, "n", { [mod]: true }), true, `${mod}+N não devia ser engolido`);
+      await tecla(p, "2", { [mod]: true });
+    }
+    certo(!(await p.visivel("#folhaGasto")), "Ctrl/Alt/Meta+N não devia abrir a folha");
+    igual(await p.abaAtual(), "inicio", "Ctrl/Alt/Meta+2 não devia trocar de aba");
+    // outros campos: busca, lista de escolha, texto editável
+    await p.aba("mes");
+    await p.avaliar(() => document.querySelector("#fBusca").focus());
+    await tecla(p, "1"); await tecla(p, "n");
+    igual(await p.abaAtual(), "mes", "digitar na busca não troca de aba");
+    certo(!(await p.visivel("#folhaGasto")), "digitar n na busca não abre a folha");
+    await p.avaliar(() => document.querySelector("#fCx").focus());
+    await tecla(p, "3");
+    igual(await p.abaAtual(), "mes", "uma tecla numa lista de escolha não troca de aba");
+    await p.avaliar(() => { const d = document.createElement("div"); d.id = "editavel"; d.contentEditable = "true"; d.textContent = "x"; document.querySelector("#v-mes").append(d); d.focus(); });
+    await tecla(p, "1"); await tecla(p, "n");
+    igual(await p.abaAtual(), "mes", "digitar num texto editável não troca de aba");
+    certo(!(await p.visivel("#folhaGasto")), "digitar num texto editável não abre a folha");
+    await p.avaliar(() => { document.querySelector("#editavel").remove(); document.activeElement.blur(); });
+    // com o PIN na frente: nada passa por trás da trava
+    await p.aba("ajustes");
+    await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]');
+    await p.espera(200);
+    await p.clicar('[data-pin="agora"]');
+    certo(await p.avaliar(() => document.documentElement.hasAttribute("data-trava")), "o app devia estar travado");
+    await p.avaliar(() => document.activeElement && document.activeElement.blur());
+    // os números antes do N (com a folha aberta eles já seriam barrados por ela); a folha é conferida pelo atributo,
+    // porque atrás da trava ela fica invisível mesmo aberta
+    await tecla(p, "1"); await tecla(p, "/");
+    igual(await p.abaAtual(), "ajustes", "com o PIN travado os atalhos não trocam de aba");
+    await tecla(p, "n");
+    igual(await p.avaliar(() => document.querySelector("#folhaGasto").hidden), true, "com o PIN travado o N não abre a folha");
+  },
+  "Barra lateral aguenta nome comprido e 700–900 px usa a barra de baixo": async (p) => {
+    // 12 caixinhas, uma com nome de 30 letras
+    await p.avaliar(() => {
+      const cores = ["#9C9BF5", "#E3C98A", "#C9A6F5", "#8FD3B4", "#F2A48A", "#8FB8F5"];
+      const caixinhas = Array.from({ length: 12 }, (_, i) => ({ id: "c" + i, nome: i === 2 ? "Supermercado, padaria e feiras" : "Caixinha " + (i + 1), cor: cores[i % cores.length] }));
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas, limitesPadrao: Object.fromEntries(caixinhas.map((c) => [c.id, 100])) }));
+    });
+    for (const [w, h] of [[900, 480], [1280, 800]]) {
+      await p.tamanho(w, h); await p.recarregar();
+      // fonte mais larga (como a do Linux): nenhum texto da barra lateral pode estourar
+      await p.avaliar(() => { const s = document.createElement("style"); s.textContent = "#lado{letter-spacing:.08em}"; document.head.append(s); });
+      const m = await p.avaliar(() => {
+        const lado = document.querySelector("#lado"), r = lado.getBoundingClientRect();
+        const estoura = [...lado.querySelectorAll("a, button, .n-lado-marca")].filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent.trim());
+        const aj = lado.querySelector('a[data-tab="ajustes"]').getBoundingClientRect();
+        const rola = lado.scrollHeight > lado.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(lado).overflowY);
+        const blocos = [...document.querySelectorAll("#inCx .n-bloco[data-cx]")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.dataset.cx);
+        return { estoura: estoura.join(" | "), ajAlcanca: aj.bottom <= innerHeight + 0.5 || rola, sobra: document.documentElement.scrollWidth - innerWidth, blocos: blocos.join(","), cont: document.querySelector("#v-inicio").getBoundingClientRect().left, ladoDir: r.right };
+      });
+      igual(m.estoura, "", `texto estourando na barra lateral em ${w}px`);
+      certo(m.ajAlcanca, `em ${w}x${h} o Ajustes da barra lateral fica fora de alcance`);
+      certo(m.sobra <= 0, `o Início passa ${m.sobra}px da largura em ${w}px`);
+      igual(m.blocos, "", `blocos estourando em ${w}px`);
+      certo(m.cont >= m.ladoDir, `em ${w}px o conteúdo entra embaixo da barra lateral`);
+      certo((await p.texto('#inCx .n-bloco[data-cx="c2"]')).includes("Supermercado"), "o nome comprido aparece no bloco");
+      await p.print(`21-lado-nome-comprido-${w}`);
+    }
+    // entre 700 e 900 px e celular deitado: barra de baixo, sem barra lateral
+    for (const [w, h] of [[899, 700], [768, 1024], [844, 390]]) {
+      await p.tamanho(w, h); await p.recarregar();
+      certo(!(await p.visivel("#lado")), `em ${w}x${h} a barra lateral não devia aparecer`);
+      certo(await p.visivel(".tabs"), `em ${w}x${h} a barra de baixo devia aparecer`);
+      const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
+      certo(sobra <= 0, `o Início passa ${sobra}px da largura em ${w}x${h}`);
+    }
+    await p.print("21-celular-deitado");
+  },
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);
