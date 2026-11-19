@@ -99,6 +99,20 @@ function atual(){ return porId(estado.atual) || BASE.noite; }
 function salvar(){ try { localStorage.setItem(LS, JSON.stringify({ atual: estado.atual, meus: estado.meus, leve: estado.leve })); } catch(e){} }
 function leveLigado(){ return estado.leve === 'auto' || estado.leve === 'sim'; }
 function aplicarLeve(){ var r = document.documentElement; if (leveLigado()) r.setAttribute('data-leve', ''); else r.removeAttribute('data-leve'); }
+/* No app Android a página passa por trás das barras do sistema: os ícones delas (relógio, bateria, navegação) seguem o tema.
+   Plugin SystemBars do Capacitor: "DARK" = ícones claros (tema escuro), "LIGHT" = ícones escuros (tema claro); sem "bar", vale
+   para as duas barras. Só no app; sem o plugin (site, versão antiga) não faz nada e nunca quebra. Repete só quando o estilo muda. */
+var barraFeita = null, barrasPlugin;
+function estiloBarras(t){
+  try {
+    var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
+    var estilo = escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) return;
+    if (barrasPlugin === undefined) barrasPlugin = (C.Plugins && C.Plugins.SystemBars) || (C.registerPlugin ? C.registerPlugin('SystemBars') : null) || null;
+    if (!barrasPlugin || typeof barrasPlugin.setStyle !== 'function') return;
+    var r = barrasPlugin.setStyle({ style: estilo }); barraFeita = estilo;
+    if (r && r.catch) r.catch(function(){ barraFeita = null; });
+  } catch (e) {}
+}
 function aplicar(t){
   var r = document.documentElement, v = tokens(t), f = FONTES[t.fonte] || FONTES.padrao;
   for (var k in v) r.style.setProperty(k, v[k]);
@@ -106,6 +120,7 @@ function aplicar(t){
   r.style.setProperty('color-scheme', escuro(t) ? 'dark' : 'light');
   if (escuro(t)) r.removeAttribute('data-claro'); else r.setAttribute('data-claro', '');
   var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t.fundo);
+  estiloBarras(t);
 }
 function corHex(v, rotulo, campo){
   v = String(v || '').trim();

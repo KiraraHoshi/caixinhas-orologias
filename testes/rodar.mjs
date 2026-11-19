@@ -100,7 +100,7 @@ const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-cal
 // A "pasta" e a permissão ficam no localStorage para sobreviver a um recarregar.
 function capacitorFalso() {
   const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
-  const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [] });
+  const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [], barras: [] });
   // "__launch" no localStorage = endereço com que o Android abriu o app (o toque no widget com o app fechado).
   // Como no Capacitor: getLaunchUrl devolve sempre o mesmo endereço (até num recarregar), e o appUrlOpen da abertura
   // fica guardado até alguém ouvir, uma vez só por abertura (num recarregar ele não volta).
@@ -116,6 +116,8 @@ function capacitorFalso() {
       getLaunchUrl: async () => { const u = abertura(); return u ? { url: u } : {}; },
       minimizeApp: async () => { N.minimizou++; },
     },
+    // o plugin de barras do sistema do próprio Capacitor: anota cada estilo pedido (e se a página já estava à vista na hora)
+    SystemBars: { setStyle: async (o) => { N.barras.push({ style: o && o.style, bar: o && o.bar, corpo: !!document.body }); } },
     Caixinhas: {
       widget: async (a) => { N.chamadas.push(["widget", JSON.parse(JSON.stringify(a))]); },
       compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
@@ -1602,6 +1604,43 @@ const TESTES = {
     await codigo();
     igual(await folha(), true, "depois do código, a folha abre");
   } },
+  "Android: os ícones da barra de status seguem o tema (claros no escuro, escuros no claro), desde a abertura": { nativo: true, fn: async (p) => {
+    // estilo do plugin SystemBars do Capacitor: "DARK" = ícones claros (para fundo escuro); "LIGHT" = ícones escuros (para fundo claro)
+    const ultimo = () => p.avaliar(() => { const b = window.__nativo.barras; return b.length ? b[b.length - 1].style : null; });
+    await comExemplo(p);
+    igual(await ultimo(), "DARK", "no tema de fábrica (Orologia Noite), ícones claros");
+    await p.aba("ajustes/aparencia");
+    for (const [id, estilo] of [["dia", "LIGHT"], ["g-ametista", "DARK"], ["g-folha", "LIGHT"], ["g-papel", "LIGHT"], ["g-areia", "LIGHT"], ["g-nevoa", "LIGHT"], ["g-lirio", "LIGHT"], ["noite", "DARK"]]) {
+      await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]');
+      igual(await ultimo(), estilo, "estilo da barra no tema " + id);
+    }
+    certo(await p.avaliar(() => window.__nativo.barras.every((b) => !b.bar)), "o estilo vale para as duas barras (status e navegação)");
+    // editor de tema: o rascunho manda enquanto é mexido; cancelar volta ao do tema ativo
+    await p.clicar('#temaBox [data-tm="criar"]');
+    await p.avaliar(() => { const i = document.querySelector("#tm-fundo"); i.value = "#f4f1ea"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+    igual(await ultimo(), "LIGHT", "rascunho com fundo claro: ícones escuros enquanto mexe");
+    await p.clicar('[data-tm="cancelar"]');
+    igual(await ultimo(), "DARK", "cancelar volta ao estilo do tema ativo");
+    // na abertura: com um tema claro guardado, o primeiro pedido já é o certo, antes de a página aparecer
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-lirio", meus: [] })));
+    await p.recarregar();
+    const ab = await p.avaliar(() => window.__nativo.barras);
+    certo(ab.length >= 1 && ab[0].style === "LIGHT" && !ab[0].corpo, "na abertura o primeiro estilo é o do tema claro, pedido antes do corpo da página: " + JSON.stringify(ab));
+    certo(ab.every((b) => b.style === "LIGHT"), "nada pede ícones claros na abertura de um tema claro: " + JSON.stringify(ab));
+    // um app sem o plugin (versão antiga) abre igual
+    await p.injetar("if (window.Capacitor && window.Capacitor.Plugins) delete window.Capacitor.Plugins.SystemBars;"); // roda depois do Capacitor de mentira
+    await p.recarregar(); await p.aba("inicio");
+    certo(await p.visivel("#inSobra"), "sem o plugin de barras o app abre normalmente");
+  } },
+  "No site o app não pede estilo de barra ao sistema": async (p) => {
+    // um Capacitor de mentira que diz não ser o app: nada pode ser pedido a ele
+    await p.injetar("window.__barras = []; window.Capacitor = { isNativePlatform: () => false, Plugins: { SystemBars: { setStyle: async (o) => { window.__barras.push(o); } } } };");
+    await p.recarregar();
+    await comExemplo(p);
+    await p.aba("ajustes/aparencia");
+    await p.clicar('#temaBox [data-tm="usar"][data-id="dia"]');
+    igual(await p.avaliar(() => window.__barras.length), 0, "no site nenhum estilo de barra é pedido");
+  },
   "Android: o botão de apoio pelo GitHub não aparece no app": { nativo: true, fn: async (p) => {
     await comExemplo(p);
     // links de apoio (a tela Apoie e o GitHub Sponsors) que aparecem na tela

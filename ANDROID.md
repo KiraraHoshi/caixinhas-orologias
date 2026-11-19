@@ -85,6 +85,8 @@ O app desenha de ponta a ponta em todo Android, como o Orolon Player 1.26.6: `Sy
 
 **Regra:** o `EdgeToEdge.enable(this)` vem **depois** do `super.onCreate`. Chamado antes, ele cria a janela com a tela ainda no tema da abertura (`AppTheme.NoActionBarLaunch`, cujo fundo é a imagem de abertura), e essa imagem aparece como uma faixa espremida no topo; a `BridgeActivity` só troca o tema dentro do `super.onCreate`. O teste do script confere essa ordem.
 
+**Cor dos ícones das barras:** como a página passa por trás da barra de status, os ícones (relógio, bateria) e os da navegação seguem o tema. Ao aplicar um tema, o `index.html` chama `SystemBars.setStyle` do Capacitor (só no app): tema escuro → `"DARK"` (ícones claros), tema claro → `"LIGHT"` (ícones escuros), sem `bar`, para as duas barras. Vale na abertura (no primeiro script, antes de a página aparecer), ao trocar de tema, no rascunho do editor de tema e ao cancelar o editor. O `"style": "DARK"` do `capacitor.config.json` só vale até o primeiro script rodar (o tema de fábrica é escuro). Sem o plugin (site, versão antiga) a chamada não acontece e nada quebra. Conferido nas fontes do Capacitor 8.6: `SystemBars.java` (`setStyle` lê `style` e `bar`; `DARK` faz `setAppearanceLightStatusBars(false)`, ou seja, ícones claros; o estilo é refeito quando o celular gira) e `@capacitor/core` (`SystemBarsStyle.Dark = "DARK"`, "conteúdo claro sobre fundo escuro"; `Light = "LIGHT"`).
+
 O service worker não entra no app: os arquivos já vêm dentro dele.
 
 ## Permissões
