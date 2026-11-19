@@ -10,10 +10,11 @@
   },
   "plugins": {
     "SystemBars": {
-      "insetsHandling": "css",
+      "insetsHandling": "native",
       "style": "DARK"
     },
     "LocalNotifications": {
+      "smallIcon": "ic_notif",
       "iconColor": "#9C9BF5"
     }
   }

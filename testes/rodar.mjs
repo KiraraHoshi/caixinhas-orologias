@@ -3,8 +3,8 @@
 // Não usa nenhuma biblioteca: fala com o Chrome pelo protocolo DevTools com o WebSocket do próprio Node.
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile, mkdtemp, rm } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,10 +107,24 @@ const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-cal
 // A "pasta" e a permissão ficam no localStorage para sobreviver a um recarregar.
 function capacitorFalso() {
   const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
-  const N = (window.__nativo = { chamadas: [], voltar: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [] });
+  const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [] });
+  // "__launch" no localStorage = endereço com que o Android abriu o app (o toque no widget com o app fechado).
+  // Como no Capacitor: getLaunchUrl devolve sempre o mesmo endereço (até num recarregar), e o appUrlOpen da abertura
+  // fica guardado até alguém ouvir, uma vez só por abertura (num recarregar ele não volta).
+  const abertura = () => ler("__launch", null);
+  const recarga = () => { try { return (performance.getEntriesByType("navigation")[0] || {}).type === "reload"; } catch (e) { return false; } };
   window.Capacitor = { isNativePlatform: () => true, Plugins: {
-    App: { addListener: (ev, fn) => { if (ev === "backButton") N.voltar = fn; return Promise.resolve({ remove() {} }); }, minimizeApp: async () => { N.minimizou++; } },
+    App: {
+      addListener: (ev, fn) => {
+        if (ev === "backButton") N.voltar = fn;
+        if (ev === "appUrlOpen") { N.urlAberta = fn; const u = abertura(); if (u && !recarga()) setTimeout(() => fn({ url: u }), 0); }
+        return Promise.resolve({ remove() {} });
+      },
+      getLaunchUrl: async () => { const u = abertura(); return u ? { url: u } : {}; },
+      minimizeApp: async () => { N.minimizou++; },
+    },
     Caixinhas: {
+      widget: async (a) => { N.chamadas.push(["widget", JSON.parse(JSON.stringify(a))]); },
       compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
       aparelho: async () => ({ marca: "tst1" }),
       escolherPastaBackup: async () => ({ uri: "content://pasta-de-teste", nome: "Backup" }),
@@ -131,6 +145,86 @@ function capacitorFalso() {
       schedule: async ({ notifications }) => { N.agendadas.push(...notifications.map((n) => ({ id: n.id, title: n.title, body: n.body, at: new Date(n.schedule.at).getTime() }))); return { notifications }; },
     },
   } };
+}
+// Projeto Android como o "npx cap add android" deixa (modelo do Capacitor 8 com o identificador do app), numa pasta temporária.
+// Serve para rodar scripts/plugin-android.mjs sem o Android instalado. Devolve a pasta android/app.
+async function projetoAndroidFalso(pasta) {
+  const app = join(pasta, "android", "app");
+  const arquivos = {
+    "src/main/java/com/joah/caixinhas/MainActivity.java": "package com.joah.caixinhas;\n\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {}\n",
+    "src/main/AndroidManifest.xml": `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="\${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
+`,
+    "build.gradle": `apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.joah.caixinhas"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.joah.caixinhas"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+`,
+    "src/main/res/values/strings.xml": `<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Orolon Caixinhas</string>
+    <string name="title_activity_main">Orolon Caixinhas</string>
+    <string name="package_name">com.joah.caixinhas</string>
+    <string name="custom_url_scheme">com.joah.caixinhas</string>
+</resources>
+`,
+    "src/main/res/xml/file_paths.xml": `<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n</paths>\n`,
+  };
+  for (const [f, t] of Object.entries(arquivos)) { const p = join(app, f); await mkdir(join(p, ".."), { recursive: true }); await writeFile(p, t); }
+  return app;
 }
 // estado com contas em datas relativas a hoje: fatura amanhã, fixo em 3 dias, e casos que não devem aparecer
 const semearContas = (p) => p.avaliar(() => {
@@ -1249,6 +1343,179 @@ const TESTES = {
     igual((await N()).ag.length, 0, "sem permissão, nada é agendado");
     await p.print("15-lembretes-android");
   } },
+  "Android: salvar manda a sobra ao widget; com PIN não manda valores": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    const widgets = () => p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "widget").map((x) => x[1]));
+    const hoje = new Date(), mes = hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0");
+    const ultimo = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    await p.aba("inicio"); await lancar(p, 12.5, "Café"); await p.espera(200);
+    let w = (await widgets()).pop();
+    certo(w, "lançar um gasto devia mandar os valores ao widget");
+    igual(w.mes, mes, "mês mandado ao widget"); igual(w.ultimoDia, ultimo, "último dia do mês"); igual(w.mostrar, true, "sem PIN o widget mostra os valores");
+    certo(typeof w.sobra === "string" && /^-?\d+(\.\d+)?$/.test(w.sobra), "sobra em texto com ponto: " + JSON.stringify(w.sobra));
+    const naTela = (await p.texto("#inSobra")).replace(/\s/g, " ");
+    igual(new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(w.sobra)).replace(/\s/g, " "), naTela, "a sobra do widget é a do Início");
+    // ligar o PIN tira os valores do widget na hora, e nenhum salvamento depois volta a mandá-los
+    await p.aba("ajustes/pin"); await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]'); await p.espera(400);
+    let ws = await widgets(); w = ws.pop();
+    certo(w && w.mostrar === false && w.sobra === "" && w.mes === mes, "ao ligar o PIN o widget devia ficar só com o botão: " + JSON.stringify(w));
+    const antes = (await widgets()).length;
+    await lancar(p, 3, "Bala"); await p.espera(200);
+    ws = (await widgets()).slice(antes);
+    certo(ws.length >= 1, "salvar com PIN também avisa o widget");
+    certo(ws.every((x) => x.mostrar === false && x.sobra === ""), "com PIN nenhum valor vai ao widget: " + JSON.stringify(ws));
+    // desligar o PIN devolve os valores
+    await p.aba("ajustes/pin"); await p.digitar("#pinAtual", "1234"); await p.clicar('[data-pin="desativar"]'); await p.espera(400);
+    w = (await widgets()).pop();
+    certo(w && w.mostrar === true && w.sobra !== "", "sem o PIN os valores voltam ao widget: " + JSON.stringify(w));
+  } },
+  "Android: abrir pelo widget cai na folha de lançar; com PIN, só depois do código": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    const folha = () => p.avaliar(() => !document.querySelector("#folhaGasto").hidden);
+    const url = (u) => p.avaliar((u) => window.__nativo.urlAberta({ url: u }), u).then(() => p.espera(300));
+    const voltar = async () => { await p.avaliar(() => { window.__nativo.voltar(); }); await p.espera(350); };
+    // o app abre de novo do zero (não é um recarregar): o Android cria a tela outra vez
+    const abrirDoZero = async () => { await p.avaliar(() => { location.href = "/index.html?aberto=" + Date.now(); }).catch(() => {}); await p.espera(1000); };
+    // com o app aberto
+    await p.aba("mes");
+    await url("caixinhas://outra");
+    igual(await folha(), false, "outro endereço não abre a folha");
+    await url("caixinhas://lancar");
+    igual(await folha(), true, "com o app aberto, tocar no widget abre a folha de lançar");
+    igual(await p.abaAtual(), "mes", "a folha abre por cima da tela em que o app estava");
+    await voltar();
+    igual(await folha(), false, "voltar fecha a folha");
+    // com o app fechado
+    await p.avaliar(() => localStorage.setItem("__launch", JSON.stringify("caixinhas://lancar")));
+    await abrirDoZero();
+    igual(await folha(), true, "abrindo o app pelo widget, a folha de lançar aparece");
+    await voltar(); await p.espera(300);
+    igual(await folha(), false, "um voltar fecha a folha (ela abriu uma vez só)");
+    await p.recarregar();
+    igual(await folha(), false, "o endereço vale uma vez: recarregar não abre a folha de novo");
+    await p.avaliar(() => localStorage.removeItem("__launch"));
+    await abrirDoZero();
+    igual(await folha(), false, "abrir pelo ícone do app não abre a folha");
+    // com PIN: primeiro o código, depois a folha
+    await p.aba("ajustes/pin"); await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]'); await p.espera(400);
+    await p.avaliar(() => localStorage.setItem("__launch", JSON.stringify("caixinhas://lancar")));
+    await abrirDoZero();
+    certo(await p.visivel("#trava"), "com PIN, o app abre pedindo o código");
+    igual(await folha(), false, "a folha não abre antes do código");
+    for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
+    await p.espera(600);
+    igual(await p.visivel("#trava"), false, "o código certo destrava");
+    igual(await folha(), true, "depois do código, a folha de lançar abre");
+    await p.print("27-widget-folha-depois-do-pin");
+    await voltar();
+    // app aberto, mas travado
+    await p.avaliar(() => localStorage.removeItem("__launch"));
+    await p.aba("ajustes/pin"); await p.clicar('[data-pin="agora"]');
+    await url("caixinhas://lancar");
+    igual(await folha(), false, "com o app travado, o toque no widget espera o código");
+    for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
+    await p.espera(600);
+    igual(await folha(), true, "destravado, a folha abre");
+  } },
+  "Android: o botão de apoio pelo GitHub não aparece no app": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    // links de apoio (a tela Apoie e o GitHub Sponsors) que aparecem na tela
+    const apoioVisivel = () => p.avaliar(() => [...document.querySelectorAll('a[href="#apoie"], a[href*="github.com/sponsors"]')].filter((a) => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length);
+    const textoDe = (sel) => p.avaliar((q) => document.querySelector(q).parentElement.innerText.replace(/\s+/g, " ").trim(), sel);
+    igual(await apoioVisivel(), 0, "no Início do app não há link de apoio");
+    igual(await textoDe('#v-inicio a[href="#ajustes"]'), "Temas e ajustes", "o rodapé do Início fica só com os ajustes, sem separador sobrando");
+    await p.aba("ajustes");
+    igual(await p.avaliar(() => document.querySelector('#ajMenu [data-parte="sobre"] small').innerText.trim()), "Versão e privacidade", "a lista dos Ajustes não promete apoio no app");
+    await p.aba("ajustes/sobre");
+    igual(await apoioVisivel(), 0, "no Sobre do app não há link de apoio");
+    igual(await textoDe('[data-parte="sobre"] a[href="privacy.html"]'), "Política de privacidade", "o Sobre fica só com a política, sem separador sobrando");
+    await p.aba("apoie");
+    igual(await p.abaAtual(), "inicio", "a tela Apoie não abre dentro do app");
+    igual(await apoioVisivel(), 0, "nenhum botão Apoiar no GitHub no app");
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
+        await p.tamanho(w, h); await p.recarregar(); await p.aba("ajustes/sobre");
+        await p.print(`28-sobre-android-${tema}-${w}`);
+        await p.aba("inicio"); await p.avaliar(() => window.scrollTo(0, document.body.scrollHeight)); await p.espera(150);
+        await p.print(`28-inicio-fim-android-${tema}-${w}`);
+      }
+    }
+  } },
+  "No site nada de widget": async (p) => {
+    // um Capacitor que não é o app (isNativePlatform falso): o site não pode chamar o widget nem abrir a folha pelo endereço
+    await p.injetar(`(${() => {
+      window.__site = { widget: 0 };
+      window.Capacitor = { isNativePlatform: () => false, Plugins: {
+        Caixinhas: { widget: async () => { window.__site.widget++; } },
+        App: { getLaunchUrl: async () => ({ url: "caixinhas://lancar" }), addListener: (ev, fn) => { if (ev === "appUrlOpen") setTimeout(() => fn({ url: "caixinhas://lancar" }), 0); return Promise.resolve({ remove() {} }); } },
+      } };
+    }})()`);
+    await p.avaliar(() => { location.href = "/index.html?site=" + Date.now(); }).catch(() => {}); await p.espera(1000);
+    await comExemplo(p);
+    igual(await p.avaliar(() => !document.querySelector("#folhaGasto").hidden), false, "no site o endereço do widget não abre a folha");
+    await lancar(p, 5, "Pão"); await p.espera(300);
+    igual(await p.avaliar(() => window.__site.widget), 0, "no site nada é mandado ao widget");
+    // o apoio pelo GitHub continua no site
+    certo(await p.visivel('#v-inicio a[href="#apoie"]'), "no site o Início tem o link Apoie o projeto");
+    await p.aba("ajustes/sobre");
+    certo(await p.visivel('[data-parte="sobre"] a[href="#apoie"]'), "no site o Sobre tem o link Apoie o projeto");
+    await p.aba("apoie");
+    igual(await p.abaAtual(), "apoie", "no site a tela Apoie abre");
+    certo(await p.visivel('#v-apoie a[href*="github.com/sponsors"]'), "no site aparece o botão Apoiar no GitHub");
+  },
+  "Android: o script monta barras, widget, ícone e sufixo de teste no projeto gerado": async () => {
+    const cfg = JSON.parse(readFileSync(join(RAIZ, "capacitor.config.json"), "utf8"));
+    igual(cfg.plugins.SystemBars.insetsHandling, "native", "barras do sistema tratadas pelo Android (conserto do Player)");
+    igual(cfg.plugins.LocalNotifications.smallIcon, "ic_notif", "ícone próprio da notificação");
+    for (const loja of [false, true]) {
+      const pasta = await mkdtemp(join(tmpdir(), "caixinhas-android-"));
+      try {
+        const proj = await projetoAndroidFalso(pasta);
+        const r = spawnSync(process.execPath, [join(RAIZ, "scripts", "plugin-android.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "", CX_COM_INTERNET: "" }) });
+        igual(r.status, 0, "o script terminou bem (" + (r.stderr || "").trim() + ")");
+        const ler = (f) => readFileSync(join(proj, f), "utf8");
+        const java = "src/main/java/com/joah/caixinhas/";
+        // MainActivity: de ponta a ponta antes de tudo, plugin registrado antes de o Capacitor iniciar
+        const main = ler(java + "MainActivity.java");
+        certo(main.startsWith("package com.joah.caixinhas;") && main.includes("import androidx.activity.EdgeToEdge;"), "MainActivity com o pacote e o EdgeToEdge");
+        const iE = main.indexOf("EdgeToEdge.enable(this);"), iP = main.indexOf("registerPlugin(CaixinhasPlugin.class);"), iS = main.indexOf("super.onCreate(savedInstanceState);");
+        certo(iE > 0 && iE < iP && iP < iS, "EdgeToEdge.enable(this) antes de registrar o plugin, e os dois antes do super.onCreate");
+        for (const f of ["CaixinhasPlugin.java", "LancarWidget.java"]) {
+          const t = ler(java + f);
+          certo(t.startsWith("package com.joah.caixinhas;") && !t.includes("package PACOTE"), f + " copiado com o pacote do app");
+        }
+        // manifesto: o widget registrado dentro do <application>, sem internet e sem permissão nova
+        const xml = ler("src/main/AndroidManifest.xml");
+        const rec = (xml.match(/<receiver[^>]*android:name="\.LancarWidget"[\s\S]*?<\/receiver>/) || [""])[0];
+        certo(rec, "receiver do widget no manifesto");
+        certo(/android:exported="false"/.test(rec) && rec.includes('"android.appwidget.action.APPWIDGET_UPDATE"') && rec.includes('android:name="android.appwidget.provider"') && rec.includes('android:resource="@xml/widget_lancar"'), "receiver do widget completo: " + rec);
+        certo(xml.indexOf(rec) > xml.indexOf("<application") && xml.indexOf(rec) < xml.indexOf("</application>"), "o receiver fica dentro do <application>");
+        const perms = xml.match(/<uses-permission[^>]*>/g) || [];
+        certo(perms.length === 1 && perms[0].includes("android.permission.INTERNET") && perms[0].includes('tools:node="remove"'), "nenhuma permissão nova, e a de internet sai: " + perms.join(" "));
+        // recursos copiados, e tudo o que eles e o Java citam existe (o PC não compila: aqui se pega o nome errado)
+        const res = join(proj, "src/main/res");
+        for (const f of ["layout/widget_lancar.xml", "xml/widget_lancar.xml", "drawable/ic_notif.xml"]) certo(existsSync(join(res, f)), "recurso copiado: " + f);
+        const nomesDe = (tipo) => { const d = join(res, tipo); return existsSync(d) ? readdirSync(d).map((f) => f.replace(/\.xml$/, "")) : []; };
+        const valores = readdirSync(join(res, "values")).map((f) => readFileSync(join(res, "values", f), "utf8")).join("\n");
+        const existe = (tipo, nome) => tipo === "string" || tipo === "color" || tipo === "dimen" ? new RegExp(`<${tipo} name="${nome}"`).test(valores) : nomesDe(tipo).includes(nome);
+        const meus = ["layout/widget_lancar.xml", "xml/widget_lancar.xml"].concat(readdirSync(join(RAIZ, "android-assets", "res", "drawable")).map((f) => "drawable/" + f)).map((f) => readFileSync(join(res, f), "utf8")).join("\n") + rec;
+        for (const [, tipo, nome] of meus.matchAll(/@(drawable|layout|xml|string|color|dimen)\/(\w+)/g)) certo(existe(tipo, nome), `@${tipo}/${nome} citado mas não existe`);
+        const ids = [...ler("src/main/res/layout/widget_lancar.xml").matchAll(/android:id="@\+id\/(\w+)"/g)].map((m) => m[1]);
+        const widget = ler(java + "LancarWidget.java");
+        for (const [, tipo, nome] of widget.matchAll(/\bR\.(id|layout|drawable|string)\.(\w+)/g)) certo(tipo === "id" ? ids.includes(nome) : existe(tipo, nome), `R.${tipo}.${nome} citado no Java mas não existe`);
+        // APK de teste ao lado do da loja: sufixo no identificador e "(teste)" no nome; o da loja fica como está
+        const gradle = ler("build.gradle"), nomes = ler("src/main/res/values/strings.xml");
+        if (loja) {
+          certo(!gradle.includes("applicationIdSuffix"), "o pacote da loja não ganha sufixo");
+          certo(nomes.includes('<string name="app_name">Orolon Caixinhas</string>') && !nomes.includes("(teste)"), "o pacote da loja mantém o nome");
+        } else {
+          certo(/defaultConfig\s*\{[^}]*applicationIdSuffix "\.teste"/.test(gradle), "o APK de teste ganha o sufixo .teste: " + gradle.slice(0, 600));
+          certo(nomes.includes('<string name="app_name">Orolon Caixinhas (teste)</string>') && nomes.includes('<string name="title_activity_main">Orolon Caixinhas (teste)</string>'), "o APK de teste se chama Orolon Caixinhas (teste)");
+        }
+      } finally { await rm(pasta, { recursive: true, force: true }); }
+    }
+  },
   "PC: barra lateral no lugar da barra de baixo": async (p) => {
     await comExemplo(p);
     await p.tamanho(1280, 800); await p.recarregar();

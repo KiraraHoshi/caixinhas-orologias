@@ -6,7 +6,7 @@ name: App Android
 on:
   push:
     branches: ["**"]
-    paths: ["index.html", "privacy.html", "manifest.webmanifest", "icon*", "android-assets/**", "android-plugin/**", "android-teste/**", "capacitor.config.json", "package.json", "scripts/**", ".github/workflows/android.yml"]
+    paths: ["index.html", "privacy.html", "manifest.webmanifest", "icon*", "android-assets/**", "android-plugin/**", "android-teste/**", "capacitor.config.json", "package.json", "package-lock.json", "scripts/**", ".github/workflows/android.yml"]
   workflow_dispatch:
 
 permissions:
@@ -28,14 +28,18 @@ jobs:
           java-version: 21
 
       - name: Instalar o Capacitor
-        run: npm install --no-audit --no-fund
+        # versões fixas pelo package-lock.json: o APK não muda de biblioteca sem um commit
+        run: npm ci --no-audit --no-fund
 
       - name: Montar o projeto Android
         run: |
           npm run www
           npx cap add android
+          # plugin, widget, ícone da notificação, barras do sistema; sem CX_LOJA=1 é o APK de teste (identificador com .teste)
           node scripts/plugin-android.mjs
-          cp -r android-assets assets
+          # o @capacitor/assets lê só as imagens (as peças de android-assets/res/ já foram copiadas pelo script acima)
+          mkdir -p assets
+          cp android-assets/*.png assets/
           npx @capacitor/assets generate --android --iconBackgroundColor "#14111F" --iconBackgroundColorDark "#14111F" --splashBackgroundColor "#14111F" --splashBackgroundColorDark "#14111F"
           npx cap sync android
 
@@ -60,8 +64,21 @@ jobs:
           # o manifesto final (já com o que as bibliotecas acrescentam): não pode haver permissão de internet
           M=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*merged_manifests*" | head -1)
           if [ -z "$M" ]; then echo "::error title=Permissões::manifesto final não encontrado para conferir"; exit 1; fi
-          grep -o '<uses-permission[^>]*>' "$M" || true
+          PERMS=$(grep -o '<uses-permission[^>]*>' "$M" | grep -o 'android:name="[^"]*"' | sed 's/android:name="//; s/"$//' | sort -u || true)
+          # identificador final do APK (o output-metadata.json do Gradle diz qual saiu)
+          PACOTE=$(grep -o '"applicationId": *"[^"]*"' android/app/build/outputs/apk/debug/output-metadata.json 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)"$/\1/' || true)
+          if [ -z "$PACOTE" ]; then PACOTE=$(grep -o 'package="[^"]*"' "$M" | head -1 | sed 's/package="//; s/"$//' || true); fi
+          echo "$PERMS"
+          {
+            echo "## Permissões do APK de teste"
+            echo
+            echo "Identificador: \`$PACOTE\`"
+            echo
+            echo "$PERMS" | sed 's/^/- `/; s/$/`/'
+          } >> "$GITHUB_STEP_SUMMARY"
           if grep -q 'android.permission.INTERNET"' "$M"; then echo "::error title=Permissões::O app ficou com a permissão de internet"; exit 1; fi
+          # o APK de teste convive com o da loja: o identificador precisa terminar em .teste
+          case "$PACOTE" in *.teste) ;; *) echo "::error title=Identificador::O APK de teste ficou com o identificador $PACOTE (esperava terminar em .teste)"; exit 1;; esac
 
       - uses: actions/upload-artifact@v4
         with:
@@ -87,3 +104,4 @@ jobs:
             APK de teste do Orolon Caixinhas ${{ env.VERSAO }} (build ${{ github.run_number }}), da branch `${{ github.ref_name }}`.
             No celular: baixe o arquivo .apk abaixo e abra. O Android pede para permitir a instalação de apps desta fonte.
             Esta versão é só para testar; a da Google Play vai ser assinada com a chave oficial.
+            Desde a 2.0 o APK de teste se chama "Orolon Caixinhas (teste)" e instala ao lado do app da loja (identificador com .teste). Os dados de um APK de teste anterior à 2.0 não passam sozinhos: exporte um backup nele antes e importe no novo.

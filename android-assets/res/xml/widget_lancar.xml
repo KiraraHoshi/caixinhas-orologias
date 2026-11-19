@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Lançar gasto": 2x2 de saída, pode encolher até 2x1 (aí mostra só o botão e a sobra).
+     Atualiza sozinho uma vez por dia (o "por dia" e a virada do mês), sem alarme e sem permissão. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="86400000"
+    android:initialLayout="@layout/widget_lancar"
+    android:previewLayout="@layout/widget_lancar"
+    android:description="@string/widget_lancar_descricao"
+    android:widgetCategory="home_screen" />

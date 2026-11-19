@@ -2,13 +2,15 @@ package PACOTE;
 
 // Plugin "Caixinhas": o que o app Android precisa e o navegador não oferece.
 // - compartilhar: grava um arquivo (backup, planilha, tema) na pasta temporária do app e abre o compartilhamento do Android;
-// - pasta do backup: a pessoa escolhe uma pasta no seletor do Android, que libera só aquela pasta (sem permissão de armazenamento).
+// - pasta do backup: a pessoa escolhe uma pasta no seletor do Android, que libera só aquela pasta (sem permissão de armazenamento);
+// - widget: guarda o que o widget "Lançar gasto" mostra (ver LancarWidget.java) e pede que ele se redesenhe.
 // Nada aqui usa a internet nem pede permissão.
 // O script scripts/plugin-android.mjs copia este arquivo para o projeto Android e troca PACOTE pelo pacote do app.
 
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -54,6 +56,24 @@ public class CaixinhasPlugin extends Plugin {
             }
         } catch (Exception e) { /* sem identificador: o app usa uma marca sorteada */ }
         call.resolve(r);
+    }
+
+    // O app manda, a cada salvamento: sobra do mês (texto com ponto, vazio com PIN), mês "AAAA-MM", último dia do mês
+    // e se o widget pode mostrar valores. Com PIN ligado, nenhum valor fica guardado aqui.
+    @PluginMethod
+    public void widget(PluginCall call) {
+        final boolean mostrar = Boolean.TRUE.equals(call.getBoolean("mostrar", false));
+        final String sobra = mostrar ? call.getString("sobra", "") : "";
+        final String mes = call.getString("mes", "");
+        final Integer ultimoDia = call.getInt("ultimoDia", 0);
+        getContext().getSharedPreferences(LancarWidget.PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("mostrar", mostrar)
+            .putString("sobra", sobra == null ? "" : sobra)
+            .putString("mes", mes == null ? "" : mes)
+            .putInt("ultimoDia", ultimoDia == null ? 0 : ultimoDia)
+            .apply();
+        try { LancarWidget.atualizarTodos(getContext()); } catch (Exception e) { /* sem widget na tela: nada a redesenhar */ }
+        call.resolve();
     }
 
     @PluginMethod

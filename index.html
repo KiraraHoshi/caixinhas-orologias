@@ -563,6 +563,7 @@ a.guia-card{color:var(--fg);text-decoration:none}
 #seisIni{display:none} /* "Últimos 6 meses" só no PC; no celular fica nos Gráficos */
 kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px solid var(--glass-line);background:color-mix(in srgb,var(--fg) 7%,transparent);color:var(--fg)}
 .nativo .n-so-tec{display:none}
+.nativo .n-so-site{display:none} /* apoio pelo GitHub: só no site, nunca dentro do app Android */
 /* ===== 2.0: demais telas na linguagem do Início (Mês, Cartão, Metas, Calculadoras, Ajustes, Guia, Apoie, folha, PIN, aviso) =====
    As mesmas peças: vidro (--glass e --glass-line), cabeçalho de cartão (.n-sec), etiquetas (.n-chip), tingido pela cor da caixinha (--c)
    e a "fita" (o arco do Início deitado). Sem backdrop-filter nos cartões: o desfoque fica na barra, na folha e no aviso. */
@@ -867,7 +868,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
     </div>
     <div class="n-col" data-col="esq"></div><div class="n-col" data-col="dir"></div>
     </div>
-    <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
+    <p class="hint" style="text-align:center"><span class="n-so-site"><a href="#apoie">Apoie o projeto</a> · </span><a href="#ajustes">Temas e ajustes</a></p>
   </section>
 
   <!-- ===================== GUIA ===================== -->
@@ -1395,7 +1396,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <p>Manter as tabelas de INSS e IR em dia, corrigir bugs, escrever explicações melhores para quem está começando a se organizar e publicar o app na Google Play.</p>
       <h3>O que não muda</h3>
       <p>O app continua gratuito, aberto e sem anúncios. Quem não pode apoiar usa tudo igual, e isso nunca vai mudar.</p>
-      <a class="sponsor" href="https://github.com/sponsors/KiraraHoshi" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.25.94 7.19a4.2 4.2 0 0 1 0-5.93 4.2 4.2 0 0 1 5.93 0L8 2.39l1.13-1.13a4.2 4.2 0 0 1 5.93 0 4.2 4.2 0 0 1 0 5.93z"/></svg>Apoiar no GitHub</a>
+      <a class="sponsor n-so-site" href="https://github.com/sponsors/KiraraHoshi" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.25.94 7.19a4.2 4.2 0 0 1 0-5.93 4.2 4.2 0 0 1 5.93 0L8 2.39l1.13-1.13a4.2 4.2 0 0 1 5.93 0 4.2 4.2 0 0 1 0 5.93z"/></svg>Apoiar no GitHub</a>
       <p class="hint">O apoio é opcional, vale em dólar (mínimo de US$ 1) e passa pelo GitHub, então quem apoia vê só o perfil <b>KiraraHoshi</b>. O link abre numa nova aba.</p>
     </div>
     <div class="panel">
@@ -1415,7 +1416,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <button type="button" data-parte="pin"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span><b>Bloqueio por PIN</b><small>Pedir um código ao abrir</small></span><i aria-hidden="true">›</i></button>
       <button type="button" data-parte="dados"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg><span><b>Backup e dados</b><small>Cópias, pasta do backup, planilha, importar e apagar</small></span><i aria-hidden="true">›</i></button>
       <button type="button" data-parte="lembretes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5h4"/></svg><span><b>Lembretes</b><small>Avisos de contas a vencer</small></span><i aria-hidden="true">›</i></button>
-      <button type="button" data-parte="sobre"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/></svg><span><b>Sobre</b><small>Versão, privacidade e apoio</small></span><i aria-hidden="true">›</i></button>
+      <button type="button" data-parte="sobre"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/></svg><span><b>Sobre</b><small id="ajSobreSub">Versão, privacidade e apoio</small></span><i aria-hidden="true">›</i></button>
     </nav>
     <button class="ghost aj-voltar" type="button" id="ajVoltar" hidden>‹ Ajustes</button>
 
@@ -1499,7 +1500,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
     <div class="panel">
       <h3>Sobre</h3>
       <p class="hint">Orolon Caixinhas <span id="ver"></span>. Código aberto sob a licença MIT: use, copie e modifique à vontade. Funciona offline, sem conta e sem servidor. Os dados ficam no seu aparelho. Este app não é consultoria financeira: confira valores de impostos com o seu holerite e com o RH.</p>
-      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a> · <a href="#apoie">Apoie o projeto</a></p>
+      <p class="hint"><a href="privacy.html" target="_blank" rel="noopener">Política de privacidade</a><span class="n-so-site"> · <a href="#apoie">Apoie o projeto</a></span></p>
       <p class="hint n-so-tec" id="atalhosTec">Atalhos de teclado: <kbd>N</kbd> lança um gasto · <kbd>/</kbd> busca no Mês · <kbd>Esc</kbd> volta um passo · <kbd>1</kbd> a <kbd>5</kbd> trocam entre Início, Mês, Gráficos, Cartão e Metas.</p>
     </div>
     </div>
@@ -1773,6 +1774,8 @@ if (NATIVO) {
   if (vp) vp.setAttribute('content', 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
   // links para arquivos do próprio app abrem aqui dentro: num navegador de fora eles não existem
   document.querySelectorAll('a[target="_blank"]').forEach(a => { if (!/^[a-z]+:/i.test(a.getAttribute('href') || '')) a.removeAttribute('target'); });
+  // o apoio pelo GitHub é só do site (os links somem pela classe n-so-site; a tela Apoie não abre: ver abaPermitida)
+  const sub = document.getElementById('ajSobreSub'); if (sub) sub.textContent = 'Versão e privacidade';
 }
 /* marca deste aparelho no nome dos backups: cada aparelho só troca e apaga as cópias dele */
 function marcaAparelho(){
@@ -1786,6 +1789,33 @@ async function enviarNativo(nome, texto, tipo, titulo){
   if (!PLUG.Cx) return false;
   try { await PLUG.Cx.compartilhar({ nome, texto, tipo: tipo || 'application/json', titulo: titulo || nome }); return true; }
   catch (e) { toast('Não deu para abrir o compartilhamento'); return false; }
+}
+/* Widget "Lançar gasto" (só no app Android; android-plugin/LancarWidget.java).
+   A cada salvamento o app manda a sobra do mês atual (texto com ponto), o mês e o último dia; o widget refaz o "por dia"
+   sozinho e, se o mês virou, mostra só o botão. Com PIN ligado não vai valor nenhum: o widget fica só com o botão. */
+function mandarWidget(){
+  if (!NATIVO || !PLUG.Cx) return;
+  try {
+    const k = thisMonth(), mostrar = !pinCfg();
+    const r = PLUG.Cx.widget({ sobra: mostrar ? String(resumoMes(k).sobra) : '', mes: k, ultimoDia: daysInMonth(k), mostrar });
+    if (r && r.catch) r.catch(() => {});
+  } catch (e) {}
+}
+/* Tocar no widget abre o app com o endereço caixinhas://lancar: chega pelo getLaunchUrl (app estava fechado) ou pelo
+   appUrlOpen (app já aberto). A folha de lançar abre uma vez só; com o PIN na frente, espera o código (ver destravar). */
+const Widget = { pendente: false };
+function abrirPeloWidget(url){
+  if (!NATIVO || !/^caixinhas:\/\/lancar\/?$/.test(String(url || ''))) return;
+  if (document.documentElement.hasAttribute('data-trava')) { Widget.pendente = true; return; }
+  if (!folhaAberta()) abrirFolha();
+}
+function ouvirWidget(){
+  if (!NATIVO || !PLUG.App) return;
+  try { const r = PLUG.App.addListener('appUrlOpen', e => abrirPeloWidget(e && e.url)); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  // o Capacitor devolve o mesmo endereço de abertura até num recarregar da página: aí ele já foi usado
+  let recarga = false; try { recarga = ((performance.getEntriesByType('navigation') || [])[0] || {}).type === 'reload'; } catch (e) {}
+  if (recarga || !PLUG.App.getLaunchUrl) return;
+  try { PLUG.App.getLaunchUrl().then(r => abrirPeloWidget(r && r.url), () => {}); } catch (e) {}
 }
 const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
   podePasta: (NATIVO && !!PLUG.Cx) || typeof window.showDirectoryPicker === 'function', pend: null, lista: null, marca: null };
@@ -1920,13 +1950,13 @@ function cloudWrite(id, data, del){
 }
 function persist(opts){
   opts = opts || {};
-  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar();
+  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar(); mandarWidget();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   if (opts.estado) cloudWrite('estado', estadoDoc());
   (opts.meses || []).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
 }
 function persistAll(oldKeys){
-  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar();
+  lsSet(LS_KEY, S); bkpAgendar(); lembAgendar(); mandarWidget();
   if (!Cloud.on) { setSync('ok', 'Salvo no aparelho'); return; }
   cloudWrite('estado', estadoDoc());
   Object.keys(S.meses).forEach(k => cloudWrite('mes-' + k, mesDoc(k)));
@@ -3747,10 +3777,12 @@ const TABS = ['inicio','guia','mes','graficos','cartao','metas','calc','apoie','
 /* A navegação não depende do endereço da página: dentro de uma página embutida (iframe isolado) o hash não muda.
    Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
 let TAB = null;
+// a tela Apoie (apoio pelo GitHub) é só do site: dentro do app Android ela não abre
+const abaPermitida = t => !(NATIVO && t === 'apoie');
 const PARTES = ['caixinhas','pagamento','aparencia','pin','dados','lembretes','sobre'];
 function go(alvo){
   let [t, parte] = String(alvo).split('/');
-  if (!TABS.includes(t)) t = 'inicio';
+  if (!TABS.includes(t) || !abaPermitida(t)) t = 'inicio';
   TAB = t; UI.ajParte = t === 'ajustes' && PARTES.includes(parte) ? parte : null;
   const h = '#' + t + (UI.ajParte ? '/' + UI.ajParte : '');
   try { if (location.hash !== h) history.pushState(null, '', h); } catch (e) {}
@@ -3767,7 +3799,7 @@ function mostrarAjustes(){
 function route(){
   const [h, hp] = (location.hash || '').slice(1).split('/');
   if (!TAB) UI.ajParte = h === 'ajustes' && PARTES.includes(hp) ? hp : null; // veio do endereço (recarregar, voltar do aparelho)
-  const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
+  const t0 = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio'), t = abaPermitida(t0) ? t0 : 'inicio';
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
   // no celular, Guia, Calculadoras e Gráficos abrem pelo Início; Ajustes (e Apoie, que sai dele) acendem a engrenagem do topo
   const marca = { guia: 'inicio', calc: 'inicio', graficos: 'inicio' }[t] || t;
@@ -4223,7 +4255,10 @@ function travar(){
   $('travaMsg').textContent = 'Digite o seu PIN.';
   if (matchMedia('(pointer:fine)').matches) setTimeout(() => $('travaPin').focus(), 60);
 }
-function destravar(){ document.documentElement.removeAttribute('data-trava'); Trava.erros = 0; $('travaPin').value = ''; renderInicio(); }
+function destravar(){
+  document.documentElement.removeAttribute('data-trava'); Trava.erros = 0; $('travaPin').value = ''; renderInicio();
+  if (Widget.pendente) { Widget.pendente = false; if (!folhaAberta()) abrirFolha(); } // tocou no widget com o app travado: a folha vem depois do código
+}
 async function verificarPin(){
   const c = pinCfg(); if (!c) { destravar(); return; }
   if (Trava.ocupado) return;
@@ -4286,11 +4321,12 @@ $('pinBox').addEventListener('click', async e => {
   const a = b.dataset.pin, c = pinCfg(), val = id => ($(id) ? $(id).value.trim() : '');
   if (a === 'agora') { travar(); return; }
   if ((a === 'trocar' || a === 'desativar') && !(await confere(val('pinAtual'), c))) { toast('PIN atual incorreto'); return; }
-  if (a === 'desativar') { try { localStorage.removeItem(LS_PIN); } catch (err) {} document.activeElement.blur(); renderPin(); toast('Bloqueio desativado'); return; }
+  if (a === 'desativar') { try { localStorage.removeItem(LS_PIN); } catch (err) {} mandarWidget(); document.activeElement.blur(); renderPin(); toast('Bloqueio desativado'); return; }
   const n = val('pinNovo'), r = val('pinRep');
   if (!/^\d{4,6}$/.test(n)) { toast('O PIN precisa ter de 4 a 6 números'); return; }
   if (n !== r) { toast('Os dois PINs não são iguais'); return; }
   const salvou = await salvarPin(n, c ? Number(c.tempo) || 0 : 1);
+  mandarWidget(); // com PIN, o widget fica só com o botão (sem a sobra)
   document.activeElement.blur(); renderPin();
   toast(!salvou ? 'Não deu para salvar o PIN neste navegador' : a === 'ativar' ? 'Bloqueio ativado' : 'PIN trocado');
 });
@@ -4302,6 +4338,7 @@ renderAll(); route();
 if (pinCfg()) travar(); else document.documentElement.removeAttribute('data-trava');
 connectCloud();
 bkpIniciar(); lembAgendar();
+mandarWidget(); ouvirWidget(); // no app: valores frescos para o widget (o mês pode ter virado) e a folha se veio pelo toque nele
 if (!window.Capacitor && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

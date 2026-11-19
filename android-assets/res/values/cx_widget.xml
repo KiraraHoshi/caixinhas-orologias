@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Textos do widget "Lançar gasto" (o nome aparece na lista de widgets do aparelho). -->
+<resources>
+    <string name="widget_lancar_nome">Lançar gasto</string>
+    <string name="widget_lancar_descricao">Abre o app já na folha de lançar e mostra quanto sobra no mês.</string>
+    <string name="widget_lancar_botao">+ Lançar gasto</string>
+</resources>
