@@ -531,13 +531,22 @@ const TESTES = {
     await p.avaliar(() => {
       // ângulo do marcador de hoje no arco (anda de 0 até a posição do dia durante a abertura longa)
       window.__fio = () => parseFloat((/rotate\(([-\d.]+)/.exec(document.querySelector("#arcoHoje").getAttribute("transform") || "") || [0, 0])[1]);
-      document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#gBtn")) { window.__antes = window.__fio(); setTimeout(() => { window.__depois = window.__fio(); }, 40); } }, true);
+      const arcoVisto = () => { const a = document.querySelector("#arco"), an = a.getAnimations()[0]; return { el: a, op: Number(getComputedStyle(a).opacity), prog: an ? an.effect.getComputedTiming().progress : null }; };
+      document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#gBtn")) {
+        const a0 = arcoVisto(); window.__antes = window.__fio(); window.__opAntes = a0.op;
+        setTimeout(() => { const a1 = arcoVisto(); window.__depois = window.__fio(); window.__refez = a1.el !== a0.el; window.__opDepois = a1.op; window.__prog = a1.prog; }, 40);
+      } }, true);
     });
-    await lancar(p, 600, "Viagem");
+    // Objetivos ainda não tem gasto no exemplo: o primeiro gasto nela cria um pedaço novo e obriga a refazer o arco no meio da abertura
+    await p.clicar("#fab"); await p.clicar('label[for="' + await p.avaliar(() => document.querySelector('input[name="gCx"][value="objetivos"]').id) + '"]');
+    await p.digitar("#gValor", "400"); await p.digitar("#gDesc", "Viagem"); await p.clicar("#gBtn");
     await p.espera(2500);
-    const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio() }));
+    const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio(), refez: window.__refez, opAntes: window.__opAntes, opDepois: window.__opDepois, prog: window.__prog, segs: document.querySelectorAll("#arco .arco-seg").length }));
+    certo(f.refez, "o lançamento devia refazer o arco no meio da abertura");
+    igual(f.segs, 3, "pedaços do arco depois do primeiro gasto em Objetivos");
     certo(f.antes < f.fim * 0.9, "o teste chegou tarde: o marcador já estava em " + f.antes + " de " + f.fim);
     certo(f.depois - f.antes < f.fim * 0.15, "o marcador saltou de " + f.antes + " para " + f.depois + " (fim " + f.fim + ")");
+    certo(f.opDepois >= f.opAntes - 0.15 && (f.prog === null || f.prog > 0.15), "o arco refeito recomeçou a entrada: opacidade " + f.opAntes + " → " + f.opDepois + ", progresso " + f.prog);
   } },
   "Lançamentos seguidos não se atropelam": { movimento: true, fn: async (p) => {
     await comExemplo(p);
