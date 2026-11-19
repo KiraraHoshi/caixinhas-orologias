@@ -13,7 +13,11 @@ A **2.0 "Noite Orologia"** reúne o visual novo, a tela de Gráficos, o uso no c
 3. **O que só o celular prova:** a notificação chegando na hora, a planilha exportada abrindo, restaurar um backup da pasta, o widget no tamanho 2x1 e se o visual pesa ou esquenta em celulares mais simples.
 4. **Pequenos acertos adiados:**
    - ao trocar a pasta do backup no Android, devolver a permissão da pasta antiga;
-   - conferir, com dois aparelhos na mesma pasta, que cada um só apaga as próprias cópias (só dá para provar no app instalado).
+   - conferir, com dois aparelhos na mesma pasta, que cada um só apaga as próprias cópias (só dá para provar no app instalado);
+   - Esc fora do Início usa `history.back()`: numa aba aberta direto em `#mes` vinda de outra página, o Esc sai do app;
+   - `color-mix()` não tem cor de reserva: em WebView abaixo da 111 os cartões ficam sem fundo (o texto continua legível);
+   - vários testes de movimento dependem de esperas fixas (podem falhar num computador lento);
+   - a marca `.teste` do APK de teste e a limpeza das cópias por aparelho são feitas no Java: só o aparelho prova.
 
 ## Ideias
 

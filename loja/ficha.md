@@ -101,6 +101,7 @@ Os cálculos são estimativas para ajudar a organizar o seu dinheiro. Confira im
 - O app coleta ou compartilha algum dos tipos de dados do usuário exigidos? **Não.**
 - Com "não", o Console deve dispensar o restante do formulário (**a confirmar** na Central de Ajuda do Play Console). Se ele perguntar mesmo assim: nenhum dado é coletado, nenhum é compartilhado, não há criptografia em trânsito a declarar (nada é transmitido) e não existe conta para excluir.
 - Motivo, para o caso de revisão: gastos, caixinhas, cartões (só apelido e dias), metas e ajustes ficam só no armazenamento do app no aparelho. O app não tem a permissão de internet. O backup é um arquivo que a própria pessoa guarda onde quiser; "Enviar backup" abre o compartilhamento do Android, e quem envia é o app escolhido pela pessoa. O widget guarda no aparelho só a sobra e o valor por dia (nada com o PIN ligado).
+- Backup do próprio Android: o app mantém o backup do sistema ligado (`allowBackup`, o padrão). Se a pessoa deixa o backup do Android ligado no celular, o sistema pode guardar uma cópia dos dados do app na conta Google dela e trazê-la de volta ao reinstalar ou trocar de celular; quem faz isso é o Android, não o app, e a política de privacidade explica isso. A resposta continua "o app não coleta nem compartilha". Como o Console quer que esse backup do sistema seja tratado no formulário (se é que quer) é **a confirmar** na Central de Ajuda do Play Console antes de responder.
 
 ### Permissões
 

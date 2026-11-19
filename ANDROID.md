@@ -99,6 +99,8 @@ O service worker não entra no app: os arquivos já vêm dentro dele.
 
 O workflow lista no resumo de cada envio as permissões e o identificador do APK que saiu (e falha se o APK de teste não terminar em `.teste`).
 
+**Backup do sistema (decisão de 19/11/2026):** o projeto gerado vem com `android:allowBackup="true"`, sem regras de backup (`dataExtractionRules` ou `fullBackupContent`), e o `scripts/plugin-android.mjs` não mexe nisso. Fica assim, como no Orolon Player: com o backup do Android ligado no celular, o sistema pode guardar os dados do app na conta Google da pessoa e devolvê-los ao reinstalar ou trocar de celular. A política de privacidade e a ficha da loja dizem isso. Se um dia o dono preferir que nada vá para esse backup, a alternativa é `android:allowBackup="false"` no `plugin-android.mjs` (aí reinstalar sem backup próprio perde tudo).
+
 ## Plugin próprio
 
 `android-plugin/CaixinhasPlugin.java` (ligado pelo `scripts/plugin-android.mjs`):
