@@ -77,6 +77,8 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
     tamanho: (w, h) => s("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: true }),
     // liga ou desliga o "reduzir movimento" do aparelho no meio do teste
     reduzir: (sim) => s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: sim ? "reduce" : "no-preference" }] }),
+    // muda o modo claro/escuro do "sistema" no meio do teste (mantém o "reduzir movimento" da página)
+    modoSistema: (escuro) => s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: movimento ? "no-preference" : "reduce" }, { name: "prefers-color-scheme", value: escuro ? "dark" : "light" }] }),
     // roda um trecho antes do app em cada carregamento seguinte (ex.: ligar um gancho de teste que precisa existir na abertura)
     injetar: (src) => s("Page.addScriptToEvaluateOnNewDocument", { source: src }),
     print: async (nome, inteira) => {
@@ -798,6 +800,27 @@ const TESTES = {
     await p.aba("ajustes/dados");
     certo((await p.texto("#bkpBox")).includes("Gravando na pasta “escolhida”"), "nome mostrado sem subpasta: " + await p.texto("#bkpBox"));
   },
+  "Pasta do backup no PC: ao trocar de pasta, nada é gravado enquanto o app decide a subpasta": async (p) => {
+    await escolherPastaPC(p, ["A"]);
+    // a pasta nova demora a responder (pasta de rede, por exemplo): a decisão da subpasta fica em curso por alguns segundos
+    await p.avaliar(() => { window.showDirectoryPicker = async () => {
+      const d = await (await navigator.storage.getDirectory()).getDirectoryHandle("B", { create: true });
+      return new Proxy(d, { get(t, k) {
+        if (k === "keys") return () => (async function* () { await new Promise((ok) => setTimeout(ok, 3500)); yield* t.keys(); })();
+        const v = Reflect.get(t, k); return typeof v === "function" ? v.bind(t) : v;
+      } });
+    }; });
+    await p.clicar('[data-act="bkp-pasta"]');
+    await lancar(p, 20, "Pipoca"); await p.espera(2000); // o backup agendado (1,2 s) cai no meio da decisão
+    igual(JSON.stringify(await pastaPC(p, ["B"])), "[]", "nada gravado na pasta nova antes da decisão");
+    await p.espera(2500);
+    igual(JSON.stringify(await pastaPC(p, ["B"])), JSON.stringify([SUBPASTA + "/"]), "depois da decisão, só a subpasta na pasta nova");
+  },
+  "Pasta do backup no PC: o conselho sugere criar a pasta “Orolon Caixinhas” em Documentos": async (p) => {
+    await p.aba("ajustes/dados");
+    const t = await p.texto("#bkpDica");
+    certo(t.includes("Crie a pasta “Orolon Caixinhas” dentro de Documentos") && !t.includes("Backup Caixinhas"), "exemplo do conselho: " + t);
+  },
   "Abertura longa toca toda vez que o app abre; ao voltar para o Início, a curta": { movimento: true, fn: async (p) => {
     await comExemplo(p);
     await p.espera(2200);
@@ -1307,7 +1330,7 @@ const TESTES = {
     certo((await p.texto("#ktAviso")).includes("nunca pede número, validade nem código de segurança"), "faltou o aviso no cadastro de cartões");
     certo((await p.texto('label:has(#ktNome)')).startsWith("Apelido do cartão"), "o campo devia pedir um apelido");
     await p.aba("ajustes");
-    certo((await p.texto("#bkpDica")).includes("Crie uma pasta só para isso"), "faltou a dica de criar uma pasta para o backup");
+    certo((await p.texto("#bkpDica")).includes("Crie a pasta “Orolon Caixinhas” dentro de Documentos"), "faltou a dica de criar uma pasta para o backup");
   },
   "Leitor de tela ouve os valores atuais no Início": async (p) => {
     await comExemplo(p);
@@ -1834,6 +1857,14 @@ const TESTES = {
     await p.aba("ajustes/aparencia");
     for (const id of ["dia", "g-lirio", "noite"]) { await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]'); igual(await ultimo(), "DEFAULT", "tema " + id + " numa WebView 130"); }
     certo((await estilos()).every((s) => s === "DEFAULT"), "nada pede LIGHT/DARK numa WebView 130: " + JSON.stringify(await estilos()));
+    // o celular muda de modo com o app aberto: o plugin guardou o estilo já resolvido, então o app pede DEFAULT de novo
+    const agora = await p.avaliar(() => matchMedia("(prefers-color-scheme: dark)").matches); // o modo de partida depende do computador
+    for (const escuro of [!agora, agora]) {
+      const antes = (await estilos()).length;
+      await p.modoSistema(escuro); await p.espera(200);
+      const depois = await estilos();
+      certo(depois.length > antes && depois[depois.length - 1] === "DEFAULT", "mudar o modo do sistema para " + (escuro ? "escuro" : "claro") + " pede DEFAULT de novo: " + JSON.stringify(depois.slice(antes)));
+    }
     // 140 ou mais: o estilo segue o tema, como antes
     await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-lirio", meus: [] })));
     await p.injetar(ua("Chrome/140.0.7339.51")); await p.recarregar();
@@ -1843,13 +1874,17 @@ const TESTES = {
     igual(await ultimo(), "LIGHT", "tema claro sem versão legível");
   } },
   "Fundo de reserva sem color-mix na folha de lançar e no aviso": async (p) => {
-    // navegador sem color-mix descarta a declaração inteira: a regra de base precisa de um fundo simples antes
+    // com var() dentro, o color-mix é aceito ao ler o CSS e só cai ao calcular: o fundo vira transparente, não a declaração
+    // anterior. A reserva precisa estar num @supports que nega o color-mix.
     const r = await p.avaliar(() => {
       const achou = {};
-      for (const f of document.styleSheets) for (const regra of f.cssRules) {
-        if (!regra.style || (regra.selectorText !== ".folha-caixa" && regra.selectorText !== ".toast")) continue;
-        const v = regra.style.getPropertyValue("background") || regra.style.getPropertyValue("background-color");
-        if (v && !v.includes("color-mix")) achou[regra.selectorText] = v.trim();
+      for (const f of document.styleSheets) for (const bloco of f.cssRules) {
+        if (!(bloco instanceof CSSSupportsRule) || !/^not\b/.test(bloco.conditionText.trim()) || !bloco.conditionText.includes("color-mix")) continue;
+        for (const regra of bloco.cssRules) {
+          if (!regra.style || (regra.selectorText !== ".folha-caixa" && regra.selectorText !== ".toast")) continue;
+          const v = regra.style.getPropertyValue("background") || regra.style.getPropertyValue("background-color");
+          if (v && !v.includes("color-mix")) achou[regra.selectorText] = v.trim();
+        }
       }
       return achou;
     });

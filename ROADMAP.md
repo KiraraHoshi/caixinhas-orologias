@@ -15,7 +15,7 @@ A **2.0 "Noite Orologia"** reúne o visual novo, a tela de Gráficos, o uso no c
    - ao trocar a pasta do backup no Android, devolver a permissão da pasta antiga;
    - conferir, com dois aparelhos na mesma pasta, que cada um só apaga as próprias cópias (só dá para provar no app instalado);
    - Esc fora do Início usa `history.back()`: numa aba aberta direto em `#mes` vinda de outra página, o Esc sai do app;
-   - `color-mix()` não tem cor de reserva: em WebView abaixo da 111 os cartões ficam sem fundo (o texto continua legível);
+   - `color-mix()` não tem cor de reserva: em WebView abaixo da 111 os cartões ficam sem fundo (o texto continua legível). Só a folha de lançar e o aviso curto já têm reserva (um `@supports not` com fundo simples); o resto não;
    - vários testes de movimento dependem de esperas fixas (podem falhar num computador lento);
    - a marca `.teste` do APK de teste e a limpeza das cópias por aparelho são feitas no Java: só o aparelho prova.
 

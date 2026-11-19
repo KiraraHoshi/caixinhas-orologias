@@ -116,6 +116,16 @@ function estiloBarras(t){
     if (r && r.catch) r.catch(function(){ barraFeita = null; });
   } catch (e) {}
 }
+/* WebView antiga: o estilo pedido é sempre "DEFAULT", e o plugin guarda o estilo já resolvido pelo modo do sistema. Se o celular
+   muda de modo com o app aberto, pede de novo (só no app e só nesse caso). Só o aparelho prova se a WebView avisa a mudança. */
+(function(){
+  try {
+    var C = window.Capacitor;
+    if (!C || !C.isNativePlatform || !C.isNativePlatform() || !webviewAntiga() || !window.matchMedia) return;
+    var mq = window.matchMedia('(prefers-color-scheme: dark)'), mudou = function(){ barraFeita = null; estiloBarras(atual()); };
+    if (mq.addEventListener) mq.addEventListener('change', mudou); else if (mq.addListener) mq.addListener(mudou);
+  } catch (e) {}
+})();
 function aplicar(t){
   var r = document.documentElement, v = tokens(t), f = FONTES[t.fonte] || FONTES.padrao;
   for (var k in v) r.style.setProperty(k, v[k]);
@@ -323,7 +333,7 @@ table.mini input{padding:6px 8px;min-width:80px}
 .icon:disabled{opacity:.35;cursor:default}
 .cx-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .cx-row:last-child{border-bottom:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;background:var(--surface2);color:var(--fg);border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;color:var(--fg);border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
 textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:120px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 .support{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
@@ -420,7 +430,7 @@ html[data-trava] body{overflow:hidden}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
-.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
 .folha-topo{display:flex;align-items:center;gap:6px}
 .folha-topo .icon{margin-left:auto}
@@ -723,6 +733,9 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 @media (prefers-reduced-motion:reduce){.toast{animation:none}}
 /* Folha de lançar: vidro com desfoque e uma mola leve ao subir */
 .folha-caixa{background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-color:var(--glass-line);border-radius:26px 26px 0 0;animation:fl-mola .4s cubic-bezier(.2,.8,.3,1)}
+/* Reserva para WebView sem color-mix: com var() dentro, a declaração acima é aceita ao ler e só cai ao calcular (o fundo
+   ficaria transparente, não voltaria à declaração anterior). O resto dos color-mix do app segue sem reserva (ROADMAP). */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) { .toast{background:var(--surface2)} .folha-caixa{background:var(--surface)} }
 .folha-caixa::before{background:color-mix(in srgb,var(--fg) 22%,transparent)}
 @keyframes fl-mola{0%{transform:translateY(70px);opacity:0}55%{transform:translateY(-6px);opacity:1}80%{transform:translateY(2px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.folha-caixa{animation:none}}
@@ -1963,12 +1976,13 @@ async function bkpPerm(pedir){
    A permissão continua sendo a da pasta escolhida; a decisão fica guardada ('sub' no cfg; sem ela, a pasta escolhida). */
 async function bkpDecidir(){
   if (Bkp.sub !== 'decidir' || !Bkp.pasta || Bkp.pasta.nativa) return;
-  let sub = false;
+  const pasta = Bkp.pasta; let sub = false;
   try {
-    let naEscolhida = Bkp.pasta.name === BKP_SUB;
-    if (!naEscolhida) for await (const n of Bkp.pasta.keys()) if (BKP_ARQ_NAT.test(n)) { naEscolhida = true; break; }
-    if (!naEscolhida) { await Bkp.pasta.getDirectoryHandle(BKP_SUB, { create: true }); sub = true; }
+    let naEscolhida = pasta.name === BKP_SUB;
+    if (!naEscolhida) for await (const n of pasta.keys()) if (BKP_ARQ_NAT.test(n)) { naEscolhida = true; break; }
+    if (!naEscolhida) { await pasta.getDirectoryHandle(BKP_SUB, { create: true }); sub = true; }
   } catch (e) {}
+  if (Bkp.pasta !== pasta) return; // a pessoa trocou de pasta de novo no meio: vale a decisão da nova
   Bkp.sub = sub; await bkpOp('cfg', 'readwrite', s => s.put(sub, 'sub'));
 }
 // PC: a pasta onde os arquivos vão. A subpasta é aberta a cada gravação e criada de novo se a pessoa a apagou.
@@ -1991,6 +2005,7 @@ async function bkpNaPasta(){
       Bkp.erro = false; Bkp.ultimo = Date.now(); lsSet(LS_BKP_PASTA, Bkp.ultimo); marcaBackup(); return true;
     } catch (e) { Bkp.erro = true; return false; }
   }
+  if (Bkp.sub === 'decidir') return false; // PC: pasta recém-trocada, decisão da subpasta em curso: nada é gravado até ela sair
   try {
     const d = await bkpDestino();
     const arq = await d.getFileHandle('caixinhas-backup-' + today() + '.json', { create: true }), w = await arq.createWritable();
@@ -2021,7 +2036,7 @@ function renderBkp(){
   if (!Bkp.podePasta) pasta = '<p class="hint">Este navegador não deixa o app gravar numa pasta sozinho. Use “Enviar backup” ou “Exportar backup” de vez em quando e guarde o arquivo fora do aparelho.</p>';
   else if (Bkp.pend) pasta = `<p class="hint warn">A pasta “${esc(Bkp.pend.pasta.name)}” já tem ${Bkp.pend.backups.length === 1 ? 'uma cópia' : Bkp.pend.backups.length + ' cópias'} de backup. Nada foi gravado ainda. Se elas são de outro aparelho seu, você pode restaurar uma antes de continuar.</p>${listaPasta(Bkp.pend.backups)}<div class="btns"><button class="primary" type="button" data-act="bkp-usar">Usar esta pasta e começar a gravar</button><button class="ghost" type="button" data-act="bkp-desistir">Cancelar</button></div>`;
   else if (!Bkp.pasta && NATIVO) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes deste aparelho. Se for uma pasta que sincroniza com a nuvem, o backup sai do celular sem precisar de conta no app.</p><p class="hint">O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
-  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app. O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><p class="hint" id="bkpDica">Crie uma pasta só para isso, por exemplo “Backup Caixinhas” dentro de Documentos. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
+  else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app. O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><p class="hint" id="bkpDica">Crie a pasta “Orolon Caixinhas” dentro de Documentos e escolha ela: o app grava direto nela. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p>${Bkp.lista ? (Bkp.lista.length ? listaPasta(Bkp.lista) : '<p class="hint">A pasta ainda não tem cópias.</p>') : ''}<div class="btns">${Bkp.pasta.nativa && !Bkp.lista ? '<button class="ghost" type="button" data-act="bkp-ver">Ver cópias da pasta</button>' : ''}<button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
