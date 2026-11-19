@@ -1624,7 +1624,7 @@ const ICONE_PISTAS = [
   ['jogo', /jogo|game|hobby/], ['trabalho', /trabalh|negocio|empresa/], ['telefone', /celular|telefone/], ['cartao', /cartao|fatura/]
 ];
 function iconeDe(c){
-  if (c && ICONES[c.icone]) return c.icone;
+  if (c && typeof c.icone === 'string' && Object.prototype.hasOwnProperty.call(ICONES, c.icone)) return c.icone;
   const txt = normTxt(((c && c.nome) || '') + ' ' + ((c && c.id) || ''));
   const achou = ICONE_PISTAS.find(p => p[1].test(txt));
   return achou ? achou[0] : 'caixa';
@@ -1714,16 +1714,75 @@ function defaults(){
     meses: {}
   };
 }
+/* Limpeza ao ler (o que está guardado no aparelho, um backup importado, uma cópia restaurada). O que tem o formato certo fica
+   exatamente como está, inclusive o estranho mas válido: cor em minúsculas ou #RGB, centavos, descrição vazia, gasto de caixinha
+   apagada, forma de pagamento removida. O que não tem o formato (um backup estragado ou adulterado) é consertado ou sai: item que
+   não é objeto é descartado, número vira número, texto vira texto, data e mês inválidos voltam a um valor seguro. Assim nada de fora
+   chega cru à tela nem derruba o desenho. */
+const ehObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
+const MES_RE = /^\d{4}-\d{2}$/, DATA_RE = /^\d{4}-\d{2}-\d{2}$/, COR_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const semProto = o => { const r = {}; Object.keys(o).forEach(k => { if (k !== '__proto__') r[k] = o[k]; }); return r; }; // vindo do JSON, "__proto__" trocaria o protótipo
+const comoTxt = v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
+const textos = (o, campos) => campos.forEach(c => { if (o[c] != null && typeof o[c] !== 'string') o[c] = comoTxt(o[c]); });
+const numero = (v, d) => typeof v === 'number' ? (Number.isFinite(v) ? v : d) : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : d;
+const ident = v => typeof v === 'string' ? v : typeof v === 'number' && Number.isFinite(v) ? String(v) : uid();
+const diaDoMes = (v, d) => { const n = numero(v, NaN); return Number.isFinite(n) ? Math.min(31, Math.max(1, Math.round(n))) : d; };
+/* limites (padrão e do mês): só ficam valores que o app lê como número (ele lê com numOr) */
+function limitesLimpos(o){
+  const r = {}; Object.keys(o).forEach(k => { const v = o[k]; if (k !== '__proto__' && (typeof v === 'number' ? Number.isFinite(v) : typeof v === 'string' && Number.isFinite(parseNum(v)))) r[k] = v; }); return r;
+}
+function lancLimpo(g, k, campos){
+  if (!ehObj(g)) return null;
+  g = semProto(g); g.id = ident(g.id); g.valor = numero(g.valor, 0); textos(g, campos);
+  if (!DATA_RE.test(g.data)) g.data = k + '-01';
+  return g;
+}
 function normalize(o){
-  const d = defaults();
-  const s = Object.assign(d, o || {});
-  if (!Array.isArray(s.caixinhas) || !s.caixinhas.length) s.caixinhas = defaults().caixinhas; // d já foi sobrescrito pelo Object.assign
-  ['cartoes','compras','metas','formas'].forEach(k => { if (!Array.isArray(s[k])) s[k] = defaults()[k]; });
-  if (!s.tabelas || !s.tabelas.inss || !s.tabelas.irrf || !s.tabelas.fgts) s.tabelas = clone(T2026);
-  if (!s.meses || typeof s.meses !== 'object') s.meses = {};
-  if (!s.recebidos || typeof s.recebidos !== 'object') s.recebidos = {};
-  if (!s.limitesPadrao) s.limitesPadrao = {};
-  if (!Array.isArray(s.fixos)) s.fixos = [];
+  const s = Object.assign(defaults(), ehObj(o) ? semProto(o) : {});
+  s.caixinhas = (Array.isArray(s.caixinhas) ? s.caixinhas : []).filter(ehObj).map(c => {
+    c = semProto(c); c.id = ident(c.id); textos(c, ['nome', 'ajuda', 'icone']);
+    if ('cor' in c && !(typeof c.cor === 'string' && COR_RE.test(c.cor))) c.cor = PALETA[0];
+    return c;
+  });
+  if (!s.caixinhas.length) s.caixinhas = defaults().caixinhas;
+  if (Array.isArray(s.formas)) s.formas = s.formas.filter(f => typeof f === 'string' || typeof f === 'number').map(String); else s.formas = defaults().formas;
+  s.cartoes = (Array.isArray(s.cartoes) ? s.cartoes : []).filter(ehObj).map(c => {
+    c = semProto(c); c.id = ident(c.id); textos(c, ['nome']); c.fecha = diaDoMes(c.fecha, 1); c.vence = diaDoMes(c.vence, 10); return c;
+  });
+  s.compras = (Array.isArray(s.compras) ? s.compras : []).filter(ehObj).map(c => {
+    c = semProto(c); c.id = ident(c.id); textos(c, ['cartao', 'desc', 'dono']);
+    c.valorParcela = numero(c.valorParcela, 0); c.parcelas = Math.min(1200, Math.max(0, Math.round(numero(c.parcelas, 0))));
+    if (!MES_RE.test(c.inicio)) c.inicio = thisMonth();
+    if ('fim' in c && !MES_RE.test(c.fim)) delete c.fim;
+    return c;
+  });
+  s.fixos = (Array.isArray(s.fixos) ? s.fixos : []).filter(ehObj).map(f => {
+    f = semProto(f); f.id = ident(f.id); textos(f, ['desc', 'caixinha', 'forma']); f.valor = numero(f.valor, 0); f.dia = diaDoMes(f.dia, 1);
+    if ('pulados' in f && !Array.isArray(f.pulados)) f.pulados = [];
+    return f;
+  });
+  s.taxaRef = numero(s.taxaRef, 13.75);
+  s.metas = (Array.isArray(s.metas) ? s.metas : []).filter(ehObj).map(m => {
+    m = semProto(m); m.id = ident(m.id); textos(m, ['nome', 'onde']);
+    ['alvo', 'atual', 'aporte'].forEach(c => { m[c] = numero(m[c], 0); }); m.taxa = numero(m.taxa, s.taxaRef);
+    return m;
+  });
+  const T = s.tabelas, linhas = l => Array.isArray(l) && l.length > 0 && l.every(Array.isArray);
+  if (!ehObj(T) || !ehObj(T.inss) || !linhas(T.inss.faixas) || !ehObj(T.irrf) || !linhas(T.irrf.faixas) || !ehObj(T.irrf.reducao) || !linhas(T.fgts)) s.tabelas = clone(T2026);
+  const meses = {};
+  if (ehObj(s.meses)) Object.keys(s.meses).forEach(k => {
+    const m0 = s.meses[k]; if (!MES_RE.test(k) || !ehObj(m0)) return; // mês com chave que não é mês não tem como aparecer: sai
+    const m = semProto(m0);
+    m.gastos = (Array.isArray(m.gastos) ? m.gastos : []).map(g => lancLimpo(g, k, ['descricao', 'caixinha', 'forma', 'fixoId'])).filter(Boolean);
+    if ('entradas' in m) m.entradas = (Array.isArray(m.entradas) ? m.entradas : []).map(e => lancLimpo(e, k, ['descricao'])).filter(Boolean);
+    if ('limites' in m) { if (ehObj(m.limites)) m.limites = limitesLimpos(m.limites); else delete m.limites; }
+    if ('saldoInicial' in m && !Number.isFinite(m.saldoInicial)) delete m.saldoInicial;
+    meses[k] = m;
+  });
+  s.meses = meses;
+  const rec = {}; if (ehObj(s.recebidos)) Object.keys(s.recebidos).forEach(k => { if (k !== '__proto__' && ehObj(s.recebidos[k])) rec[k] = semProto(s.recebidos[k]); });
+  s.recebidos = rec;
+  s.limitesPadrao = ehObj(s.limitesPadrao) ? limitesLimpos(s.limitesPadrao) : {};
   if (typeof s.onboarded !== 'boolean') s.onboarded = hasData(s);
   if (typeof s.guiaVisto !== 'boolean') s.guiaVisto = false;
   return s;
@@ -1945,8 +2004,10 @@ async function usarPastaNativa(pasta){
 function baixarJSON(nome, txt){ if (NATIVO) { enviarNativo(nome, txt, 'application/json', 'Backup do Orolon Caixinhas'); return; } const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 function confirmarImport(o){
   UI.imp = o;
-  const ng = Object.values(o.meses || {}).reduce((a,m)=>a+((m.gastos||[]).length),0);
-  $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${(o.compras||[]).length} compras e ${(o.metas||[]).length} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
+  // contagens só de listas de verdade: um backup adulterado não leva texto nenhum para este aviso
+  const n = l => Array.isArray(l) ? l.length : 0;
+  const ng = Object.values(o.meses && typeof o.meses === 'object' ? o.meses : {}).reduce((a,m)=>a+n(m && m.gastos),0);
+  $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${n(o.compras)} compras e ${n(o.metas)} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
 }
 const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
@@ -2085,7 +2146,7 @@ function renderMes(){
     </div>`;
   $('mesBoxes').innerHTML = S.caixinhas.map(c => {
     const p = R.por[c.id], st = status(p), w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
-    const col = p.sobra < 0 ? 'var(--over)' : c.cor;
+    const col = p.sobra < 0 ? 'var(--over)' : esc(corOk(c.cor));
     return `<div class="box" data-cx="${esc(c.id)}" style="--c:${esc(corOk(c.cor))}">
       ${cxi(c)}
       <button class="name" type="button" data-act="cx-help" data-id="${esc(c.id)}" aria-expanded="false">${esc(c.nome)}<small>${fmt(p.gasto)} de ${fmt(p.limite)}</small></button>
@@ -2223,7 +2284,7 @@ function renderComparacao(k){
   const linhas = ids.map(id => {
     const c = cx(id), a = A[id] || 0, p = P[id] || 0; if (!a && !p) return '';
     const d = r2(a - p), var_ = !p ? (a ? 'novo' : '') : Math.abs(d) < 0.01 ? 'igual' : `${d > 0 ? '+' : '−'} ${fmt(Math.abs(d))}`; // o sinal não quebra longe do valor
-    return `<div class="cmp"><div class="cmp-h"><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:${esc(c.cor)}"></span>${esc(c.nome)}</span><span class="hint num">${var_}</span></div>
+    return `<div class="cmp"><div class="cmp-h"><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:${esc(corOk(c.cor))}"></span>${esc(c.nome)}</span><span class="hint num">${var_}</span></div>
       <div class="cmp-b" title="${esc(nA)}: ${fmt(a)}"><span class="trk"><i style="width:${w(a)}%"></i></span><span class="num">${fmt(a)}</span></div>
       <div class="cmp-b ant" title="${esc(nP)}: ${fmt(p)}"><span class="trk"><i style="width:${w(p)}%"></i></span><span class="num">${fmt(p)}</span></div></div>`;
   }).join('');
@@ -2247,10 +2308,10 @@ function renderFixos(){
   $('xCx').innerHTML = S.caixinhas.map(c => `<option value="${esc(c.id)}" ${c.id === cxSel ? 'selected' : ''}>${esc(c.nome)}</option>`).join('');
   $('xForma').innerHTML = S.formas.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
   $('fixosLista').innerHTML = S.fixos.length ? S.fixos.map(f => `<div class="item">
-      <span class="dot" style="background:${esc(cx(f.caixinha).cor)}"></span>
+      <span class="dot" style="background:${esc(corOk(cx(f.caixinha).cor))}"></span>
       <span class="desc">${esc(f.desc)}</span>
       <span class="val num">${fmt(f.valor)}</span>
-      <span class="sub">todo dia ${f.dia} · ${esc(cx(f.caixinha).nome)} · ${esc(f.forma || '')}</span>
+      <span class="sub">todo dia ${Number(f.dia)} ·${esc(cx(f.caixinha).nome)} · ${esc(f.forma || '')}</span>
       <span class="act"><button class="link ${UI.armed === 'f:' + f.id ? 'armed' : ''}" type="button" data-act="del-fixo" data-id="${esc(f.id)}">${UI.armed === 'f:' + f.id ? 'Toque de novo' : 'Remover'}</button></span>
     </div>`).join('') : `<p class="empty">Nenhum gasto fixo cadastrado.</p>`;
 }
@@ -2363,7 +2424,7 @@ function renderCartao(){
           <span class="dot" style="background:${i.c.dono ? 'var(--gold)' : 'var(--accent)'}"></span>
           <span class="desc">${esc(i.c.desc)}${i.c.ex ? '<span class="ex">exemplo</span>' : ''}</span>
           <span class="val num">${fmt(i.valor)}</span>
-          <span class="sub">${i.N ? `parcela ${i.n}/${i.N}` : 'assinatura'}${i.c.dono ? ` · de ${esc(i.c.dono)}` : ''}</span>
+          <span class="sub">${i.N ? `parcela ${Number(i.n)}/${Number(i.N)}` : 'assinatura'}${i.c.dono ? ` · de ${esc(i.c.dono)}` : ''}</span>
         </div>`).join('') : `<p class="empty">Nada nesta fatura.</p>`}</div></section>`;
     }).join('');
   }
@@ -2397,7 +2458,7 @@ function renderCartao(){
   $('cartList').innerHTML = S.cartoes.length ? S.cartoes.map(c => `<div class="item">
       <span class="dot" style="background:var(--accent)"></span>
       <span class="desc">${esc(c.nome)}</span><span class="val"></span>
-      <span class="sub">fecha dia ${c.fecha} · vence dia ${c.vence}</span>
+      <span class="sub">fecha dia ${Number(c.fecha)} · vence dia ${Number(c.vence)}</span>
       <span class="act"><button class="link ${UI.armed === 'k:' + c.id ? 'armed' : ''}" type="button" data-act="del-cartao" data-id="${esc(c.id)}">${UI.armed === 'k:' + c.id ? 'Toque de novo (apaga as compras dele)' : 'Apagar'}</button></span>
     </div>`).join('') : '<p class="empty">Nenhum cartão ainda.</p>';
   if (!S.cartoes.length) $('dCartoes').open = true;
@@ -2409,7 +2470,7 @@ function renderCartao(){
     return `<div class="item">
       <span class="dot" style="background:${c.dono ? 'var(--gold)' : 'var(--accent)'}"></span>
       <span class="desc">${esc(c.desc)}${c.ex ? '<span class="ex">exemplo</span>' : ''}</span>
-      <span class="val num">${fmt(c.valorParcela)}${c.parcelas ? ` × ${c.parcelas}` : '/mês'}</span>
+      <span class="val num">${fmt(c.valorParcela)}${c.parcelas ? ` × ${Number(c.parcelas)}` : '/mês'}</span>
       <span class="sub">${ct ? esc(ct.nome) + ' · ' : ''}${c.parcelas ? `${esc(monthLabel(c.inicio, true))} a ${esc(monthLabel(ultima, true))}/${ultima.slice(2,4)}` : `assinatura desde ${esc(monthLabel(c.inicio, true))}`}${c.dono ? ' · de ' + esc(c.dono) : ''}${ativa ? '' : ' · quitada'}</span>
       <span class="act">${!c.parcelas ? `<button class="link" type="button" data-act="ass-end" data-id="${esc(c.id)}">${c.fim ? 'Reativar' : 'Encerrar'}</button>` : ''}<button class="link ${UI.armed === 'c:' + c.id ? 'armed' : ''}" type="button" data-act="del-compra" data-id="${esc(c.id)}">${UI.armed === 'c:' + c.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`;
@@ -2745,7 +2806,7 @@ function renderMetas(){
   const totAlvo = ms.reduce((a,m)=>a+Math.max(0, m.alvo),0), batidas = ms.filter(m => m.alvo > 0 && m.atual >= m.alvo).length;
   $('metasResumo').innerHTML = ms.length ? `<div class="n-vidro n-resumo">
       <div class="n-resumo-topo"><span class="n-rot">Guardado nas metas</span></div>
-      <span class="big num" data-conta="${totAtual}">${fmt(totAtual)}</span>
+      <span class="big num" data-conta="${Number(totAtual)}">${fmt(totAtual)}</span>
       <div class="n-chips"><span class="n-chip"><b class="num">${fmt(totAp)}</b>&nbsp;por mês planejados</span>${batidas ? `<span class="n-chip ok">${batidas} ${batidas === 1 ? 'meta batida' : 'metas batidas'}</span>` : ''}</div>
       ${totAlvo > 0 ? fita([{ w: Math.min(totAtual, totAlvo) / totAlvo, cor: 'var(--accent)' }], null) : ''}
       ${totAlvo > 0 ? `<p class="n-fatos">${pct(Math.min(100, totAtual / totAlvo * 100))} do total dos alvos, <b class="num">${fmt(totAlvo)}</b></p>` : ''}
@@ -3382,7 +3443,19 @@ document.addEventListener('click', e => {
       try { navigator.clipboard.writeText(txt).then(() => { marcaBackup(); renderAll(); toast('Backup copiado. Cole num lugar seguro.'); }, fallback); } catch (err) { fallback(); }
       break;
     }
-    case 'imp-ok': { bkpGuardar('Antes de importar'); const old = Object.keys(S.meses); S = normalize(UI.imp); UI.imp = null; UI.cxDraft = null; $('impConfirm').innerHTML = ''; persistAll(old); renderAll(); toast('Backup importado'); break; }
+    case 'imp-ok': {
+      bkpGuardar('Antes de importar');
+      const antes = S, old = Object.keys(S.meses);
+      S = normalize(UI.imp); UI.imp = null; UI.cxDraft = null; $('impConfirm').innerHTML = '';
+      // se, mesmo limpo, o backup ainda derrubar o desenho, tudo volta ao que era (também o que ficou gravado) e a pessoa é avisada
+      try { persistAll(old); renderAll(); }
+      catch (err) {
+        const novas = Object.keys(S.meses); S = antes; UI.cxDraft = null; persistAll(novas); renderAll();
+        $('impConfirm').innerHTML = '<p class="hint bad">Esse backup não pôde ser aberto: ele parece estragado. Nada foi trocado, seus dados continuam como estavam.</p>';
+        toast('Backup não importado. Nada foi trocado.'); break;
+      }
+      toast('Backup importado'); break;
+    }
     case 'imp-no': UI.imp = null; $('impConfirm').innerHTML = ''; break;
     case 'exemplo': carregarExemplo(); break;
     case 'ex-clear': apagarExemplos(); break;

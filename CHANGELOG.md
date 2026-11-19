@@ -50,6 +50,7 @@ A versão preparada para levar o Orolon Caixinhas à Google Play (ainda não pub
 
 ### Correções
 - **Backup sem caixinhas:** importar um backup que não tinha nenhuma caixinha fazia o app parar de abrir. Agora ele abre com as caixinhas de fábrica.
+- **Backup estragado ou adulterado:** importar um arquivo com campos fora do formato podia quebrar o app, que não abria mais. Agora o app confere cada campo ao ler (seus dados de verdade ficam exatamente como estão) e, se mesmo assim o backup não puder ser aberto, nada é trocado e o app avisa.
 - **Gasto de uma caixinha apagada:** editar esse gasto podia passá-lo para outra caixinha sem você ver. Agora a folha mostra "Caixinha apagada" e o gasto só muda de caixinha se você escolher outra.
 - **Forma de pagamento removida:** editar um gasto pago com uma forma que você já tinha tirado da lista podia trocar a forma sem avisar. Agora a forma do gasto continua a mesma até você mudar, e ela não aparece mais nos lançamentos novos.
 - Um tema guardado com defeito no aparelho não impede mais o app de abrir.

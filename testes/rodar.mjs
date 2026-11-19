@@ -235,6 +235,33 @@ const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a
 const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
 const cartaoMeta = (p, nome) => p.avaliar((nome) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); return c ? c.textContent.replace(/\s+/g, " ") : ""; }, nome);
 const comExemplo = async (p) => { await p.clicar('[data-act="onb-exemplo"]'); await p.espera(200); };
+// importa um backup pelo mesmo caminho da pessoa (Ajustes › Dados › Importar backup › Substituir); obj pode ser texto
+const importarBackup = async (p, obj) => {
+  await p.aba("ajustes/dados");
+  await p.avaliar((txt) => { const i = document.querySelector("#impFile"), dt = new DataTransfer(); dt.items.add(new File([txt], "backup.json", { type: "application/json" })); i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); }, typeof obj === "string" ? obj : JSON.stringify(obj));
+  certo(await p.ate(() => !!document.querySelector('#impConfirm [data-act="imp-ok"]')), "a importação não pediu confirmação: " + await p.texto("#impConfirm"));
+  await p.clicar('[data-act="imp-ok"]'); await p.espera(250);
+};
+const guardado = (p) => p.avaliar(() => JSON.parse(localStorage.getItem("caixinhas-orologia-v1")));
+// texto canônico (chaves em ordem): compara dados sem depender da ordem das chaves
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((c) => [c, x[c]])) : x));
+// confere que cada campo do backup voltou igual depois da importação. O app só pode ter acrescentado o que é dele:
+// campos que faltavam (com o valor de fábrica) e os gastos fixos que ele lança sozinho (com fixoId), no fim da lista do mês.
+const conferirIntacto = (antes, depois, nome) => {
+  for (const k of Object.keys(antes)) {
+    if (k !== "meses") { igual(canon(depois[k]), canon(antes[k]), `${nome}: campo ${k}`); continue; }
+    for (const mk of Object.keys(antes.meses)) {
+      const a = antes.meses[mk], d = depois.meses[mk];
+      certo(d, `${nome}: o mês ${mk} sumiu`);
+      for (const c of Object.keys(a)) {
+        if (c !== "gastos") { igual(canon(d[c]), canon(a[c]), `${nome}: ${mk}.${c}`); continue; }
+        igual(canon(d.gastos.slice(0, a.gastos.length)), canon(a.gastos), `${nome}: gastos de ${mk}`);
+        certo(d.gastos.slice(a.gastos.length).every((g) => g.fixoId), `${nome}: ${mk} ganhou gastos que não são fixos`);
+      }
+    }
+    for (const mk of Object.keys(depois.meses).filter((m) => !(m in antes.meses))) certo((depois.meses[mk].gastos || []).every((g) => g.fixoId), `${nome}: mês ${mk} novo com gastos que não são fixos`);
+  }
+};
 const varCss = (p, nome) => p.avaliar((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toUpperCase(), nome);
 const lerTemaGuardado = (p) => p.avaliar(() => JSON.parse(localStorage.getItem("caixinhas-orologia-tema") || "{}"));
 // cola um tema na Aparência (Colar tema → Importar)
@@ -403,6 +430,120 @@ const TESTES = {
     // a chave da 1.9 não tem "leve": visual completo, chave desligada, e nada é reescrito só por abrir
     igual(await p.avaliar(() => document.documentElement.hasAttribute("data-leve") + "|" + document.querySelector("#tgLeve").checked + "|" + document.querySelector("#tgLeveNota").hidden), "false|false|true", "visual leve desligado para quem vem da 1.9");
     igual(await p.avaliar(() => "leve" in JSON.parse(localStorage.getItem("caixinhas-orologia-tema"))), false, "a chave do tema continua sem leve");
+  },
+  "Backup legítimo passa pela limpeza da importação sem mudar nada": async (p) => {
+    const casos = [];
+    // 1) os exemplos que o próprio app grava
+    await comExemplo(p); casos.push(["exemplos do app", await guardado(p)]);
+    // 2) o estado de quem vem da 1.9 (o mesmo do teste da atualização), do jeito que estava guardado
+    await semearContas(p); casos.push(["estado da 1.9", await guardado(p)]);
+    // 3) os dados do script das imagens da loja (a função dados() do próprio script, com o hoje de verdade)
+    const fonte = readFileSync(join(RAIZ, "scripts", "prints-loja.mjs"), "utf8");
+    const corpo = fonte.slice(fonte.indexOf("function dados() {"), fonte.indexOf("/* ---- o que roda na página antes do app"));
+    const h = new Date(); casos.push(["dados das imagens da loja", new Function("HOJE", corpo + "\nreturn dados();")([h.getFullYear(), h.getMonth(), h.getDate()])]);
+    // 4) valores estranhos mas legítimos: cor em minúsculas e #RGB, centavos, descrição vazia, gasto de caixinha apagada,
+    //    forma removida, parcelas de 1 a 48 e assinatura encerrada, dias de 1 a 31, limites do mês, saldo inicial, entradas
+    const hoje = new Date(), pad = (n) => String(n).padStart(2, "0"), cur = hoje.getFullYear() + "-" + pad(hoje.getMonth() + 1);
+    const ult = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate(), antes = "2025-02", r2 = (v) => Math.round(v * 100) / 100;
+    casos.push(["valores estranhos mas legítimos", {
+      v: 1, onboarded: true, guiaVisto: false,
+      caixinhas: [{ id: "a", nome: "Casa", cor: "#abcdef", ajuda: "", icone: "casa" }, { id: "b", nome: "Rua", cor: "#abc" }, { id: "c", nome: "Ç ã é — 30 letras de nome aqui!", cor: "#9C9BF5", ajuda: "Para <tudo> & \"aspas\"" }],
+      limitesPadrao: { a: 1000, b: 250.55, c: 0 },
+      formas: ["Pix", "Vale-refeição"],
+      cartoes: Array.from({ length: 31 }, (_, i) => ({ id: "k" + i, nome: "Cartão " + (i + 1), fecha: i + 1, vence: 31 - i })),
+      compras: Array.from({ length: 48 }, (_, i) => ({ id: "c" + i, cartao: "k" + (i % 31), desc: i ? "Compra " + i : "", valorParcela: r2(10.05 + i * 1.11), parcelas: i + 1, inicio: i % 2 ? cur : antes, dono: i % 5 ? "" : "Irmã", criado: 1790000000000 + i }))
+        .concat([{ id: "s1", cartao: "k0", desc: "Assinatura encerrada", valorParcela: 19.9, parcelas: 0, inicio: antes, dono: "", fim: cur }]),
+      fixos: Array.from({ length: 31 }, (_, i) => ({ id: "f" + i, desc: "Fixo " + (i + 1), valor: r2(1.01 * (i + 1)), caixinha: i === 3 ? "apagada" : "a", forma: i === 4 ? "Cheque" : "Pix", dia: i + 1, desde: cur, pulados: [cur] })),
+      metas: [{ id: "m1", nome: "Reserva", onde: "", alvo: 1000.01, atual: 0, aporte: 0, taxa: 0 }, { id: "m2", nome: "Batida", onde: "Banco", alvo: 10, atual: 12.34, aporte: 5.5, taxa: 13.75 }],
+      recebidos: { [cur]: { "Irmã": true } },
+      taxaRef: 10.65,
+      meses: {
+        [cur]: { gastos: [
+          { id: "g1", valor: 0.01, descricao: "", caixinha: "apagada", forma: "Cheque", data: cur + "-01", criado: 1790000000000 },
+          { id: "g2", valor: 1234.56, descricao: "Último dia", caixinha: "b", forma: "Pix", data: cur + "-" + pad(ult), criado: 1790000000001, ex: true },
+        ], entradas: [{ id: "e1", valor: 5400.5, descricao: "Salário", data: cur + "-05", criado: 1790000000002 }], limites: { a: 900.5, b: 0 }, saldoInicial: 1234.56 },
+        [antes]: { gastos: [{ id: "g3", valor: 99.99, descricao: "Fevereiro", caixinha: "a", forma: "Débito", data: antes + "-28", criado: 1790000000003, fixoId: "f0" }] },
+      },
+    }]);
+    for (const [nome, estado] of casos) {
+      await importarBackup(p, estado);
+      conferirIntacto(estado, await guardado(p), nome);
+    }
+  },
+  "Backup adulterado com marcação HTML não roda nada em nenhuma tela": async (p) => {
+    // cada campo que vai para a tela recebe uma marcação que, se entrar crua no HTML, grava window.__xss
+    const X = '"><img src=x onerror="window.__xss=(window.__xss||0)+1">', pad = (n) => String(n).padStart(2, "0");
+    const hoje = new Date(), cur = hoje.getFullYear() + "-" + pad(hoje.getMonth() + 1);
+    await comExemplo(p);
+    // primeiro, a contagem da confirmação: um "gastos" ou "metas" que não é lista não pode levar marcação ao aviso
+    await p.aba("ajustes/dados");
+    await p.avaliar((txt) => { const i = document.querySelector("#impFile"), dt = new DataTransfer(); dt.items.add(new File([txt], "b.json")); i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); },
+      JSON.stringify({ caixinhas: [{ id: "a", nome: "A", cor: "#9C9BF5" }], compras: { length: X }, metas: { length: X }, meses: { [cur]: { gastos: { length: X } } } }));
+    await p.espera(600);
+    igual(await p.avaliar(() => window.__xss), undefined, "a confirmação da importação rodou a marcação do backup");
+    await p.clicar('[data-act="imp-no"]');
+    const mal = {
+      onboarded: true, guiaVisto: true, taxaRef: X,
+      caixinhas: [{ id: "a", nome: X, cor: X, ajuda: X, icone: X }, { id: X, nome: "Outra", cor: "red;background:url(x)" }, X, null, 5],
+      limitesPadrao: { a: X },
+      formas: [X, "Pix", { x: X }],
+      cartoes: [{ id: "k1", nome: X, fecha: X, vence: X }, X],
+      compras: [{ id: "c1", cartao: "k1", desc: X, valorParcela: X, parcelas: X, inicio: cur, dono: X }, { id: "c2", cartao: "k1", desc: "Assinatura", valorParcela: 10, parcelas: 0, inicio: X, dono: "", fim: X }],
+      fixos: [{ id: "f1", desc: X, valor: X, caixinha: "a", forma: X, dia: X, desde: cur, pulados: [] }, X],
+      metas: [{ id: "m1", nome: X, onde: X, alvo: X, atual: X, aporte: X, taxa: X }, X],
+      recebidos: { [cur]: { [X]: true } },
+      tabelas: { ano: X, inss: { faixas: X }, irrf: { faixas: [[X, X, X]] }, fgts: X },
+      meses: {
+        [cur]: { gastos: [{ id: "g1", valor: X, descricao: X, caixinha: "a", forma: X, data: X }, { id: X, valor: 5, descricao: "ok", caixinha: X, forma: "Pix", data: cur + "-02" }, X, null],
+          entradas: [{ id: "e1", valor: X, descricao: X, data: X }], limites: { a: X }, saldoInicial: X },
+        [X]: { gastos: [{ id: "g9", valor: 1, descricao: X, caixinha: "a", forma: "Pix", data: X }] },
+      },
+    };
+    await importarBackup(p, mal);
+    const conferir = async (onde) => {
+      await p.espera(400); // a imagem quebrada avisa (onerror) depois de tentar carregar
+      igual(await p.avaliar(() => window.__xss), undefined, "a marcação do backup rodou em " + onde);
+      igual(await p.avaliar(() => document.querySelectorAll("img").length), 0, "apareceu uma imagem que veio do backup em " + onde);
+    };
+    for (const t of ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/caixinhas", "ajustes/pagamento", "ajustes/dados", "guia"]) { await p.aba(t); await conferir(t); }
+    // a lista do Mês com todos os meses, a folha de lançar e a edição de um gasto
+    await p.aba("mes"); await p.avaliar(() => { const c = document.querySelector("#fTodos"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); }); await conferir("Mês com todos os meses");
+    await p.clicar("#fab"); await conferir("folha de lançar");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    await p.clicar("#mesLista .n-lanc"); await conferir("edição de um gasto");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // e depois de abrir de novo (a limpeza vale também para o que já está guardado)
+    await p.recarregar();
+    for (const t of ["inicio", "mes", "cartao", "metas"]) { await p.aba(t); await conferir(t + " depois de reabrir"); }
+  },
+  "Backup estragado não derruba o app; se o desenho falhar, a importação volta atrás e avisa": async (p) => {
+    const pad = (n) => String(n).padStart(2, "0"), h = new Date(), cur = h.getFullYear() + "-" + pad(h.getMonth() + 1);
+    await comExemplo(p);
+    // 1) itens malformados: gasto sem data, caixinha que não é objeto, entrada vazia, compra sem início, cartão sem dias
+    await importarBackup(p, { onboarded: true, guiaVisto: true, caixinhas: [5, { id: "a", nome: "Casa", cor: "#9C9BF5" }], limitesPadrao: { a: 500 },
+      cartoes: [{ id: "k", nome: "Cartão" }], compras: [{ id: "c", cartao: "k", desc: "Fone", valorParcela: 50, parcelas: 2 }],
+      meses: { [cur]: { gastos: [{ id: "g1", valor: 10, descricao: "Sem data", caixinha: "a", forma: "Pix" }], entradas: [null] } } });
+    for (const t of ["inicio", "mes", "graficos", "cartao"]) await p.aba(t);
+    await p.aba("mes");
+    certo((await p.texto("#mesLista")).includes("Sem data"), "o gasto sem data devia continuar lá (com uma data segura): " + await p.texto("#mesLista"));
+    await p.recarregar();
+    igual(await p.texto("#inSobra"), "R$ 490,00", "o app abre depois do backup estragado");
+    // 2) se mesmo assim o desenho falhar no meio, nada é trocado: os dados de antes ficam e a pessoa é avisada
+    const antes = await guardado(p);
+    await p.aba("ajustes/dados");
+    await p.avaliar((txt) => { const i = document.querySelector("#impFile"), dt = new DataTransfer(); dt.items.add(new File([txt], "b.json")); i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); },
+      JSON.stringify({ caixinhas: [{ id: "z", nome: "Zebra", cor: "#9C9BF5" }], limitesPadrao: { z: 1 } }));
+    certo(await p.ate(() => !!document.querySelector('#impConfirm [data-act="imp-ok"]')), "a importação devia pedir confirmação");
+    // um desenho que falha uma vez (simula um defeito que a limpeza não previu)
+    await p.avaliar(() => { const o = Date.prototype.toLocaleDateString; window.__quebrar = true; Date.prototype.toLocaleDateString = function (...a) { if (window.__quebrar) { window.__quebrar = false; throw new Error("desenho quebrado"); } return o.apply(this, a); }; });
+    await p.clicar('[data-act="imp-ok"]'); await p.espera(300);
+    igual(await p.avaliar(() => window.__quebrar), false, "o desenho devia ter falhado uma vez");
+    certo((await p.texto("#impConfirm")).includes("Nada foi trocado"), "devia avisar que nada foi trocado: " + await p.texto("#impConfirm"));
+    igual(canon(await guardado(p)), canon(antes), "os dados guardados continuam os de antes");
+    await p.aba("inicio");
+    certo(!(await p.texto("#inCx")).includes("Zebra"), "a tela continua com os dados de antes: " + await p.texto("#inCx"));
+    await p.recarregar();
+    igual(await p.texto("#inSobra"), "R$ 490,00", "e o app abre com eles");
   },
   "Início e telas vizinhas sem estourar, nos temas noite e dia (prints)": async (p) => {
     await comExemplo(p);
