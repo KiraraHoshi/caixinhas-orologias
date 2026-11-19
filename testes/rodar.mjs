@@ -102,10 +102,11 @@ function capacitorFalso() {
   const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
   const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [], barras: [] });
   // "__launch" no localStorage = endereço com que o Android abriu o app (o toque no widget com o app fechado).
-  // Como no Capacitor: getLaunchUrl devolve sempre o mesmo endereço (até num recarregar), e o appUrlOpen da abertura
-  // fica guardado até alguém ouvir, uma vez só por abertura (num recarregar ele não volta).
+  // Como no Capacitor: getLaunchUrl devolve sempre o mesmo endereço (até num recarregar ou ao voltar de outra página), e o
+  // appUrlOpen da abertura fica guardado até alguém ouvir e sai uma vez só por abertura do app. Uma abertura do app = uma
+  // sessão da WebView (sessionStorage); abrir o app do zero nos testes limpa o sessionStorage.
   const abertura = () => ler("__launch", null);
-  const recarga = () => { try { return (performance.getEntriesByType("navigation")[0] || {}).type === "reload"; } catch (e) { return false; } };
+  const recarga = () => { try { if (sessionStorage.getItem("__urlEntregue")) return true; sessionStorage.setItem("__urlEntregue", "1"); return false; } catch (e) { return false; } };
   window.Capacitor = { isNativePlatform: () => true, Plugins: {
     App: {
       addListener: (ev, fn) => {
@@ -416,7 +417,17 @@ const TESTES = {
   "Quem vem da 1.9 abre a 2.0 com tudo no lugar": async (p) => {
     await semearContas(p);
     await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-mare", meus: [{ id: "tmeu1", nome: "Meu roxo", fundo: "#1A1030", card: "#2A1F45", texto: "#F5F0FF", suave: "#B8A8D8", destaque: "#C78BFF", secundaria: "#FFD27A", raio: 16, fonte: "padrao" }] })));
+    // PIN 1234 e backup feitos na 1.9 (o PIN no formato que a 1.9 grava: SHA-256 de "sal:pin")
+    await p.avaliar(async () => {
+      const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("sal19:1234"));
+      localStorage.setItem("caixinhas-orologia-pin", JSON.stringify({ h: [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""), salt: "sal19", m: "s", n: 4, tempo: 0 }));
+      localStorage.setItem("caixinhas-orologia-backup", JSON.stringify(Date.now()));
+    });
     await p.recarregar();
+    certo(await p.visivel("#trava"), "com o PIN da 1.9, o app abre travado");
+    for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
+    await p.espera(500);
+    igual(await p.visivel("#trava"), false, "o PIN da 1.9 destrava a 2.0");
     igual(await p.avaliar(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()), "#0A1418", "o tema escolhido (Maré) continua aplicado");
     const esperado = await p.avaliar(() => {
       const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
@@ -432,7 +443,38 @@ const TESTES = {
     // a chave da 1.9 não tem "leve": visual completo, chave desligada, e nada é reescrito só por abrir
     igual(await p.avaliar(() => document.documentElement.hasAttribute("data-leve") + "|" + document.querySelector("#tgLeve").checked + "|" + document.querySelector("#tgLeveNota").hidden), "false|false|true", "visual leve desligado para quem vem da 1.9");
     igual(await p.avaliar(() => "leve" in JSON.parse(localStorage.getItem("caixinhas-orologia-tema"))), false, "a chave do tema continua sem leve");
+    await p.aba("ajustes/dados");
+    certo((await p.texto("#ajOnde")).includes("Último backup: hoje"), "a data do último backup da 1.9 continua lida: " + await p.texto("#ajOnde"));
   },
+  "Android: quem vem da 1.9 continua com a pasta do backup escolhida": { nativo: true, fn: async (p) => {
+    await semearContas(p);
+    await p.avaliar(() => { localStorage.setItem("caixinhas-orologia-pasta", JSON.stringify({ uri: "content://pasta-de-teste", nome: "Backup" })); localStorage.setItem("caixinhas-orologia-backup-pasta", JSON.stringify(Date.now() - 3600000)); });
+    await p.recarregar(); await p.aba("ajustes/dados"); await p.espera(300);
+    certo((await p.texto("#bkpBox")).includes("Gravando na pasta “Backup”"), "a pasta escolhida na 1.9 continua: " + await p.texto("#bkpBox"));
+  } },
+  "Voltar ao app num mês novo atualiza o Início e o widget, sem mudar o mês escolhido no Mês": { nativo: true, fn: async (p) => {
+    // relógio do teste: Date com um deslocamento ajustável (window.__desloc, em ms); document.hidden controlado por window.__oculto
+    await p.injetar("(() => { const R = Date; class D extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() + (window.__desloc || 0)); } static now() { return R.now() + (window.__desloc || 0); } } window.Date = D; Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__oculto }); })();");
+    await p.recarregar(); await comExemplo(p);
+    await p.aba("mes"); await p.clicar('#v-mes [data-act="mes-prev"]');
+    const escolhido = await p.texto("#mesLabel");
+    await p.aba("inicio");
+    const antes = await p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "widget").length);
+    const prox = await p.avaliar(() => {
+      window.__oculto = true; document.dispatchEvent(new Event("visibilitychange"));
+      const agora = new Date(), alvo = new Date(agora.getFullYear(), agora.getMonth() + 1, 1, 10, 0, 0);
+      window.__desloc = alvo.getTime() - Date.now() + (window.__desloc || 0);
+      window.__oculto = false; document.dispatchEvent(new Event("visibilitychange"));
+      const pad = (n) => String(n).padStart(2, "0");
+      return { k: alvo.getFullYear() + "-" + pad(alvo.getMonth() + 1), nome: alvo.toLocaleDateString("pt-BR", { month: "long" }) };
+    });
+    await p.espera(300);
+    igual((await p.texto("#inResumo .n-mes")).toLowerCase(), prox.nome.toLowerCase(), "o Início passa para o mês novo ao voltar ao app");
+    const ws = await p.avaliar(() => window.__nativo.chamadas.filter((x) => x[0] === "widget").map((x) => x[1]));
+    certo(ws.length > antes && ws[ws.length - 1].mes === prox.k, "o widget recebe o mês novo ao voltar ao app: " + JSON.stringify(ws.slice(antes)));
+    await p.aba("mes");
+    igual(await p.texto("#mesLabel"), escolhido, "o Mês continua no mês que a pessoa escolheu");
+  } },
   "Backup legítimo passa pela limpeza da importação sem mudar nada": async (p) => {
     const casos = [];
     // 1) os exemplos que o próprio app grava
@@ -696,7 +738,7 @@ const TESTES = {
   } },
   "Durante a abertura a sobra conta até o valor": { movimento: true, fn: async (p) => {
     await comExemplo(p);
-    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
     let contou = false;
     for (let i = 0; i < 24 && !contou; i++) { await p.espera(50); const v = await p.texto("#inSobra").catch(() => null); if (v && v !== "R$ 1.230,70") contou = true; }
     certo(contou, "a sobra apareceu pronta, sem contar");
@@ -717,7 +759,7 @@ const TESTES = {
     await p.aba("ajustes");
     await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]');
     await p.aba("inicio"); // o endereço guarda a aba; a abertura só toca com o Início à vista
-    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
     await p.espera(1500);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura || ""), "", "a abertura não devia tocar atrás do bloqueio");
     for (const n of "1234") await p.clicar('[data-tk="' + n + '"]');
@@ -779,7 +821,7 @@ const TESTES = {
   } },
   "Lançar no meio da abertura termina no valor certo": { movimento: true, fn: async (p) => {
     await comExemplo(p);
-    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
     await p.espera(350);
     await lancar(p, 50, "Cinema");
     await p.espera(2500);
@@ -800,7 +842,7 @@ const TESTES = {
       const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
       localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 100000 },
         meses: { [mes]: { gastos: [{ id: "g1", valor: 99995, descricao: "Carro", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
-      localStorage.removeItem("caixinhas-orologia-abertura"); location.reload();
+      location.reload();
     }).catch(() => {});
     const classes = new Set();
     for (let i = 0; i < 40; i++) { await p.espera(40); const c = await p.avaliar(() => { const b = document.querySelector("#inSobra"); return b && b.textContent ? String(b.classList.contains("longo")) : null; }).catch(() => null); if (c) classes.add(c); }
@@ -821,7 +863,7 @@ const TESTES = {
   },
   "Gastar além do limite durante a abertura não corta o marcador de hoje": { movimento: true, fn: async (p) => {
     await comExemplo(p);
-    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
     await p.espera(120);
     await p.avaliar(() => {
       // ângulo do marcador de hoje no arco (anda de 0 até a posição do dia durante a abertura longa)
@@ -1218,10 +1260,10 @@ const TESTES = {
   },
   "Abrir em outra aba não gasta a abertura longa": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.aba("mes");
-    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
+    await p.avaliar(() => { location.reload(); }).catch(() => {});
     await p.espera(900);
     igual(await p.abaAtual(), "mes", "o app reabre na aba Mês");
-    igual(await p.avaliar(() => localStorage.getItem("caixinhas-orologia-abertura")), null, "a abertura longa não devia ser gasta fora do Início");
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura || ""), "", "a abertura longa não devia tocar fora do Início");
     await p.aba("inicio"); await p.espera(150);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "a longa toca quando o Início aparece");
   } },
@@ -1511,7 +1553,7 @@ const TESTES = {
     const url = (u) => p.avaliar((u) => window.__nativo.urlAberta({ url: u }), u).then(() => p.espera(300));
     const voltar = async () => { await p.avaliar(() => { window.__nativo.voltar(); }); await p.espera(350); };
     // o app abre de novo do zero (não é um recarregar): o Android cria a tela outra vez
-    const abrirDoZero = async () => { await p.avaliar(() => { location.href = "/index.html?aberto=" + Date.now(); }).catch(() => {}); await p.espera(1000); };
+    const abrirDoZero = async () => { await p.avaliar(() => { sessionStorage.clear(); location.href = "/index.html?aberto=" + Date.now(); }).catch(() => {}); await p.espera(1000); };
     // com o app aberto
     await p.aba("mes");
     await url("caixinhas://outra");
@@ -1552,6 +1594,23 @@ const TESTES = {
     for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
     await p.espera(600);
     igual(await folha(), true, "destravado, a folha abre");
+  } },
+  "Android: o toque no widget vale uma vez também ao voltar da política de privacidade": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    const folha = () => p.avaliar(() => !document.querySelector("#folhaGasto").hidden);
+    const pronta = () => p.ate(() => document.readyState === "complete" && !!window.TemaCx && !window.__velha);
+    await p.avaliar(() => { localStorage.setItem("__launch", JSON.stringify("caixinhas://lancar")); sessionStorage.clear(); location.href = "/index.html?aberto=" + Date.now(); }).catch(() => {});
+    await p.espera(1000); await pronta();
+    igual(await folha(), true, "aberto pelo widget, a folha aparece");
+    await p.avaliar(() => window.__nativo.voltar()); await p.espera(350);
+    igual(await folha(), false, "voltar fecha a folha");
+    // a política abre dentro do app; voltar dela carrega o index.html de novo, e o Capacitor devolve o mesmo endereço de abertura
+    await p.avaliar(() => { window.__velha = true; location.href = "/privacy.html"; }).catch(() => {}); await p.espera(800);
+    await p.avaliar(() => history.back()).catch(() => {}); await p.espera(1000); await pronta();
+    igual(await folha(), false, "ao voltar da política a folha não abre de novo");
+    // o mesmo para uma página carregada de novo de outro jeito, ainda na mesma abertura do app
+    await p.avaliar(() => { window.__velha = true; location.href = "/index.html?de-novo=" + Date.now(); }).catch(() => {}); await p.espera(1000); await pronta();
+    igual(await folha(), false, "carregar a página de novo na mesma abertura do app não abre a folha");
   } },
   "Android: o PIN que trava com a folha aberta só tira o foco; depois do código a folha está como estava (edição, gasto novo, widget)": { nativo: true, fn: async (p) => {
     await comExemplo(p);
@@ -2653,6 +2712,62 @@ const TESTES = {
         certo(colunas >= 2, `a galeria tem ao menos duas colunas em ${w}px (${tema}): ${colunas}`);
         await p.print(`24-aparencia-${tema}-${w}`, true);
       }
+    }
+  },
+  "Esqueci o PIN com a edição aberta: a folha fecha e o próximo lançamento é um gasto novo": async (p) => {
+    await comExemplo(p);
+    await p.aba("ajustes/pin"); await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]'); await p.espera(400);
+    await p.aba("mes"); await p.clicar("#mesLista .n-lanc");
+    igual(await p.texto("#gHead"), "Editar gasto", "a folha abriu em edição");
+    await p.clicar('[data-pin="agora"]');
+    await p.clicar('#trava [data-tk="esqueci"]'); await p.clicar('#trava [data-tk="zerar"]'); await p.clicar('#trava [data-tk="zerar"]');
+    await p.espera(500);
+    igual(await p.visivel("#trava"), false, "apagar tudo destrava");
+    igual(await p.avaliar(() => !document.querySelector("#folhaGasto").hidden), false, "a folha de edição fecha ao apagar tudo");
+    igual(await p.texto("#gHead"), "Lançar gasto", "a folha sai da edição");
+    igual(await p.abaAtual(), "inicio", "o app volta ao Início");
+    igual(await p.avaliar(() => location.hash), "#inicio", "o endereço também é o do Início");
+    await lancar(p, 7, "Café"); await p.espera(200);
+    const gs = await p.avaliar(() => Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses).flatMap((m) => m.gastos || []));
+    igual(gs.map((g) => g.descricao + ":" + g.valor).join(","), "Café:7", "o lançamento seguinte é um gasto novo, e o único");
+  },
+  "Contagem fora do Início não mexe no Início escondido": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.espera(3000); // a abertura do Início termina
+    // conta o que muda dentro do Início (a própria tela ser escondida pela troca de aba não conta)
+    await p.avaliar(() => { const v = document.querySelector("#v-inicio"); window.__mud = 0; new MutationObserver((l) => { window.__mud += l.filter((m) => m.target !== v).length; }).observe(v, { subtree: true, attributes: true, childList: true, characterData: true }); });
+    await p.aba("cartao"); // o total da fatura conta até o valor (uma contagem fora do Início)
+    await p.espera(1000);
+    igual(await p.avaliar(() => window.__mud), 0, "o Início escondido foi redesenhado durante a contagem do Cartão");
+    // e o Início continua certo quando volta
+    await p.aba("inicio"); await p.espera(1500);
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "a sobra do Início ao voltar");
+  } },
+  "Textos de ajuda falam do + e da engrenagem, não da navegação antiga": async (p) => {
+    await p.clicar('[data-act="onb-skip"]');
+    await p.aba("mes");
+    const vazio = await p.texto("#mesLista");
+    certo(vazio.includes("Toque no +") && !vazio.includes("“Lançar”"), "o Mês vazio devia mandar tocar no +: " + vazio);
+    await p.aba("guia");
+    const g = await p.avaliar(() => document.querySelector("#v-guia").textContent.replace(/\s+/g, " "));
+    certo(!g.includes("Mês → Lançar gasto"), "o guia ainda fala em Mês → Lançar gasto");
+    certo(g.includes("Toque no +") && g.includes("+ Lançar"), "o guia devia falar do + (celular) e do + Lançar (computador)");
+    certo(g.includes("engrenagem"), "o guia devia dizer que os Ajustes ficam na engrenagem");
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
+        await p.tamanho(w, h); await p.recarregar(); await p.aba("guia");
+        await p.avaliar(() => document.querySelectorAll("#v-guia details").forEach((d, i) => { d.open = i < 2; }));
+        await p.print(`29-guia-${tema}-${w}`);
+        await p.aba("mes"); await p.print(`29-mes-vazio-${tema}-${w}`);
+      }
+    }
+  },
+  "Tela do PIN respeita as barras do sistema em cima e embaixo": async (p) => {
+    await p.avaliar(() => { const r = document.documentElement; r.style.setProperty("--safe-area-inset-top", "30px"); r.style.setProperty("--safe-area-inset-bottom", "20px"); r.setAttribute("data-trava", ""); });
+    igual(await p.avaliar(() => { const c = getComputedStyle(document.querySelector("#trava")); return c.paddingTop + "|" + c.paddingBottom + "|" + c.paddingLeft; }), "54px|44px|24px", "recuo da tela do PIN (24 px mais a barra)");
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => { localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })); window.TemaCx.aplicar(window.TemaCx.porId(tema)); }, tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) { await p.tamanho(w, h); await p.espera(150); await p.print(`30-pin-recuos-${tema}-${w}`); }
     }
   },
   "Nenhuma tela passa da largura": async (p) => {

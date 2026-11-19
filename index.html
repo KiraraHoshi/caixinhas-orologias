@@ -287,8 +287,9 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .aj-voltar{align-self:flex-start}
 /* Barras do sistema: no app Android a tela vai até atrás da barra de status e da de navegação (SystemBars "native", como no Orolon Player 1.26.6).
    Com WebView 140+ e viewport-fit=cover (já na primeira meta), o Capacitor repassa o recuo e env(safe-area-inset-*) o traz; em WebView mais
-   antiga o próprio Android recua a tela e env() vale zero. Nos dois casos o recuo entra uma vez só. No modo "native" o Capacitor não injeta
-   --safe-area-inset-*: a var() fica como reserva e para os testes simularem um entalhe. */
+   antiga o próprio Android recua a tela e env() vale zero. Nos dois casos o recuo entra uma vez só: --topo e --base pegam o maior entre
+   env() e var() com max(), sem soma entre env() e var(). No modo "native" o Capacitor não injeta --safe-area-inset-*: a var() fica como
+   reserva e para os testes simularem um entalhe. */
 :root{--topo:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));--base:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px))}
 .nativo body{touch-action:pan-x pan-y}
 .copia-pasta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}
@@ -319,7 +320,7 @@ table.mini input{padding:6px 8px;min-width:80px}
 .icon:disabled{opacity:.35;cursor:default}
 .cx-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .cx-row:last-child{border-bottom:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
 textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:120px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 .support{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
@@ -376,7 +377,7 @@ details.plain>.inner{padding:6px 0 0}
 .cmp-b .trk{display:block;height:8px}
 .cmp-b .trk i{display:block;height:100%;border-radius:0 4px 4px 0;background:var(--accent)}
 .cmp-b.ant .trk i{background:color-mix(in srgb,var(--muted) 60%,transparent)}
-.trava{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);align-items:center;justify-content:center;padding:24px;overflow:auto}
+.trava{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);align-items:center;justify-content:center;padding:calc(24px + var(--topo)) 24px calc(24px + var(--base));overflow:auto}
 html[data-trava] .trava{display:flex}
 html[data-trava] .wrap,html[data-trava] .tabs,html[data-trava] .n-lado,html[data-trava] .toast,html[data-trava] .n-dica{visibility:hidden}
 html[data-trava] body{overflow:hidden}
@@ -416,7 +417,7 @@ html[data-trava] body{overflow:hidden}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
-.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:fl-sobe .22s cubic-bezier(.2,.8,.2,1)}
+.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
 .folha-topo{display:flex;align-items:center;gap:6px}
 .folha-topo .icon{margin-left:auto}
@@ -424,10 +425,9 @@ html[data-trava] body{overflow:hidden}
 .folha .primary{width:100%;padding:14px}
 html[data-folha] body{overflow:hidden}
 html[data-trava] .folha{visibility:hidden}
-@keyframes fl-sobe{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 @keyframes fl-fundo{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.folha-caixa,.folha-fundo{animation:none}}
-@media (min-width:700px){.folha{align-items:center}.folha-caixa{border-radius:20px;border-bottom:1px solid var(--line);max-width:460px}.folha-caixa::before{display:none}}
+@media (min-width:700px){.folha{align-items:center}.folha-caixa{max-width:460px}.folha-caixa::before{display:none}}
 .icos{position:relative;display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
 .icos button{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--deep);padding:0;color:var(--muted)}
 .icos button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -911,7 +911,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <summary>O que são as caixinhas?</summary>
       <div class="inner">
         <p>Em vez de anotar tudo sem rumo, você divide o dinheiro do mês em <b>caixinhas</b>, por exemplo Lazer, Dia a dia e Objetivos. Cada uma tem um <b>limite</b>. Quando você lança um gasto, o app diz se ele cabe e quanto sobra por dia até o fim do mês.</p>
-        <p class="hint">Você pode renomear, criar e apagar caixinhas em Ajustes.</p>
+        <p class="hint">Você pode renomear, criar e apagar caixinhas em Ajustes: no celular, na engrenagem no alto da tela; no computador, na barra do lado.</p>
       </div>
     </details>
 
@@ -920,7 +920,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <div class="inner">
         <ol>
           <li>Em <b>Mês → Ajustar limites</b>, defina quanto cabe em cada caixinha. Escolha “Padrão” para valer em todos os meses.</li>
-          <li>Em <b>Mês → Lançar gasto</b>, digite o valor, o que foi e a caixinha. O app avisa se cabe.</li>
+          <li>Toque no <b>+</b> (no computador, em <b>+ Lançar</b>), de qualquer tela, e digite o valor, o que foi e a caixinha. O app avisa se cabe.</li>
           <li>No <b>Início</b>, acompanhe a sobra do mês, a sobra por dia e as caixinhas que pedem atenção.</li>
         </ol>
       </div>
@@ -1824,7 +1824,6 @@ let S = normalize(lsGet(LS_KEY));
 const MQ_MOV = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 function movLigado(){ return !(MQ_MOV && MQ_MOV.matches); }
 const outQuart = p => 1 - Math.pow(1 - p, 4);
-const outBack = p => 1 + 2.2 * Math.pow(p - 1, 3) + 1.2 * Math.pow(p - 1, 2);
 const Mov = { fila: new Set(), raf: 0 };
 function tween(set, de, para, ms, espera = 0, ease = outQuart, marca = ''){
   return new Promise(ok => {
@@ -1903,9 +1902,12 @@ function abrirPeloWidget(url){
 function ouvirWidget(){
   if (!NATIVO || !PLUG.App) return;
   try { const r = PLUG.App.addListener('appUrlOpen', e => abrirPeloWidget(e && e.url)); if (r && r.catch) r.catch(() => {}); } catch (e) {}
-  // o Capacitor devolve o mesmo endereço de abertura até num recarregar da página: aí ele já foi usado
+  // o Capacitor devolve o mesmo endereço de abertura até num recarregar da página, ou ao voltar da política de privacidade (a página
+  // carrega de novo): ele vale uma vez por abertura do app. A marca fica no sessionStorage, que é da sessão da WebView (some quando
+  // o Android abre o app do zero).
   let recarga = false; try { recarga = ((performance.getEntriesByType('navigation') || [])[0] || {}).type === 'reload'; } catch (e) {}
-  if (recarga || !PLUG.App.getLaunchUrl) return;
+  let lido = false; try { lido = sessionStorage.getItem('caixinhas-orologia-widget-lido') === '1'; sessionStorage.setItem('caixinhas-orologia-widget-lido', '1'); } catch (e) {}
+  if (recarga || lido || !PLUG.App.getLaunchUrl) return;
   try { PLUG.App.getLaunchUrl().then(r => abrirPeloWidget(r && r.url), () => {}); } catch (e) {}
 }
 const Bkp = { db: null, ok: 'indexedDB' in window, copias: [], pasta: null, perm: null, erro: false, t: null, aberto: false, ultimo: null,
@@ -2244,7 +2246,7 @@ function renderLista(k){
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
       <i class="n-seta" aria-hidden="true"></i>
     </button>`;
-  }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
+  }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque no + para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
 /* ---------- Render: Gráficos (tela própria, sempre do mês escolhido em UI.mes) ---------- */
 function renderGraf(k){
@@ -3315,7 +3317,7 @@ document.addEventListener('click', e => {
     case 'onb-cx-del': if (UI.onbCx.length > 1) { UI.onbCx.splice(+b.dataset.i, 1); renderInicio(); } break;
     case 'onb-prev': UI.onb = Math.max(0, UI.onb - 1); renderInicio(); break;
     case 'onb-skip': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); renderAll(); break;
-    case 'onb-fim': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('inicio'); toast('Pronto! Toque em “Lançar” para o primeiro gasto.'); break;
+    case 'onb-fim': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('inicio'); toast('Pronto! Toque no + para lançar o primeiro gasto.'); break;
     case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
     case 'onb-tema': usarTema(id); renderInicio(); break;
     case 'mes-prev': case 'mes-next': case 'mes-hoje':
@@ -3484,7 +3486,7 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- Folha de lançar gasto (abre de qualquer tela) ---------- */
-const Folha = { hist: false, pular: false, antes: null };
+const Folha = { hist: false, pular: false, antes: null, depois: null };
 function folhaAberta(){ return !$('folhaGasto').hidden; }
 function abaAtual(){ return TABS.find(x => !$('v-' + x).hidden) || 'inicio'; }
 function abrirFolha(){
@@ -3920,7 +3922,7 @@ function route(){
   if (trocou) soltarMov('conta'); // a contagem da tela que ficou para trás termina no valor real (e não segura a abertura curta do Início)
   if (trocou && UI.listaToda) { UI.listaToda = false; renderLista(UI.mes); }
   if (t === 'inicio') {
-    renderInicio();
+    renderInicio(); desenharInicio(); // o que mudou com o Início escondido aparece já com o valor certo
     if (trocou && Vis.abriu && !Mov.fila.size && Date.now() - Vis.ultima > 2000) { const a = JSON.parse(Vis.alvo || '{}'), d = Vis.dia; abertura(false, a, d); }
   }
   Graf.semDica();
@@ -3954,7 +3956,8 @@ window.addEventListener('resize', () => {
   if (innerWidth === grafW) return; // a barra de endereço do celular sumindo muda só a altura: a etiqueta e os desenhos ficam
   grafW = innerWidth; Graf.semDica(); clearTimeout(grafT); grafT = setTimeout(() => Graf.refazer(document.querySelector('.view:not([hidden])')), 150);
 });
-window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
+// Folha.depois: o que fazer quando o passo do histórico da folha terminar de voltar (ex.: ir ao Início sem o voltar desfazer a ida)
+window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; const f = Folha.depois; Folha.depois = null; if (f) f(); return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
   const t = a.getAttribute('href').slice(1); if (!TABS.includes(t.split('/')[0])) return;
@@ -3963,7 +3966,14 @@ document.addEventListener('click', e => {
   go(t);
 });
 
-function renderAll(){ aplicarFixos(); renderInicio(); renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
+function renderAll(){ UI.mesDesenhado = thisMonth(); aplicarFixos(); renderInicio(); renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
+/* Voltar ao app já aberto (Android ou aba do navegador): o widget recebe os valores de agora e, se o mês virou desde o último desenho,
+   tudo é redesenhado (lança os gastos fixos do mês novo). O mês que a pessoa escolheu ver no Mês e nos Gráficos não muda. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (UI.mesDesenhado !== thisMonth()) renderAll();
+  mandarWidget();
+});
 
 $('ajMenu').addEventListener('click', e => { const b = e.target.closest('[data-parte]'); if (b) go('ajustes/' + b.dataset.parte); });
 $('ajVoltar').addEventListener('click', () => go('ajustes'));
@@ -4140,6 +4150,7 @@ function montarInicio(k, R, dl, ent){
 }
 function desenharInicio(){
   const E = Vis.el; if (!Vis.chave || !E.sobra || !E.sobra.isConnected) return;
+  if ($('v-inicio').hidden) return; // escondido, não gasta quadro (uma contagem em outra tela chama isto a cada quadro); ao aparecer, route() desenha
   let gasto = Vis.orfaos;
   Vis.ids.forEach(id => {
     const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id];
@@ -4337,7 +4348,6 @@ function renderInicio(){
     return `<div class="n-linha">${cxi(c, 'sm')}<span class="txt"><span class="desc">${esc(g.descricao)}</span><small>${esc(c.nome)} · ${esc(dayLabel(g.data))}</small></span><span class="num">${fmt(g.valor)}</span></div>`; }).join('')}</div>` : '';
 }
 
-/* ---------- Início ---------- */
 /* ---------- Bloqueio por PIN (só neste aparelho; não entra no backup) ---------- */
 const LS_PIN = 'caixinhas-orologia-pin';
 const Trava = { saiu: 0, erros: 0, ate: 0, ocupado: false, zerar: false };
@@ -4398,8 +4408,11 @@ $('trava').addEventListener('click', e => {
     if (!Trava.zerar) { Trava.zerar = true; b.textContent = 'Toque de novo para apagar tudo'; b.classList.add('armed'); return; }
     try { localStorage.removeItem(LS_PIN); } catch (err) {}
     bkpGuardar('Antes de apagar pelo PIN esquecido');
-    const old = Object.keys(S.meses); S = defaults(); UI.cxDraft = null; UI.editG = null; persistAll(old);
-    destravar(); renderAll(); go('inicio'); toast('Dados apagados. Recomece ou importe um backup.');
+    // a folha aberta (até em edição) fecha antes de zerar: senão ela voltaria dizendo "Editar gasto" e salvar criaria um gasto novo
+    if (folhaAberta()) { Folha.depois = () => go('inicio'); fecharFolha(); if (!Folha.pular) Folha.depois = null; }
+    else if (UI.editG) sairEdicaoGasto();
+    const old = Object.keys(S.meses); S = defaults(); UI.cxDraft = null; persistAll(old);
+    destravar(); renderAll(); if (!Folha.depois) go('inicio'); toast('Dados apagados. Recomece ou importe um backup.');
   }
 });
 $('travaPin').addEventListener('input', () => { const i = $('travaPin'); i.value = i.value.replace(/\D/g, '').slice(0, 6); checarAuto(); });
