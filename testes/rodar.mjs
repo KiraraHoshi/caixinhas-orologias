@@ -82,6 +82,8 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
     aba: async (t) => { await avaliar((x) => { location.hash = "#" + x; }, t); await espera(200); },
     abaAtual: () => avaliar(() => [...document.querySelectorAll(".view")].find((v) => !v.hidden).id.slice(2)),
     tamanho: (w, h) => s("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: true }),
+    // liga ou desliga o "reduzir movimento" do aparelho no meio do teste
+    reduzir: (sim) => s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: sim ? "reduce" : "no-preference" }] }),
     print: async (nome, inteira) => {
       await mkdir(PRINTS, { recursive: true });
       const d = await s("Page.captureScreenshot", { format: "png", captureBeyondViewport: !!inteira });
@@ -238,7 +240,7 @@ const TESTES = {
   "Início vazio não mostra NaN": async (p) => {
     const casos = [
       ["primeira abertura", null, 0],
-      ["sem caixinhas e sem lançamentos", { onboarded: true, guiaVisto: true, caixinhas: [], limitesPadrao: {} }, 0],
+      ["backup sem caixinhas (o normalize devolve as de fábrica e o app abre)", { onboarded: true, guiaVisto: true, caixinhas: [], limitesPadrao: {} }, 0],
       ["caixinha sem limite", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 } }, 0],
       ["caixinha sem limite com gasto", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 }, gasto: 30 }, 1],
     ];
@@ -285,17 +287,30 @@ const TESTES = {
       await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
       for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
         await p.tamanho(w, h); await p.recarregar();
-        for (const t of ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/aparencia"]) {
+        for (const t of ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/aparencia", "ajustes/caixinhas", "ajustes/pin", "ajustes/dados", "guia", "apoie"]) {
           await p.aba(t);
           const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
           certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura em ${w}px no tema ${tema}`);
           const nome = t.replace("/", "-");
           await p.print(`20-${nome}-${tema}-${w}`);
-          if (t === "inicio") await p.print(`20-${nome}-${tema}-${w}-inteira`, true);
+          if (["inicio", "mes", "cartao", "metas"].includes(t)) await p.print(`20-${nome}-${tema}-${w}-inteira`, true);
         }
         await p.aba("inicio"); await p.clicar("#fab"); await p.espera(150);
         await p.print(`20-folha-${tema}-${w}`);
         await p.clicar('.folha-topo [data-act="folha-fechar"]');
+        // edição de um gasto (com Apagar), aviso, passo a passo da primeira abertura e trava do PIN
+        await p.aba("mes"); await p.clicar("#mesLista .n-lanc"); await p.espera(150);
+        await p.print(`20-folha-editar-${tema}-${w}`);
+        await p.clicar('.folha-topo [data-act="folha-fechar"]');
+        await p.avaliar(() => { const t = document.querySelector("#toast"); t.textContent = "Lançado. Lazer: sobra R$ 470,10"; t.hidden = false; });
+        await p.print(`20-aviso-${tema}-${w}`);
+        await p.clicar('#v-guia [data-act="onb-replay"]');
+        await p.print(`20-passo-a-passo-${tema}-${w}`);
+        await p.clicar('[data-act="onb-next"]'); await p.print(`20-passo-a-passo-2-${tema}-${w}`);
+        await p.clicar('[data-act="onb-prev"]'); await p.clicar('[data-act="onb-skip"]');
+        await p.avaliar(() => document.documentElement.setAttribute("data-trava", ""));
+        await p.print(`20-pin-${tema}-${w}`);
+        await p.avaliar(() => document.documentElement.removeAttribute("data-trava"));
       }
     }
   },
@@ -323,7 +338,7 @@ const TESTES = {
   "Editar abre a mesma folha e Esc cancela": async (p) => {
     await comExemplo(p);
     await p.aba("mes");
-    await p.clicar('[data-act="ed-gasto"]');
+    await p.clicar("#mesLista .n-lanc[data-id]"); // a linha inteira é o botão de editar
     certo(await p.visivel("#folhaGasto"), "a folha não abriu para editar");
     igual(await p.texto("#gHead"), "Editar gasto", "título da folha");
     await p.avaliar(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
@@ -464,6 +479,13 @@ const TESTES = {
       const ruim = await p.avaliar(() => [...document.querySelectorAll("#inResumo #arco, #inResumo #arco *")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((v) => /NaN|undefined|Infinity/.test(v)));
       igual(ruim.length, 0, "atributos quebrados no arco (" + (comGasto ? "com" : "sem") + " gasto): " + ruim.join(" | "));
       igual(await p.texto("#inSobra"), comGasto ? "-R$ 30,00" : "R$ 0,00", "sobra sem limite");
+      // a ponta esquerda do arco segue o primeiro pedaço: sem limite, o gasto todo já passou dele (cor de alerta)
+      const ini = await p.avaliar(() => { const c = document.querySelector('#arco [data-d="ini"]'); return c.getAttribute("opacity") === "1" ? c.getAttribute("fill") : "escondida"; });
+      igual(ini, comGasto ? "var(--over)" : "escondida", "cor da ponta esquerda do arco (" + (comGasto ? "com" : "sem") + " gasto)");
+      // sobra negativa: não diz "R$ 0,00 por dia"
+      const dia = await p.avaliar(() => document.querySelector("#inResumo .dia").innerText.replace(/\s+/g, " ").trim()); // o que aparece (e o leitor de tela ouve)
+      if (comGasto) certo(dia === "passou do limite" && !/por dia/.test(dia), "com a sobra negativa o centro do arco devia dizer só que passou do limite: " + dia);
+      else certo(/por dia/.test(dia), "sem gasto o centro do arco diz o valor por dia: " + dia);
     }
   },
   "Estourou: mostra quanto passou": async (p) => {
@@ -540,20 +562,30 @@ const TESTES = {
       window.__fio = () => parseFloat((/rotate\(([-\d.]+)/.exec(document.querySelector("#arcoHoje").getAttribute("transform") || "") || [0, 0])[1]);
       const arcoVisto = () => { const a = document.querySelector("#arco"), an = a.getAnimations()[0]; return { el: a, op: Number(getComputedStyle(a).opacity), prog: an ? an.effect.getComputedTiming().progress : null }; };
       document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#gBtn")) {
-        const a0 = arcoVisto(); window.__antes = window.__fio(); window.__opAntes = a0.op;
+        const a0 = arcoVisto(); window.__antes = window.__fio(); window.__opAntes = a0.op; window.__prog0 = a0.prog;
         setTimeout(() => { const a1 = arcoVisto(); window.__depois = window.__fio(); window.__refez = a1.el !== a0.el; window.__opDepois = a1.op; window.__prog = a1.prog; }, 40);
       } }, true);
     });
     // Objetivos ainda não tem gasto no exemplo: o primeiro gasto nela cria um pedaço novo e obriga a refazer o arco no meio da abertura
-    await p.clicar("#fab"); await p.clicar('label[for="' + await p.avaliar(() => document.querySelector('input[name="gCx"][value="objetivos"]').id) + '"]');
-    await p.digitar("#gValor", "400"); await p.digitar("#gDesc", "Viagem"); await p.clicar("#gBtn");
+    // tudo de uma vez, para o lançamento chegar enquanto a entrada do arco (700 ms) ainda corre, mas já longe do começo
+    // (no começo o marcador anda rápido demais para medir o salto em 40 ms)
+    await p.espera(300);
+    await p.avaliar(() => {
+      document.querySelector("#fab").click(); document.querySelector('label[for="' + document.querySelector('input[name="gCx"][value="objetivos"]').id + '"]').click();
+      for (const [q, v] of [["#gValor", "400"], ["#gDesc", "Viagem"]]) { const e = document.querySelector(q); e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); }
+      document.querySelector("#gBtn").click();
+    });
     await p.espera(2500);
-    const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio(), refez: window.__refez, opAntes: window.__opAntes, opDepois: window.__opDepois, prog: window.__prog, segs: document.querySelectorAll("#arco .arco-seg").length }));
+    const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio(), refez: window.__refez, opAntes: window.__opAntes, opDepois: window.__opDepois, prog0: window.__prog0, prog: window.__prog, segs: document.querySelectorAll("#arco .arco-seg").length }));
     certo(f.refez, "o lançamento devia refazer o arco no meio da abertura");
     igual(f.segs, 3, "pedaços do arco depois do primeiro gasto em Objetivos");
     certo(f.antes < f.fim * 0.9, "o teste chegou tarde: o marcador já estava em " + f.antes + " de " + f.fim);
     certo(f.depois - f.antes < f.fim * 0.15, "o marcador saltou de " + f.antes + " para " + f.depois + " (fim " + f.fim + ")");
-    certo(f.opDepois >= f.opAntes - 0.15 && (f.prog === null || f.prog > 0.15), "o arco refeito recomeçou a entrada: opacidade " + f.opAntes + " → " + f.opDepois + ", progresso " + f.prog);
+    certo(f.opDepois >= f.opAntes - 0.15, "o arco refeito apagou: opacidade " + f.opAntes + " → " + f.opDepois);
+    // a entrada do arco continua de onde estava: o lançamento chega com ela ainda correndo, e o arco refeito segue do mesmo
+    // ponto (não recomeça, não some e não pula para o fim)
+    certo(f.prog0 !== null, "o teste chegou tarde: a entrada do arco já tinha terminado no clique");
+    certo(f.prog !== null && f.prog >= f.prog0 - 0.05, "o arco refeito não seguiu a entrada: progresso " + f.prog0 + " → " + f.prog);
   } },
   "Lançamentos seguidos não se atropelam": { movimento: true, fn: async (p) => {
     await comExemplo(p);
@@ -680,6 +712,19 @@ const TESTES = {
     certo(await p.visivel("#fDia"), "tocar no dia de novo filtra de novo");
     await p.clicar('#v-mes [data-act="mes-prev"]');
     igual(await p.visivel("#fDia"), false, "o filtro do dia não passa para outro mês");
+    // mesmo com "Buscar em todos os meses" marcado, trocar de mês tira o filtro do dia
+    await p.clicar('#v-mes [data-act="mes-hoje"]');
+    await p.aba("graficos"); await tocar(dia(4));
+    await p.avaliar(() => { const c = document.querySelector("#fTodos"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); });
+    certo(await p.visivel("#fDia"), "o filtro do dia continua com todos os meses marcado");
+    await p.clicar('#v-mes [data-act="mes-prev"]');
+    igual(await p.visivel("#fDia"), false, "trocar de mês tira o filtro do dia, também com todos os meses");
+    // tirar o filtro do dia pelo × não deixa o foco solto na página
+    await p.clicar('#v-mes [data-act="mes-hoje"]');
+    await p.aba("graficos"); await tocar(dia(4));
+    await p.clicar('[data-act="filtro-dia-tirar"]');
+    igual(await p.visivel("#fDia"), false, "o × tira o filtro do dia");
+    igual(await p.avaliar(() => document.activeElement && document.activeElement.id), "mesLista", "o foco vai para a lista depois de tirar o filtro do dia");
   },
   "Tocar num ponto mostra o valor": async (p) => {
     await comExemplo(p); await p.aba("graficos");
@@ -708,6 +753,29 @@ const TESTES = {
     await p.avaliar(() => document.querySelector('#gDias .g-pt[data-dia="4"]').focus());
     await tecla(p, "ArrowDown");
     igual(await p.avaliar(() => document.activeElement.dataset.dia), "11", "no calendário, a seta para baixo desce uma semana");
+    // Esc com a etiqueta aberta só fecha a etiqueta; o Esc seguinte é o de sempre (volta um passo)
+    certo(await p.visivel("#grafDica"), "a etiqueta devia estar aberta no dia 11");
+    await tecla(p, "Escape"); await p.espera(300);
+    igual(await p.visivel("#grafDica"), false, "Esc devia fechar a etiqueta");
+    igual(await p.abaAtual(), "graficos", "o Esc que fecha a etiqueta não sai dos Gráficos");
+    // a barra de endereço do celular sumindo dispara resize sem mudar a largura: a etiqueta fica
+    await p.avaliar(() => document.querySelector("#gSeis .g-pt").dispatchEvent(new PointerEvent("pointerenter")));
+    await p.avaliar(() => window.dispatchEvent(new Event("resize"))); await p.espera(250);
+    certo(await p.visivel("#grafDica"), "um resize sem mudar a largura não devia fechar a etiqueta");
+    await p.tamanho(340, 780); await p.espera(250);
+    igual(await p.visivel("#grafDica"), false, "mudar a largura fecha a etiqueta");
+    await p.tamanho(360, 780); await p.espera(250);
+    // Ritmo: os dias são estreitos demais para o dedo; o toque escolhe o dia mais próximo de onde caiu, e só a área toda recebe o toque
+    const pe = await p.avaliar(() => [...document.querySelectorAll("#gRitmo .g-pt")].filter((x) => getComputedStyle(x).pointerEvents !== "none").length);
+    igual(pe, 0, "os pontos estreitos do Ritmo não recebem o toque um por um");
+    const dia5 = await p.avaliar(() => {
+      const area = document.querySelector("#gRitmo .g-area"); if (!area) return "sem área de toque";
+      const r5 = document.querySelector('#gRitmo .g-pt[data-i="4"] .g-ancora').getBoundingClientRect(), r6 = document.querySelector('#gRitmo .g-pt[data-i="5"] .g-ancora').getBoundingClientRect();
+      const x = (r5.left + r5.width / 2) * 0.62 + (r6.left + r6.width / 2) * 0.38, ar = area.getBoundingClientRect(), y = ar.top + ar.height / 2;
+      area.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: x, clientY: y, pointerType: "touch" }));
+      return document.querySelector("#grafDica").hidden ? "etiqueta fechada" : document.querySelector("#grafDica").textContent;
+    });
+    certo(/^dia 5(?!\d)/.test(dia5), "tocar perto do dia 5 devia mostrar o dia 5: " + dia5);
   },
   "Gráficos de mês vazio mostram convite, sem NaN": async (p) => {
     const casos = [
@@ -733,6 +801,13 @@ const TESTES = {
     }
     await p.clicar('#gConvite [data-act="gasto-novo"]');
     certo(await p.visivel("#fGasto"), "o convite abre a folha de lançar");
+    // sem limite não há ritmo a passar: a linha do gasto não fica na cor de alerta
+    await p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 }, meses: { [k]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: k + "-01" }] } } }));
+    });
+    await p.recarregar(); await p.aba("graficos");
+    igual(await p.avaliar(() => document.querySelector("#gRitmo .ga-tot").getAttribute("stroke")), "var(--accent)", "linha do ritmo sem limite");
   },
   "Financiamento mostra o saldo devedor de SAC e PRICE": async (p) => {
     await comExemplo(p); await calc(p, "fin");
@@ -822,6 +897,12 @@ const TESTES = {
           certo(sobra <= 0, `os Gráficos passam ${sobra}px da largura em ${w}px (${caso}, ${tema})`);
           const r = await ruins("#v-graficos");
           igual(r.join(" | "), "", `textos dos Gráficos em ${w}px (${caso}, ${tema})`);
+          // o último dia do mês tem rótulo embaixo do Ritmo (quando falta lugar, sai o 28, não o último)
+          const ult = await p.avaliar(() => { const n = document.querySelector("#gRitmo")._graf.op.rotulos.length; return { n, tem: [...document.querySelectorAll("#gRitmo svg.n-graf-d text")].some((t) => t.textContent.trim() === String(n)) }; });
+          certo(ult.tem, `o rótulo do último dia (${ult.n}) sumiu do Ritmo em ${w}px (${caso}, ${tema})`);
+          // na comparação com o mês anterior, o sinal não fica sozinho numa linha
+          const quebra = await p.avaliar(() => [...document.querySelectorAll("#gCompBox .cmp-h .num")].filter((e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].map((r) => Math.round(r.top))).size > 1; }).map((e) => e.textContent));
+          igual(quebra.join(" | "), "", `diferença da comparação quebrada em duas linhas em ${w}px (${caso}, ${tema})`);
           await p.print(`22-graficos-${caso}-${tema}-${w}`, true);
         }
         await calc(p, "fin"); await p.digitar("#iExtra", "800");
@@ -865,7 +946,7 @@ const TESTES = {
     await p.recarregar();
     igual(await p.texto("#inSobra"), "R$ 850,00", "sobra com o gasto órfão");
     await p.aba("mes");
-    await p.clicar('[data-act="del-gasto"][data-id="g2"]'); await p.clicar('[data-act="del-gasto"][data-id="g2"]');
+    await p.clicar('#mesLista .n-lanc[data-id="g2"]'); await p.clicar("#gApagar"); await p.clicar("#gApagar");
     await p.aba("inicio");
     igual(await p.texto("#inSobra"), "R$ 950,00", "sobra depois de apagar o gasto órfão");
   },
@@ -1004,11 +1085,14 @@ const TESTES = {
     certo(await p.visivel("#temaBox"), "a parte Aparência devia aparecer");
     igual(await p.visivel("#cxList"), false, "só uma parte por vez");
     igual(await p.visivel("#ajMenu"), false, "a lista some quando uma parte abre");
+    // a parte aberta é dita também ao leitor de tela (no PC a lista fica à vista ao lado), não só pela cor
+    igual(await p.avaliar(() => [...document.querySelectorAll('#ajMenu [aria-current="true"]')].map((b) => b.dataset.parte).join(",")), "aparencia", "item da parte aberta marcado com aria-current");
     await p.print("14-ajustes-parte");
     await p.recarregar();
     certo(await p.visivel("#temaBox"), "recarregar mantém a parte aberta");
     await p.clicar("#ajVoltar");
     certo(await p.visivel("#ajMenu"), "voltar mostra a lista");
+    igual(await p.avaliar(() => document.querySelectorAll('#ajMenu [aria-current]').length), 0, "na lista, nenhuma parte marcada como aberta");
     igual(await p.avaliar(() => location.hash), "#ajustes", "endereço da lista");
     await p.clicar('#ajMenu [data-parte="pin"]');
     await p.avaliar(() => history.back()); await p.espera(200);
@@ -1138,6 +1222,8 @@ const TESTES = {
     certo(await p.visivel('#lado #ladoLancar[data-act="gasto-novo"]'), "o + Lançar da barra lateral não apareceu");
     const atual = () => p.avaliar(() => [...document.querySelectorAll('#lado a[aria-current="page"]')].map((a) => a.dataset.tab).join(","));
     igual(await atual(), "inicio", "Início marcado na barra lateral");
+    // no PC o Tab passa pela barra lateral antes do conteúdo
+    certo(await p.avaliar(() => !!(document.querySelector("#lado").compareDocumentPosition(document.querySelector(".wrap")) & Node.DOCUMENT_POSITION_FOLLOWING)), "a barra lateral devia vir antes do conteúdo no HTML (ordem do Tab)");
     // o conteúdo começa depois da barra, sem ficar por baixo dela
     const m = await p.avaliar(() => ({ lado: document.querySelector("#lado").getBoundingClientRect().right, cont: document.querySelector("#v-inicio").getBoundingClientRect().left }));
     certo(m.cont >= m.lado, `o conteúdo começa em ${m.cont}px, embaixo da barra lateral (que vai até ${m.lado}px)`);
@@ -1166,7 +1252,14 @@ const TESTES = {
     const t360 = await tops();
     certo(t360.inResumo < t360.inCx && t360.inCx < t360.inRitmo && t360.inRitmo < t360.inFatura && t360.inFatura < t360.inMetas && t360.inMetas < t360.inUltimos && t360.inUltimos < t360.atalhos, "ordem do Início no celular: " + JSON.stringify(t360));
     igual(await p.visivel("#seisIni"), false, "no celular o Últimos 6 meses fica só nos Gráficos");
+    // a ordem de leitura (Tab, TalkBack) é a mesma que se vê: no celular, uma coluna; no PC, a coluna da esquerda e depois a da direita
+    const ordemHTML = () => p.avaliar(() => {
+      const els = ["inResumo", "inCx", "inRitmo", "seisIni", "inVencer", "inFatura", "inMetas", "inUltimos"].map((id) => document.getElementById(id)).concat([document.querySelector("#v-inicio .atalhos")]);
+      return els.slice().sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1)).map((e) => e.id || "atalhos").join(",");
+    });
+    igual(await ordemHTML(), "inResumo,inCx,inRitmo,seisIni,inVencer,inFatura,inMetas,inUltimos,atalhos", "ordem de leitura do Início no celular");
     await p.tamanho(1280, 800); await p.recarregar();
+    igual(await ordemHTML(), "inResumo,inRitmo,seisIni,atalhos,inCx,inVencer,inUltimos,inFatura,inMetas", "ordem de leitura do Início no PC (esquerda, depois direita)");
     certo(await p.avaliar(() => !!document.querySelector("#v-inicio .n-cols")), "o Início devia ter o contêiner de colunas .n-cols");
     const r = await p.avaliar(() => { const a = document.querySelector("#arco").getBoundingClientRect(), c = document.querySelector("#inCx").getBoundingClientRect(); return { aL: a.left, aT: a.top, cL: c.left, cT: c.top }; });
     certo(r.cL - r.aL > 200, "o arco e as caixinhas deviam ficar lado a lado: " + JSON.stringify(r));
@@ -1263,6 +1356,11 @@ const TESTES = {
     await p.avaliar(() => document.querySelector("#fCx").focus());
     await tecla(p, "3");
     igual(await p.abaAtual(), "mes", "uma tecla numa lista de escolha não troca de aba");
+    // caixa de marcar não é campo de texto: com o foco nela os atalhos continuam valendo
+    await p.avaliar(() => document.querySelector("#fTodos").focus());
+    igual(await tecla(p, "3"), false, "com o foco numa caixa de marcar, o 3 é atalho");
+    igual(await p.abaAtual(), "graficos", "com o foco numa caixa de marcar, o 3 vai aos Gráficos");
+    await p.aba("mes");
     await p.avaliar(() => { const d = document.createElement("div"); d.id = "editavel"; d.contentEditable = "true"; d.textContent = "x"; document.querySelector("#v-mes").append(d); d.focus(); });
     await tecla(p, "1"); await tecla(p, "n");
     igual(await p.abaAtual(), "mes", "digitar num texto editável não troca de aba");
@@ -1317,19 +1415,146 @@ const TESTES = {
       const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
       certo(sobra <= 0, `o Início passa ${sobra}px da largura em ${w}x${h}`);
     }
-    await p.print("21-celular-deitado");
   },
-  "Nenhuma tela passa da largura em celular estreito": async (p) => {
+  "Primeira abertura: atalhos de teclado não tiram do passo a passo": async (p) => {
+    await p.tamanho(1280, 800); await p.recarregar();
+    certo(await p.visivel("#inOnb .onb"), "o passo a passo devia aparecer");
+    await p.avaliar(() => document.activeElement && document.activeElement.blur());
+    for (const k of ["2", "5", "/"]) await tecla(p, k);
+    igual(await p.abaAtual(), "inicio", "com o passo a passo na tela, os números e a / não trocam de aba");
+    await tecla(p, "n");
+    igual(await p.avaliar(() => document.querySelector("#folhaGasto").hidden), true, "com o passo a passo na tela, o N não abre a folha (as caixinhas ainda não foram escolhidas)");
+    certo(await p.visivel("#inOnb .onb"), "o passo a passo continua");
+    // os botões de sempre continuam: quem toca no + lança como antes
+    await p.clicar("#ladoLancar");
+    certo(await p.visivel("#folhaGasto"), "o + Lançar continua abrindo a folha");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    await p.clicar('[data-act="onb-skip"]');
+    await tecla(p, "2");
+    igual(await p.abaAtual(), "mes", "depois do passo a passo os atalhos voltam");
+  },
+  "Celular deitado: a barra não cobre o arco nem o conteúdo": async (p) => {
     await comExemplo(p);
-    await p.tamanho(320, 640);
-    for (const t of ["inicio", "mes", "cartao", "metas", "calc", "ajustes", "guia", "graficos"]) {
-      await p.aba(t);
-      const sobra = await p.avaliar(() => document.documentElement.scrollWidth - window.innerWidth);
-      certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura`);
+    const cruza = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+    for (const [w, h] of [[844, 390], [640, 360]]) {
+      await p.tamanho(w, h); await p.recarregar();
+      const m = await p.avaliar(() => {
+        const r = (q) => { const b = document.querySelector(q).getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; };
+        const itens = [...document.querySelectorAll(".tabs nav > *")].map((e) => e.getBoundingClientRect()).map((b) => ({ top: b.top, bottom: b.bottom }));
+        return { barra: r(".tabs"), chips: r("#inResumo .n-chips"), arco: r("#arco"), wrap: document.querySelector(".wrap").getBoundingClientRect().right - parseFloat(getComputedStyle(document.querySelector(".wrap")).paddingRight), itens, alto: innerHeight };
+      });
+      certo(!cruza(m.barra, m.chips) && !cruza(m.barra, m.arco), `em ${w}x${h} a barra cobre o arco ou as etiquetas: ` + JSON.stringify(m));
+      certo(m.wrap <= m.barra.left + 0.5 || m.wrap <= 0 || m.barra.top >= m.chips.bottom, `em ${w}x${h} o conteúdo passa por baixo da barra: ` + JSON.stringify(m));
+      certo(m.itens.every((i) => i.top >= 0 && i.bottom <= m.alto), `em ${w}x${h} algum botão da barra sai da tela: ` + JSON.stringify(m.itens));
+      // as abas continuam funcionando
+      await p.clicar('.tabs a[data-tab="mes"]');
+      igual(await p.abaAtual(), "mes", "a barra leva ao Mês no celular deitado");
+      await p.aba("inicio");
+      await p.print(`21-celular-deitado-${w}`);
     }
+  },
+  "Mês: tocar no lançamento abre a edição, e apagar fica dentro dela": async (p) => {
+    await comExemplo(p); await p.aba("mes");
+    const linhas = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc[data-id]")].map((b) => ({ tag: b.tagName, act: b.dataset.act, ex: !!b.querySelector(".ex"), foco: b.tabIndex })));
+    certo(linhas.length === 5, "cinco lançamentos na lista do exemplo: " + linhas.length);
+    certo(linhas.every((l) => l.tag === "BUTTON" && l.act === "ed-gasto" && l.foco >= 0), "cada linha é um botão que abre a edição: " + JSON.stringify(linhas[0]));
+    certo(linhas.every((l) => l.ex), "a etiqueta 'exemplo' continua na linha");
+    igual(await p.avaliar(() => document.querySelectorAll('#mesLista [data-act="del-gasto"], #mesLista .act').length), 0, "a lista não tem mais os links Editar e Apagar");
+    const id = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc")].find((b) => b.textContent.includes("Uber")).dataset.id);
+    const rotulo = await p.avaliar((id) => document.querySelector('.n-lanc[data-id="' + id + '"]').getAttribute("aria-label").replace(/\s+/g, " "), id);
+    certo(/^Editar Uber/.test(rotulo) && rotulo.includes("R$ 18,50") && rotulo.includes("exemplo"), "o leitor de tela ouve o que a linha faz: " + rotulo);
+    // a folha nova não tem o botão de apagar
     await p.clicar("#fab");
-    const sobra = await p.avaliar(() => { const c = document.querySelector(".folha-caixa"); return c.scrollWidth - c.clientWidth; });
-    certo(sobra <= 0, `a folha passa ${sobra}px da largura`);
+    igual(await p.visivel("#gApagar"), false, "lançar um gasto novo não mostra Apagar");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // tocar na linha abre a edição com Apagar; o primeiro toque arma, o segundo apaga (a mesma confirmação da 1.9)
+    await p.clicar('.n-lanc[data-id="' + id + '"]');
+    certo(await p.visivel("#folhaGasto"), "tocar na linha devia abrir a folha");
+    igual(await p.texto("#gHead"), "Editar gasto", "a folha abre em edição");
+    igual(await p.avaliar(() => document.querySelector("#gValor").value), "18,5", "com o valor do gasto");
+    certo(await p.visivel("#gApagar"), "a edição tem o botão Apagar");
+    igual(await p.texto("#gApagar"), "Apagar gasto", "texto do botão");
+    await p.clicar("#gApagar");
+    igual(await p.texto("#gApagar"), "Toque de novo para apagar", "o primeiro toque só arma");
+    certo(await p.visivel("#folhaGasto"), "a folha continua aberta depois do primeiro toque");
+    const existe = () => p.avaliar((id) => Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses).some((m) => (m.gastos || []).some((g) => g.id === id)), id);
+    igual(await existe(), true, "o gasto ainda existe depois do primeiro toque");
+    await p.clicar("#gApagar"); await p.espera(150);
+    igual(await existe(), false, "o segundo toque apaga");
+    igual(await p.visivel("#folhaGasto"), false, "a folha fecha depois de apagar");
+    igual(await p.texto("#toast"), "Gasto apagado", "aviso");
+    igual(await p.abaAtual(), "mes", "continua no Mês");
+    // a confirmação desarma sozinha, como na 1.9
+    await p.clicar("#mesLista .n-lanc");
+    await p.clicar("#gApagar"); await p.espera(3700);
+    igual(await p.texto("#gApagar"), "Apagar gasto", "a confirmação desarma depois de uns segundos");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+  },
+  "Metas não fala em investimentos no título": async (p) => {
+    await comExemplo(p); await p.aba("metas");
+    igual(await p.texto("#v-metas h2"), "Metas", "título da tela");
+    certo(!/investiment/i.test(await p.texto("#v-metas .vhead")), "o cabeçalho de Metas não fala em investimentos: " + await p.texto("#v-metas .vhead"));
+    certo(!/investiment/i.test(await p.avaliar(() => [...document.querySelectorAll("#v-guia summary")].map((s) => s.textContent).join(" | "))), "o guia não chama a seção de investimentos");
+  },
+  "Troca de aba e folha têm passagem, e param com reduzir movimento": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.espera(2300);
+    const naTela = (q) => p.avaliar((q) => document.querySelector(q).getAnimations().map((a) => Math.round(a.effect.getComputedTiming().endTime)), q);
+    // toca na aba e lê as animações no mesmo instante (a passagem dura menos que a espera do p.aba)
+    const irPara = (aba) => p.avaliar((aba) => { document.querySelector('.tabs a[data-tab="' + aba + '"]').click(); return document.querySelector("#v-" + aba).getAnimations().map((a) => Math.round(a.effect.getComputedTiming().endTime)); }, aba);
+    const passagem = await irPara("mes");
+    certo(passagem.length > 0, "trocar de aba devia ter uma passagem curta");
+    certo(passagem.every((ms) => ms <= 180), "a passagem entre abas passa de 180 ms: " + passagem.join(","));
+    await p.espera(250);
+    igual((await naTela("#v-mes")).length, 0, "a passagem termina sozinha");
+    await p.clicar("#fab"); await p.espera(20);
+    certo((await naTela(".folha-caixa")).length > 0, "a folha devia subir com movimento");
+    await p.espera(600);
+    igual(await animando(p), 0, "nada fica animando depois da folha abrir");
+    await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // números do resumo contam ao entrar na tela, e terminam no valor real
+    await p.aba("cartao"); await p.espera(40);
+    const contando = await p.texto("#cartResumo .big");
+    await p.espera(900);
+    igual(await p.texto("#cartResumo .big"), "R$ 111,40", "o total da fatura termina no valor real");
+    certo(contando !== "R$ 111,40", "o total da fatura devia contar ao entrar: " + contando);
+    // uma ação nova interrompe a contagem: o valor na tela é o real na hora
+    await p.aba("metas"); await p.espera(40);
+    await aportar(p, "Viagem", 100); await p.espera(30);
+    igual(await p.texto("#metasResumo .big"), "R$ 3.000,00", "aportar no meio da contagem mostra o valor real");
+    // com "reduzir movimento", nada disso se move
+    await p.reduzir(true);
+    igual((await irPara("mes")).length, 0, "com reduzir movimento, a troca de aba não se move");
+    await p.aba("cartao"); await p.espera(20);
+    igual(await p.texto("#cartResumo .big"), "R$ 111,40", "com reduzir movimento o número já vem pronto");
+    await p.clicar("#fab"); await p.espera(20);
+    igual(await animando(p), 0, "com reduzir movimento, a folha não se move");
+  } },
+  "Nenhuma tela passa da largura": async (p) => {
+    await comExemplo(p);
+    const TELAS = ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/caixinhas", "ajustes/dados", "guia", "apoie"];
+    for (const [w, h] of [[320, 640], [844, 390], [1280, 800]]) {
+      await p.tamanho(w, h); await p.recarregar();
+      for (const t of TELAS) {
+        await p.aba(t);
+        const sobra = await p.avaliar(() => document.documentElement.scrollWidth - window.innerWidth);
+        certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura em ${w}px`);
+      }
+      await p.aba("inicio"); await p.clicar(w >= 900 ? "#ladoLancar" : "#fab");
+      const sobra = await p.avaliar(() => { const c = document.querySelector(".folha-caixa"); return c.scrollWidth - c.clientWidth; });
+      certo(sobra <= 0, `a folha passa ${sobra}px da largura em ${w}px`);
+      await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    }
+    // em tela estreita o "Salvo no aparelho" some só da vista: o leitor de tela continua ouvindo
+    await p.tamanho(320, 640); await p.recarregar();
+    const sync = await p.avaliar(() => { const e = document.querySelector("#syncTxt"), r = e.getBoundingClientRect(), c = getComputedStyle(e); return { display: c.display, w: r.width, vis: c.visibility }; });
+    certo(sync.display !== "none" && sync.vis !== "hidden" && sync.w <= 1, "o texto do aviso devia ficar só fora da vista em 320 px: " + JSON.stringify(sync));
+    // no PC, Mês, Cartão e Metas usam duas colunas (a lista ao lado do resumo)
+    await p.tamanho(1280, 800); await p.recarregar();
+    for (const [t, a, b] of [["mes", "#mesResumo", "#mesLista"], ["cartao", "#cartResumo", "#fCompra"], ["metas", "#metasResumo", "#dMeta"]]) {
+      await p.aba(t);
+      const r = await p.avaliar((a, b) => { const x = document.querySelector(a).getBoundingClientRect(), y = document.querySelector(b).getBoundingClientRect(); return { aL: Math.round(x.left), bL: Math.round(y.left), aT: Math.round(x.top), bT: Math.round(y.top) }; }, a, b);
+      certo(r.bL - r.aL > 250, `no PC ${t} devia ter duas colunas (${a} à esquerda, ${b} à direita): ` + JSON.stringify(r));
+    }
   },
 };
 

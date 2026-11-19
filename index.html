@@ -414,8 +414,6 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .tabs a[aria-current="page"]{color:var(--fg);font-weight:700}
 .tabs a[aria-current="page"] svg{stroke:var(--fg)}
 .tabs a[aria-current="page"]::after{content:"";position:absolute;bottom:7px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--gold)}
-#mesResumo .total{flex-direction:column;align-items:flex-start;gap:6px}
-#mesResumo .total .side{text-align:left}
 .copia{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
 .copia:last-of-type{border-bottom:0}
 .copia small{display:block;color:var(--muted);font-size:.78rem}
@@ -434,7 +432,7 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .top .crest{flex:0 1 auto;min-width:0}
 .top h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top-dir{display:flex;align-items:center;gap:10px;min-width:0}
-@media (max-width:380px){.top .sync span{display:none}}
+@media (max-width:380px){.top .sync span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}} /* some da vista, não do leitor de tela */
 .n-eng{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-line);color:var(--muted)}
 .n-eng svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .n-eng[aria-current="page"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line))}
@@ -485,6 +483,10 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 /* Ritmo do mês no Início (desenhado pelo Graf; tocar leva aos Gráficos) */
 .n-ritmo{text-decoration:none;color:var(--fg);gap:6px}
 .n-ritmo .n-sec span,.n-sec>span:not(.n-chip){font-size:.8rem;color:var(--muted)}
+.n-ver{font-size:.8rem;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap} /* "ver gráficos ›": o mesmo nos dois cartões do Início */
+a.n-ver:hover,.n-ritmo:hover .n-ver{color:var(--fg)}
+.cmp-h .num{white-space:nowrap}
+.n-lanc{width:100%;margin:0;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;text-align:left;color:var(--fg);font:inherit}
 /* ===== 2.0: Gráficos. Base de desenho única (Graf): o desenho é um SVG com resumo em texto e, por cima,
    uma camada com os pontos que se tocam ou recebem foco. Cores só por variáveis do tema; as das caixinhas são as delas. */
 .n-graf{position:relative;min-width:0}
@@ -493,6 +495,10 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .n-graf .g-forte{fill:var(--fg);font-weight:700}
 .n-graf-p{position:absolute;inset:0;height:100%!important;pointer-events:none}
 .n-graf-p .g-pt{pointer-events:all;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.n-graf-p.g-perto .g-pt{pointer-events:none} /* pontos estreitos: quem recebe o toque é a área toda (.g-area), que acha o mais perto */
+.n-graf-p .g-area{pointer-events:all;cursor:crosshair;-webkit-tap-highlight-color:transparent}
+.n-graf .g-nome,.n-graf .g-val{font-size:12px;fill:var(--fg)} /* nomes e valores das barras deitadas: medidos a 12 px, desenhados a 12 px */
+.n-graf .g-val{font-weight:600}
 .g-mira{opacity:0;transition:opacity .12s}
 .g-pt:hover .g-mira,.g-pt:focus-visible .g-mira,.g-pt.on .g-mira{opacity:1}
 .gb{transform-box:fill-box;transform-origin:50% 100%}
@@ -530,15 +536,146 @@ a.guia-card{color:var(--fg);text-decoration:none}
 .n-linha .desc{font-weight:500}
 .n-linha small{color:var(--muted);font-size:.76rem}
 .n-linha .num{flex:none;font-weight:600}
-/* ===== 2.0: Início em duas colunas no PC =====
-   No celular as colunas não existem (display:contents) e a ordem de uma coluna só vem do "order". */
+/* ===== 2.0: Início em duas colunas no PC (e no celular deitado) =====
+   No celular as peças ficam direto em .n-cols, na ordem do HTML; com duas colunas, arrumarColunas() as leva para cada .n-col. */
 .n-cols{display:flex;flex-direction:column;gap:18px;min-width:0}
-.n-col{display:contents}
-.n-col>div:empty{display:none}
-#inResumo{order:1} #inCx{order:2} #inRitmo{order:3} #inVencer{order:4} #inFatura{order:5} #inMetas{order:6} #inUltimos{order:7} #v-inicio .atalhos{order:8}
+.n-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.n-col:empty,.n-col>div:empty{display:none}
 #seisIni{display:none} /* "Últimos 6 meses" só no PC; no celular fica nos Gráficos */
 kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px solid var(--glass-line);background:color-mix(in srgb,var(--fg) 7%,transparent);color:var(--fg)}
 .nativo .n-so-tec{display:none}
+/* ===== 2.0: demais telas na linguagem do Início (Mês, Cartão, Metas, Calculadoras, Ajustes, Guia, Apoie, folha, PIN, aviso) =====
+   As mesmas peças: vidro (--glass e --glass-line), cabeçalho de cartão (.n-sec), etiquetas (.n-chip), tingido pela cor da caixinha (--c)
+   e a "fita" (o arco do Início deitado). Sem backdrop-filter nos cartões: o desfoque fica na barra, na folha e no aviso. */
+.panel,details{background:var(--glass);border:1px solid var(--glass-line);border-radius:20px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--fg) 6%,transparent)}
+.panel{padding:16px}
+details>summary{justify-content:flex-start;padding:15px 16px;font-weight:600}
+details>summary::after{content:"";flex:none;margin-left:auto;width:7px;height:7px;border:solid var(--gold);border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);transition:transform .18s}
+details[open]>summary::after{content:"";transform:translateY(2px) rotate(-135deg)}
+details.plain>summary::after{content:none}
+details details{background:color-mix(in srgb,var(--fg) 3%,transparent)}
+.n-ico{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--gold)}
+.n-ico svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+details>summary .n-ico{margin-right:4px}
+/* cabeçalho das telas: o rótulo em dourado, como o mês do Início */
+.view>.vhead .eyebrow{font-family:var(--display);font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.icon{background:var(--glass);border-color:var(--glass-line);color:var(--fg)}
+.icon:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--glass-line))}
+/* campos e botões */
+input,select,textarea{background:color-mix(in srgb,var(--deep) 60%,transparent);border-color:var(--glass-line)}
+input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg) 22%,transparent)}
+.primary,.sponsor{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--gold)));color:var(--accent-ink);border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.22)}
+.ghost{background:color-mix(in srgb,var(--fg) 6%,transparent);border-color:var(--glass-line);border-radius:999px;padding:9px 15px}
+.ghost:hover{background:color-mix(in srgb,var(--fg) 10%,transparent)}
+.ghost.danger{color:var(--over);border-color:color-mix(in srgb,var(--over) 40%,var(--glass-line));background:color-mix(in srgb,var(--over) 7%,transparent)}
+.ghost.armed{background:var(--over);color:var(--accent-ink);border-color:var(--over)}
+.chips label{background:color-mix(in srgb,var(--fg) 5%,transparent);border-color:var(--glass-line)}
+.chips input:checked+label{background:color-mix(in srgb,var(--accent) 20%,transparent);border-color:var(--accent)}
+.calc-tabs{gap:8px;padding:2px 0 4px;scrollbar-width:none}
+.calc-tabs::-webkit-scrollbar{display:none}
+.calc-tabs button{background:color-mix(in srgb,var(--fg) 5%,transparent);border-color:var(--glass-line);color:var(--muted);font-weight:600}
+.calc-tabs button[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--gold)));border-color:transparent;color:var(--accent-ink)}
+.banner{border-color:color-mix(in srgb,var(--gold) 55%,transparent);background:color-mix(in srgb,var(--gold) 6%,transparent);border-radius:16px}
+.item,.out .r,.cx-row,.copia,.copia-pasta,.cmp,table.mini th,table.mini td{border-color:var(--glass-line)}
+.out{border-color:var(--glass-line)}
+.out .r.key span:last-child{font-family:var(--display);font-weight:700}
+.daygroup{color:var(--gold);font-size:.74rem;font-weight:600;letter-spacing:.02em;padding:14px 0 4px}
+.daygroup:first-child{padding-top:2px}
+.pill{background:color-mix(in srgb,currentColor 14%,transparent)}
+/* blocos que se tocam reagem ao toque (afundam de leve); com "reduzir movimento", sem transição */
+.n-bloco,.atalho,.guia-card,.aj-menu button,.tema-use,.n-lanc,.primary,.ghost,.icon,.calc-tabs button{transition:transform .12s ease-out,background-color .15s}
+.atalho:active,.guia-card:active,.aj-menu button:active,.tema-use:active{transform:scale(.98)}
+.primary:active,.ghost:active,.icon:active,.calc-tabs button:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.n-bloco,.atalho,.guia-card,.aj-menu button,.tema-use,.n-lanc,.primary,.ghost,.icon,.calc-tabs button,details>summary::after{transition:none}}
+/* Resumo das telas (Mês, Cartão, Metas): o número grande, etiquetas e a fita */
+.n-resumo{gap:10px;padding:16px 18px;background:radial-gradient(120% 90% at 0 0,color-mix(in srgb,var(--glow) 26%,transparent),transparent 70%),var(--glass)}
+.n-resumo-topo{display:flex;align-items:center;gap:6px;min-height:24px}
+.n-resumo-topo .qm{margin-left:0}
+.n-rot{font-size:.84rem;color:var(--muted);font-weight:500}
+.n-resumo .big{font-family:var(--display);font-weight:700;font-size:2rem;line-height:1.1;color:var(--fg);font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
+.n-resumo .big.neg{color:var(--over)}
+.n-resumo .n-chips{justify-content:flex-start}
+.n-resumo .n-fatos{text-align:left}
+.n-fita{position:relative;display:flex;gap:2px;height:10px;border-radius:5px;background:color-mix(in srgb,var(--fg) 9%,transparent);overflow:visible}
+.n-fita i{display:block;height:100%;min-width:3px;border-radius:5px}
+.n-fita b{position:absolute;top:-4px;bottom:-4px;width:2.5px;margin-left:-1.25px;border-radius:2px;background:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--bg) 70%,transparent)}
+:root[data-claro] .n-fita i{filter:brightness(.8) saturate(1.35)}
+/* Mês: caixinhas tingidas pela cor delas, como os blocos do Início */
+#mesBoxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+#mesBoxes>.hint{grid-column:1/-1}
+.box{--c:var(--accent);padding:12px 14px;border-radius:18px;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 18%,transparent),color-mix(in srgb,var(--c) 2%,transparent) 70%),var(--glass);border:1px solid color-mix(in srgb,var(--c) 26%,var(--glass-line))}
+.box .bar{background:color-mix(in srgb,var(--fg) 9%,transparent);box-shadow:none;height:7px}
+.box .left{font-size:1.02rem}
+.box .help{background:color-mix(in srgb,var(--fg) 5%,transparent);border-radius:0 10px 10px 0}
+/* lista de lançamentos: cada linha é o botão que abre a edição */
+.n-lancs{gap:10px}
+.n-lancs .filtros{gap:10px}
+.n-lanc{padding:11px 10px;margin:0 -10px;width:calc(100% + 20px);border-bottom:1px solid var(--glass-line);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.n-lanc:last-of-type{border-bottom:0}
+.n-lanc:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.n-lanc:active{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.n-lanc .val{font-weight:700}
+#mesLista:focus{outline:none}
+#mesLista:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px}
+.n-apagar{align-self:center}
+/* Cartão */
+.n-fatura .n-sec h3{display:flex;align-items:center;gap:10px;min-width:0}
+.n-fatura .n-sec h3 span{min-width:0;overflow-wrap:anywhere}
+/* Metas: um cartão por meta, com a barra em degradê e os números em ladrilhos */
+#metasLista{gap:12px}
+.meta-card{padding:16px;border:1px solid var(--glass-line);border-radius:20px;background:var(--glass);gap:12px}
+.meta-card:last-child{border-bottom:1px solid var(--glass-line)}
+.meta-card .hd b{font-size:1.06rem;font-family:var(--display);font-weight:700}
+.meta-card .hd .num{font-weight:700}
+.meta-card .bar{height:10px;background:color-mix(in srgb,var(--fg) 9%,transparent);box-shadow:none}
+.meta-card .bar i{background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--gold)))}
+.meta-card .facts{gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.meta-card .facts>span{padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.meta-card .btns input{max-width:130px}
+/* Ajustes */
+.aj-menu{background:var(--glass);border-color:var(--glass-line);border-radius:20px}
+.aj-menu button{border-color:var(--glass-line);padding:13px 14px}
+.aj-menu button:hover{background:color-mix(in srgb,var(--fg) 4%,transparent)}
+.aj-menu svg{box-sizing:content-box;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--accent) 14%,transparent);stroke:var(--gold)}
+.aj-menu i{color:var(--gold)}
+.cx-row{padding:14px 0}
+.icos{scrollbar-color:color-mix(in srgb,var(--fg) 18%,transparent) transparent}
+.bkp{border-color:var(--glass-line);border-radius:16px;background:color-mix(in srgb,var(--fg) 3%,transparent)}
+.tema-card{border-color:var(--glass-line);background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:16px}
+.tema-card.sel{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.qmtxt{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+/* Guia e Apoie */
+.guia-card{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 18%,transparent),transparent 70%),var(--glass);border-color:var(--glass-line);border-radius:20px}
+.guia-card.slim{background:var(--glass);border-color:var(--glass-line);border-radius:18px}
+.guia details>summary{font-family:var(--display);font-weight:700;letter-spacing:.01em}
+.free div{background:var(--glass);border-color:var(--glass-line);border-radius:16px}
+.free b{color:var(--gold)}
+.support h3{color:var(--gold)}
+/* Primeira abertura */
+.onb{background:radial-gradient(120% 80% at 0 0,color-mix(in srgb,var(--glow) 34%,transparent),transparent 70%),var(--glass)}
+.onb h3{font-size:1.3rem}
+.onb .onb-dots i{background:color-mix(in srgb,var(--fg) 14%,transparent)}
+/* Trava do PIN: o mesmo fundo com brilho, teclado de vidro */
+.trava{background:radial-gradient(ellipse 680px 460px at 50% -90px,color-mix(in srgb,var(--glow) 60%,transparent),transparent 72%),var(--bg)}
+.teclado{gap:14px 18px}
+.teclado button{justify-self:center;width:66px;height:66px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-line);font-size:1.3rem;transition:transform .1s,background-color .15s}
+.teclado button:active{background:color-mix(in srgb,var(--accent) 22%,transparent);transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){.teclado button{transition:none}}
+/* Aviso (toast): vidro escuro com desfoque, entra subindo */
+.toast{width:max-content;background:color-mix(in srgb,var(--surface2) 90%,transparent);color:var(--fg);border:1px solid var(--glass-line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:10px 18px 10px 30px;animation:n-aviso .18s ease-out}
+.toast::before{content:"";position:absolute;left:14px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--gold)}
+@keyframes n-aviso{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+/* Folha de lançar: vidro com desfoque e uma mola leve ao subir */
+.folha-caixa{background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-color:var(--glass-line);border-radius:26px 26px 0 0;animation:fl-mola .4s cubic-bezier(.2,.8,.3,1)}
+.folha-caixa::before{background:color-mix(in srgb,var(--fg) 22%,transparent)}
+@keyframes fl-mola{0%{transform:translateY(70px);opacity:0}55%{transform:translateY(-6px);opacity:1}80%{transform:translateY(2px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.folha-caixa{animation:none}}
+@media (min-width:700px){.folha-caixa{border-radius:24px;border-bottom:1px solid var(--glass-line)}@keyframes fl-mola{0%{transform:translateY(24px) scale(.97);opacity:0}60%{transform:translateY(-3px) scale(1.005);opacity:1}100%{transform:none}}}
+/* Duas colunas (Mês, Cartão, Metas): no celular uma coluna só, na mesma ordem do HTML */
+.n-2col,.n-coluna{display:flex;flex-direction:column;gap:18px;min-width:0}
+.n-chip.n-chip-ouro{background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold)}
+.empty.n-vidro{padding:14px 16px}
 /* Barra lateral (só no PC) */
 .n-lado{display:none}
 @media (min-width:900px){
@@ -568,14 +705,20 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   .n-lado-fim{margin-top:auto}
   /* As telas de uma coluna ficam numa largura de leitura, centradas; Início (e Gráficos) usam a largura toda */
   .view{width:100%;max-width:820px;margin-inline:auto}
-  #v-inicio,#v-graficos{max-width:none}
+  #v-inicio,#v-graficos,#v-mes,#v-cartao,#v-metas,#v-calc{max-width:none}
+  /* Mês, Cartão e Metas: resumo e caixinhas (ou faturas, ou metas) à esquerda; lista, formulários e o resto à direita */
+  .n-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:22px;align-items:start}
+  /* Calculadoras: a lista delas em pé à esquerda (como os Ajustes) e a conta escolhida à direita */
+  #v-calc{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px 26px;align-items:start}
+  #v-calc>.vhead{grid-column:1/-1}
+  #v-calc .calc-tabs{grid-column:1;grid-row:2/span 2;flex-direction:column;overflow:visible;position:sticky;top:20px}
+  #v-calc .calc-tabs button{text-align:left;padding:10px 14px;white-space:normal}
+  #v-calc .calc,#calcNota{grid-column:2;min-width:0}
   /* Início: esquerda arco, ritmo e últimos 6 meses; direita caixinhas em grade, A vencer, últimos gastos */
   .n-cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;align-items:start}
-  .n-col{display:flex;flex-direction:column;gap:18px;min-width:0}
-  #v-inicio .n-col>*{order:0}
   #seisIni{display:flex}
   /* Gráficos: grade de duas colunas; o ritmo e a comparação ocupam a largura toda */
-  .n-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+  .n-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch} /* cartões da mesma linha com a mesma altura: sem buracos */
   .n-grade>.n-larga{grid-column:1/-1}
   .n-arco-caixa{width:min(100%,360px)}
   .n-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));overflow:visible;margin:0;padding:0;scroll-snap-type:none}
@@ -587,13 +730,23 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   #v-ajustes #ajMenu{grid-column:1;grid-row:2;position:sticky;top:20px}
   #v-ajustes .aj-parte{grid-column:2;grid-row:2;min-width:0}
   #v-ajustes #ajVoltar{display:none!important}
-  #v-ajustes:has(.aj-parte[data-parte="caixinhas"]:not([hidden])) #ajMenu [data-parte="caixinhas"],
-  #v-ajustes:has(.aj-parte[data-parte="pagamento"]:not([hidden])) #ajMenu [data-parte="pagamento"],
-  #v-ajustes:has(.aj-parte[data-parte="aparencia"]:not([hidden])) #ajMenu [data-parte="aparencia"],
-  #v-ajustes:has(.aj-parte[data-parte="pin"]:not([hidden])) #ajMenu [data-parte="pin"],
-  #v-ajustes:has(.aj-parte[data-parte="dados"]:not([hidden])) #ajMenu [data-parte="dados"],
-  #v-ajustes:has(.aj-parte[data-parte="lembretes"]:not([hidden])) #ajMenu [data-parte="lembretes"],
-  #v-ajustes:has(.aj-parte[data-parte="sobre"]:not([hidden])) #ajMenu [data-parte="sobre"]{background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:inset 3px 0 0 var(--gold)}
+  #ajMenu [aria-current="true"]{background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:inset 3px 0 0 var(--gold)}
+}
+/* Celular deitado (tela baixa e sem a barra lateral): a barra de baixo comia boa parte da altura e cobria o arco.
+   Ela vira um trilho em pé na direita, o conteúdo ganha folga desse lado e o Início usa duas colunas (como no PC). */
+@media (min-width:600px) and (max-width:899px) and (max-height:500px){
+  .tabs{left:auto;right:calc(8px + env(safe-area-inset-right,0px));top:50%;bottom:auto;transform:translateY(-50%);width:68px;max-width:none;margin:0;border-radius:34px}
+  .tabs nav{grid-template-columns:none;grid-auto-rows:auto;height:auto;padding:6px 0;row-gap:2px}
+  .tabs a{height:auto;padding:7px 0;font-size:.64rem;border-radius:16px}
+  .tabs a svg{width:20px;height:20px}
+  .tabs a[aria-current="page"]::after{bottom:auto;top:50%;left:auto;right:5px;margin:-2px 0 0}
+  .fab{width:48px;height:48px;margin:4px 0}
+  .wrap{max-width:none;padding-bottom:calc(28px + var(--base));padding-right:calc(88px + env(safe-area-inset-right,0px))}
+  .toast{bottom:calc(16px + var(--base));left:calc(50% - 44px)}
+  .n-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  .n-arco-caixa{width:min(100%,280px)}
+  .n-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));overflow:visible;margin:0;padding:0;scroll-snap-type:none}
+  .n-bloco{width:auto}
 }
 </style>
 
@@ -613,6 +766,22 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     <div id="travaEsq" class="flat" style="align-items:center"></div>
   </div>
 </div>
+
+<!-- Barra lateral do PC (>= 900 px): no celular quem navega é a barra de baixo. Vem antes do conteúdo para o Tab passar por ela primeiro. -->
+<nav class="n-lado" id="lado" aria-label="Seções">
+  <div class="n-lado-marca">
+    <svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke-width="13" stroke-linecap="round"><path d="M58.77 21.31A30 30 0 0 1 79.23 56.75" stroke="var(--accent)"/><path d="M70.46 71.94A30 30 0 0 1 29.54 71.94" stroke="var(--gold)"/><path d="M20.77 56.75A30 30 0 0 1 41.23 21.31" stroke="var(--track)"/><g fill="var(--fg)" stroke="none"><rect x="38" y="39.6" width="24" height="5.2" rx="2.6"/><rect x="38" y="47.4" width="16" height="5.2" rx="2.6"/><rect x="38" y="55.2" width="9.5" height="5.2" rx="2.6"/></g></svg>
+    <b>Orolon Caixinhas</b>
+  </div>
+  <button class="n-lado-lancar" id="ladoLancar" type="button" data-act="gasto-novo" aria-keyshortcuts="N"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Lançar</span><kbd class="n-so-tec" aria-hidden="true">N</kbd></button>
+  <a href="#inicio" data-tab="inicio" aria-keyshortcuts="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></svg><span>Início</span></a>
+  <a href="#mes" data-tab="mes" aria-keyshortcuts="2"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Mês</span></a>
+  <a href="#graficos" data-tab="graficos" aria-keyshortcuts="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg><span>Gráficos</span></a>
+  <a href="#cartao" data-tab="cartao" aria-keyshortcuts="4"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg><span>Cartão</span></a>
+  <a href="#metas" data-tab="metas" aria-keyshortcuts="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg><span>Metas</span></a>
+  <a href="#calc" data-tab="calc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><span>Calculadoras</span></a>
+  <a href="#ajustes" data-tab="ajustes" class="n-lado-fim"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Ajustes</span></a>
+</nav>
 
 <div class="wrap">
   <header class="top">
@@ -637,26 +806,24 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     <div id="inGuia"></div>
     <div id="inOnb"></div>
     <div id="inBanner"></div>
-    <!-- No celular as duas colunas somem (display:contents) e a ordem vem do CSS; no PC (>= 900 px) ficam lado a lado. -->
-    <div class="n-cols">
-    <div class="n-col" data-col="esq">
+    <!-- O HTML segue a ordem do celular (é a ordem de leitura do Tab e do TalkBack). Com duas colunas (PC, celular deitado),
+         arrumarColunas() leva cada peça para a sua coluna, e a ordem de leitura vira a esquerda e depois a direita. -->
+    <div class="n-cols" id="inCols">
     <div class="n-arco" id="inResumo"></div>
+    <div class="n-cxs" id="inCx"></div>
     <a class="n-vidro n-ritmo" id="inRitmo" href="#graficos" data-mes-atual></a>
     <div class="n-vidro" id="seisIni"></div><!-- "Últimos 6 meses": só no PC (no celular fica nos Gráficos) -->
+    <div class="n-vidro" id="inVencer" hidden></div>
+    <div class="n-vidro" id="inFatura"></div>
+    <div class="n-vidro" id="inMetas"></div>
+    <div class="n-vidro" id="inUltimos" hidden></div>
     <div class="atalhos">
       <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
       <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
       <button class="atalho linha n-vidro" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Calculadoras</b></button>
       <button class="atalho linha n-vidro" type="button" data-go="guia"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg><b>Como usar</b></button>
     </div>
-    </div>
-    <div class="n-col" data-col="dir">
-    <div class="n-cxs" id="inCx"></div>
-    <div class="n-vidro" id="inVencer" hidden></div>
-    <div class="n-vidro" id="inUltimos" hidden></div>
-    <div class="n-vidro" id="inFatura"></div>
-    <div class="n-vidro" id="inMetas"></div>
-    </div>
+    <div class="n-col" data-col="esq"></div><div class="n-col" data-col="dir"></div>
     </div>
     <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
   </section>
@@ -716,7 +883,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     <details>
       <summary>Errei um valor. E agora?</summary>
       <div class="inner">
-        <p>Na lista de lançamentos, toque em <b>Editar</b> ao lado do gasto, corrija e salve. Para apagar, toque em <b>Apagar</b> duas vezes (a segunda confirma).</p>
+        <p>Na lista de lançamentos do Mês, toque no gasto: ele abre para editar. Corrija e salve. Para apagar, toque em <b>Apagar gasto</b> ali dentro duas vezes (a segunda confirma).</p>
       </div>
     </details>
 
@@ -733,7 +900,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details>
-      <summary>Metas e investimentos</summary>
+      <summary>Metas e reserva de emergência</summary>
       <div class="inner">
         <p>Em <b>Metas → Nova meta</b>, defina o alvo, quanto já tem e quanto vai guardar por mês. O app calcula em quanto tempo você chega lá, com rendimento. Comece pela reserva de emergência.</p>
         <p class="hint">Os simuladores de juros e de quanto guardar por mês ficam em <b>Início → Calculadoras</b> (ou pelo botão “Simular” em Metas). São estimativas.</p>
@@ -808,12 +975,16 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
       </div>
     </div>
     <div id="exBanner"></div>
+    <!-- no PC (e só lá) as duas colunas ficam lado a lado; a ordem do HTML é a do celular -->
+    <div class="n-2col">
+    <div class="n-coluna">
     <div id="mesResumo"></div>
     <div class="boxes" id="mesBoxes"></div>
     <p class="hint" style="margin:-6px 0 0"><button class="link" type="button" data-go="ajustes/caixinhas" data-focus="cxn-0">Editar caixinhas: criar, remover, reordenar</button></p>
-
-    <div class="flat">
-      <div class="vhead"><h3>Lançamentos</h3><span class="hint" id="mesCount"></span></div>
+    </div>
+    <div class="n-coluna">
+    <section class="n-vidro n-lancs" aria-labelledby="mesLancT">
+      <div class="n-sec"><h3 id="mesLancT">Lançamentos</h3><span class="hint" id="mesCount"></span></div>
       <div class="filtros">
         <div class="vhead qh" style="flex-wrap:nowrap"><input id="fBusca" type="search" placeholder="Buscar: descrição, caixinha, valor" aria-label="Buscar lançamentos" autocomplete="off"><button class="qm" type="button" data-act="qm" data-id="filtros" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
         <div class="row tight">
@@ -824,9 +995,9 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
         <span class="n-chip n-filtro-dia" id="fDia" hidden></span>
       </div>
       <p class="hint" id="fResumo"></p>
-      <div class="list" id="mesLista"></div>
+      <div class="list" id="mesLista" tabindex="-1" aria-label="Lançamentos"></div>
       <div id="csvBoxLista"></div>
-    </div>
+    </section>
 
     <a class="guia-card slim" id="mesGraf" href="#graficos">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg>
@@ -834,7 +1005,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </a>
 
     <details id="dEnt">
-      <summary>Entradas de dinheiro</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span>Entradas de dinheiro</summary>
       <form class="inner" id="fEnt" autocomplete="off">
         <p class="hint">Registre o que entrou (salário, extras, Pix recebido). Aparece no resumo do mês.</p>
         <div class="row">
@@ -848,7 +1019,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details id="dFixos">
-      <summary>Gastos fixos (todo mês)</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg></span>Gastos fixos (todo mês)</summary>
       <form class="inner" id="fFixo" autocomplete="off">
         <p class="hint">Aluguel, internet, mensalidades: o app lança sozinho, todo mês, a partir deste mês. Se apagar o lançamento de um mês, ele não volta naquele mês.</p>
         <div class="row">
@@ -866,7 +1037,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details id="dRem">
-      <summary>Remanejar entre caixinhas</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg></span>Remanejar entre caixinhas</summary>
       <form class="inner" id="fRem">
         <p class="hint">Passa limite de uma caixinha para outra só neste mês. O total do mês não muda.</p>
         <div class="row">
@@ -879,7 +1050,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details id="dLim">
-      <summary>Ajustar limites</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 6h9M18 6h1M5 12h3M12 12h7M5 18h11M20 18h-1"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>Ajustar limites</summary>
       <form class="inner" id="fLim">
         <div class="row" id="limInputs"></div>
         <div class="chips" role="radiogroup" aria-label="Valer para">
@@ -894,7 +1065,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details id="dSaldo">
-      <summary>Conferir com o saldo real</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 5l9 5.5M5 10.5V18M9.7 10.5V18M14.3 10.5V18M19 10.5V18M3.5 20h17"/></svg></span>Conferir com o saldo real</summary>
       <form class="inner" id="fSaldo">
         <p class="hint">Compara o dinheiro nas contas com a sobra esperada. Gastos no crédito não saem da conta agora, então não entram na conta. As entradas do mês só são somadas quando você informa o saldo do início do mês.</p>
         <div class="row">
@@ -904,9 +1075,10 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
         <div id="sOut"></div>
       </form>
     </details>
+    </div>
+    </div>
   </section>
 
-  <!-- ===================== CARTÃO ===================== -->
   <!-- ===================== GRÁFICOS (sempre do mês escolhido, o mesmo do Mês) ===================== -->
   <section class="view" id="v-graficos" hidden>
     <div class="vhead">
@@ -928,6 +1100,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </div>
   </section>
 
+  <!-- ===================== CARTÃO ===================== -->
   <section class="view" id="v-cartao" hidden>
     <div class="vhead">
       <div><p class="eyebrow">Fatura que vence em</p><h2><span class="cap" id="cartLabel">—</span></h2></div>
@@ -937,16 +1110,20 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
         <button class="icon" type="button" data-act="cart-next" aria-label="Próxima fatura">›</button>
       </div>
     </div>
+    <div class="n-2col">
+    <div class="n-coluna">
     <div id="cartResumo"></div>
     <div class="flat" id="cartFaturas"></div>
     <div class="panel" id="cartTerceiros"></div>
+    </div>
+    <div class="n-coluna">
     <div class="panel">
       <div class="vhead qh"><h3>Próximas faturas</h3><button class="qm" type="button" data-act="qm" data-id="proximas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="cartProj"></div>
     </div>
 
     <form class="panel" id="fCompra" autocomplete="off">
-      <div class="vhead qh"><h3>Nova compra no cartão</h3><button class="qm" type="button" data-act="qm" data-id="compra" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+      <div class="vhead qh"><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><h3>Nova compra no cartão</h3><button class="qm" type="button" data-act="qm" data-id="compra" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div class="row">
         <label>O que foi<input id="cDesc" placeholder="Ex.: Deck de Magic" required></label>
         <label>Cartão<select id="cCartao"></select></label>
@@ -968,7 +1145,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </form>
 
     <details id="dCartoes">
-      <summary>Meus cartões</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg></span>Meus cartões</summary>
       <div class="inner">
         <div class="list" id="cartList"></div>
         <p class="hint" id="ktAviso">Aqui vai só um apelido e os dias de fechamento e vencimento. O app nunca pede número, validade nem código de segurança do cartão: não digite esses dados em lugar nenhum daqui.</p>
@@ -983,21 +1160,26 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     </details>
 
     <details id="dCompras">
-      <summary>Todas as compras e assinaturas</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></span>Todas as compras e assinaturas</summary>
       <div class="inner"><div class="list" id="comprasList"></div></div>
     </details>
+    </div>
+    </div>
   </section>
 
   <!-- ===================== METAS ===================== -->
   <section class="view" id="v-metas" hidden>
     <div class="vhead">
-      <div><p class="eyebrow">Metas e investimentos</p><h2>Onde o dinheiro vai crescer</h2></div>
+      <div><p class="eyebrow">Dinheiro guardado com objetivo</p><h2>Metas</h2></div>
     </div>
+    <div class="n-2col">
+    <div class="n-coluna">
     <div id="metasResumo"></div>
     <div class="flat" id="metasLista"></div>
-
+    </div>
+    <div class="n-coluna">
     <details id="dMeta">
-      <summary id="metaSum">Nova meta</summary>
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></span><span id="metaSum">Nova meta</span></summary>
       <form class="inner" id="fMeta" autocomplete="off">
         <div class="btns" id="metaPresets">
           <button class="ghost" type="button" data-preset="reserva">Reserva de emergência</button>
@@ -1022,7 +1204,12 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
       </form>
     </details>
 
-    <button class="ghost" type="button" data-act="simular">Simular juros e quanto guardar por mês</button>
+    <button class="guia-card slim" type="button" data-act="simular">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg>
+      <span style="flex:1;min-width:0"><b>Simular juros e quanto guardar por mês</b></span><span class="go" aria-hidden="true">›</span>
+    </button>
+    </div>
+    </div>
   </section>
 
   <!-- ===================== CALCULADORAS ===================== -->
@@ -1277,22 +1464,6 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   </section>
 </div>
 
-<!-- Barra lateral do PC (>= 900 px): no celular quem navega é a barra de baixo -->
-<nav class="n-lado" id="lado" aria-label="Seções">
-  <div class="n-lado-marca">
-    <svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke-width="13" stroke-linecap="round"><path d="M58.77 21.31A30 30 0 0 1 79.23 56.75" stroke="var(--accent)"/><path d="M70.46 71.94A30 30 0 0 1 29.54 71.94" stroke="var(--gold)"/><path d="M20.77 56.75A30 30 0 0 1 41.23 21.31" stroke="var(--track)"/><g fill="var(--fg)" stroke="none"><rect x="38" y="39.6" width="24" height="5.2" rx="2.6"/><rect x="38" y="47.4" width="16" height="5.2" rx="2.6"/><rect x="38" y="55.2" width="9.5" height="5.2" rx="2.6"/></g></svg>
-    <b>Orolon Caixinhas</b>
-  </div>
-  <button class="n-lado-lancar" id="ladoLancar" type="button" data-act="gasto-novo" aria-keyshortcuts="N"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Lançar</span><kbd class="n-so-tec" aria-hidden="true">N</kbd></button>
-  <a href="#inicio" data-tab="inicio" aria-keyshortcuts="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></svg><span>Início</span></a>
-  <a href="#mes" data-tab="mes" aria-keyshortcuts="2"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Mês</span></a>
-  <a href="#graficos" data-tab="graficos" aria-keyshortcuts="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg><span>Gráficos</span></a>
-  <a href="#cartao" data-tab="cartao" aria-keyshortcuts="4"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg><span>Cartão</span></a>
-  <a href="#metas" data-tab="metas" aria-keyshortcuts="5"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg><span>Metas</span></a>
-  <a href="#calc" data-tab="calc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><span>Calculadoras</span></a>
-  <a href="#ajustes" data-tab="ajustes" class="n-lado-fim"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Ajustes</span></a>
-</nav>
-
 <div class="tabs">
   <nav aria-label="Seções">
     <a href="#inicio" data-tab="inicio"><svg viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></svg>Início</a>
@@ -1316,6 +1487,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
       <label>Data<input id="gData" type="date"></label>
     </div>
     <button class="primary" type="submit" id="gBtn">Lançar</button>
+    <button class="ghost danger n-apagar" type="button" id="gApagar" data-act="del-gasto" hidden>Apagar gasto</button><!-- só na edição; o primeiro toque arma, o segundo apaga -->
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -1797,26 +1969,38 @@ function status(p){
   return ['p-ok','tranquilo'];
 }
 
+/* Fita: uma barra deitada em pedaços ({ w: fração de 0 a 1, cor }), irmã do arco do Início; marca (0 a 1) é o traço dourado de hoje.
+   Só desenho: os números estão em texto ao lado. */
+function fita(pedacos, marca){
+  const ps = pedacos.filter(p => p.w > 0.0005), soma = ps.reduce((a, p) => a + p.w, 0), k = soma > 1 ? 1 / soma : 1;
+  return `<div class="n-fita" aria-hidden="true">${ps.map(p => `<i style="width:${n2(p.w * k * 100)}%;background:${esc(p.cor)}"></i>`).join('')}${marca !== null && marca !== undefined ? `<b style="left:${n2(Math.min(1, Math.max(0, marca)) * 100)}%"></b>` : ''}</div>`;
+}
 /* ---------- Render: Mês ---------- */
 function renderMes(){
   const k = UI.mes, R = resumoMes(k), dl = daysLeft(k);
   $('mesLabel').textContent = monthLabel(k);
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
   $('exBanner').innerHTML = backupBanner(exN) + (exN ? `<div class="banner"><span>Você está vendo dados de exemplo (marcados com “exemplo”).</span><button class="ghost" type="button" data-act="ex-clear">Apagar exemplos</button></div>` : '');
-  const porDia = dl > 0 ? R.sobra / dl : 0;
-  $('mesResumo').innerHTML = `
-    <div class="total">
-      <div><span class="lbl">Sobra do mês ${qm('sobra')}</span><span class="big num ${R.sobra < 0 ? 'neg' : ''}">${fmt(R.sobra)}</span></div>
-      <div class="side">${dl > 0 ? `<b class="num">${fmt(Math.max(0,porDia))}</b> por dia · ${dl} ${dl === 1 ? 'dia' : 'dias'}<br>` : (k < thisMonth() ? 'Mês encerrado<br>' : '')}
-      gasto <b class="num">${fmt(R.gasto)}</b> de <span class="num">${fmt(R.limite)}</span>${totalEntradas(k) ? `<br>entrou <b class="num">${fmt(totalEntradas(k))}</b>` : ''}</div>
+  const porDia = dl > 0 ? R.sobra / dl : 0, cur = thisMonth(), ent = totalEntradas(k);
+  // fita: o arco do Início deitado (um pedaço por caixinha, o que passou do limite em vermelho) e o marcador de hoje no mês atual
+  const escala = Math.max(R.limite, R.gasto), pedacos = [];
+  S.caixinhas.forEach(c => { const p = R.por[c.id]; if (!(p.gasto > 0) || !(escala > 0)) return; const dentro = Math.min(p.gasto, Math.max(0, p.limite));
+    pedacos.push({ w: dentro / escala, cor: corOk(c.cor) }, { w: (p.gasto - dentro) / escala, cor: 'var(--over)' }); });
+  const orf = r2(R.gasto - S.caixinhas.reduce((a, c) => a + R.por[c.id].gasto, 0)); if (orf > 0 && escala > 0) pedacos.push({ w: orf / escala, cor: 'var(--faint)' });
+  $('mesResumo').innerHTML = `<div class="n-vidro n-resumo">
+      <div class="n-resumo-topo"><span class="n-rot">Sobra do mês</span>${qm('sobra')}</div>
+      <span class="big num ${R.sobra < 0 ? 'neg' : ''}" data-conta="${R.sobra}">${fmt(R.sobra)}</span>
+      <div class="n-chips">${dl > 0 ? (R.sobra < 0 ? `<span class="n-chip over">${fmt(-R.sobra)} acima do limite</span>` : `<span class="n-chip ok"><b class="num">${fmt(Math.max(0, porDia))}</b>&nbsp;por dia</span>`) + `<span class="n-chip">${k > cur ? 'mês ainda não começou' : dl === 1 ? 'último dia do mês' : 'faltam ' + dl + ' dias'}</span>` : `<span class="n-chip">mês encerrado</span>`}</div>
+      ${fita(pedacos, k === cur ? new Date().getDate() / daysInMonth(k) : null)}
+      <p class="n-fatos">gasto <b class="num">${fmt(R.gasto)}</b> de <b class="num">${fmt(R.limite)}</b>${ent ? ` · entrou <b class="num">${fmt(ent)}</b>` : ''}</p>
     </div>`;
   $('mesBoxes').innerHTML = S.caixinhas.map(c => {
     const p = R.por[c.id], st = status(p), w = p.limite > 0 ? Math.min(100, p.gasto / p.limite * 100) : (p.gasto > 0 ? 100 : 0);
     const col = p.sobra < 0 ? 'var(--over)' : c.cor;
-    return `<div class="box" data-cx="${esc(c.id)}">
+    return `<div class="box" data-cx="${esc(c.id)}" style="--c:${esc(corOk(c.cor))}">
       ${cxi(c)}
       <button class="name" type="button" data-act="cx-help" data-id="${esc(c.id)}" aria-expanded="false">${esc(c.nome)}<small>${fmt(p.gasto)} de ${fmt(p.limite)}</small></button>
-      <span class="left num" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
+      <span class="left num" data-conta="${p.sobra}" style="color:${p.sobra < 0 ? 'var(--over)' : 'var(--fg)'}">${fmt(p.sobra)}</span>
       <div class="bar"><i style="width:${w}%;background:${col};color:${col}"></i></div>
       <div class="meta"><span class="num">${dl > 0 && p.sobra > 0 ? `${fmt(p.sobra/dl)} por dia` : ''}</span><span class="pill ${st[0]}">${st[1]}</span></div>
       <p class="help" id="help-${esc(c.id)}" hidden>${esc(c.ajuda || 'Sem descrição. Edite em Ajustes.')}</p>
@@ -1832,7 +2016,7 @@ function renderMes(){
   const fSel = $('gForma').value;
   $('gForma').innerHTML = S.formas.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
   if (!UI.editG && (!$('gData').value || monthOf($('gData').value) !== k)) $('gData').value = k === thisMonth() ? today() : k + '-01';
-  previewGasto();
+  previewGasto(); renderApagar();
 
   renderLista(k);
 
@@ -1854,6 +2038,8 @@ function renderMes(){
 }
 function normTxt(t){ return String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 function filtroAtivo(){ return !!($('fBusca').value.trim() || $('fCx').value || $('fForma').value || $('fTodos').checked || UI.filtroDia); }
+/* troca o mês do Mês e dos Gráficos; o filtro de um dia nunca passa para outro mês (nem com "todos os meses" marcado) */
+function irMes(k){ if (k !== UI.mes) UI.filtroDia = null; UI.mes = k; }
 /* Tocar num dia do calendário dos Gráficos: a lista do Mês mostra só os gastos daquele dia (com o total), sem os outros filtros */
 function abrirDia(k, dia){
   UI.mes = k; UI.filtroDia = k + '-' + pad(dia); UI.listaToda = false;
@@ -1888,13 +2074,14 @@ function renderLista(k){
   $('mesLista').innerHTML = gs.length ? (toda ? gs : gs.slice(0, CURTA)).map(g => {
     const c = cx(g.caixinha); let head = '';
     if (g.data !== lastDay) { lastDay = g.data; head = `<div class="daygroup">${esc(dayLabel(g.data, todos))}</div>`; }
-    return head + `<div class="item">
+    // a linha inteira é o botão que abre a edição (2.0); apagar fica dentro da folha de edição (#gApagar)
+    const rotulo = `Editar ${g.descricao}, ${fmt(g.valor)}, ${c.nome}${g.forma ? ', ' + g.forma : ''}${todos ? ', ' + dayLabel(g.data, true) : ''}${g.ex ? ', exemplo' : ''}${g.fixoId ? ', gasto fixo' : ''}`;
+    return head + `<button class="item n-lanc" type="button" data-act="ed-gasto" data-id="${esc(g.id)}" aria-label="${esc(rotulo)}">
       ${cxi(c, 'sm')}
       <span class="desc">${esc(g.descricao)}${g.ex ? '<span class="ex">exemplo</span>' : ''}${g.fixoId ? '<span class="ex">fixo</span>' : ''}</span>
       <span class="val num">${fmt(g.valor)}</span>
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
-      <span class="act"><button class="link" type="button" data-act="ed-gasto" data-id="${esc(g.id)}">Editar</button><button class="link ${UI.armed === 'g:' + g.id ? 'armed' : ''}" type="button" data-act="del-gasto" data-id="${esc(g.id)}">${UI.armed === 'g:' + g.id ? 'Toque de novo' : 'Apagar'}</button></span>
-    </div>`;
+    </button>`;
   }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
 /* ---------- Render: Gráficos (tela própria, sempre do mês escolhido em UI.mes) ---------- */
@@ -1915,7 +2102,7 @@ function renderGraf(k){
     dica: i => i < ate ? `dia ${i + 1}\n${fmt(rt.acumulado[i])} até aqui${rt.limite > 0 ? ' · ritmo ' + fmt(rt.ideal[i]) : ''}` : `dia ${i + 1}\nritmo ideal ${fmt(rt.ideal[i])}` });
   // últimos 6 meses
   const h = historico(k), ant5 = h.slice(0, 5).map(m => m.gasto).filter(v => v > 0), media = ant5.length ? r2(ant5.reduce((a, v) => a + v, 0) / ant5.length) : 0;
-  Graf.barras($('gSeis'), opSeis(k));
+  Graf.barras($('gSeis'), opSeis(k, h));
   $('gSeisNota').innerHTML = (media ? `Média dos meses anteriores com gastos: <b class="num">${fmt(media)}</b>.` : '') + (k === cur && h[5].gasto > 0 ? ' O mês atual ainda não terminou.' : '');
   if (semGasto) return;
   // para onde foi: uma fatia por caixinha com gasto, na cor dela; gastos de caixinhas apagadas juntos
@@ -1949,7 +2136,7 @@ function renderComparacao(k){
   const w = v => Math.max(v > 0 ? 1.5 : 0, v / max * 100).toFixed(1);
   const linhas = ids.map(id => {
     const c = cx(id), a = A[id] || 0, p = P[id] || 0; if (!a && !p) return '';
-    const d = r2(a - p), var_ = !p ? (a ? 'novo' : '') : Math.abs(d) < 0.01 ? 'igual' : `${d > 0 ? '+' : '−'} ${fmt(Math.abs(d))}`;
+    const d = r2(a - p), var_ = !p ? (a ? 'novo' : '') : Math.abs(d) < 0.01 ? 'igual' : `${d > 0 ? '+' : '−'} ${fmt(Math.abs(d))}`; // o sinal não quebra longe do valor
     return `<div class="cmp"><div class="cmp-h"><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:${esc(c.cor)}"></span>${esc(c.nome)}</span><span class="hint num">${var_}</span></div>
       <div class="cmp-b" title="${esc(nA)}: ${fmt(a)}"><span class="trk"><i style="width:${w(a)}%"></i></span><span class="num">${fmt(a)}</span></div>
       <div class="cmp-b ant" title="${esc(nP)}: ${fmt(p)}"><span class="trk"><i style="width:${w(p)}%"></i></span><span class="num">${fmt(p)}</span></div></div>`;
@@ -2059,23 +2246,26 @@ function faturaDefault(dataIso, cartao){
 function renderCartao(){
   const k = UI.cart, F = fatura(k);
   $('cartLabel').textContent = monthLabel(k);
-  $('cartResumo').innerHTML = `<div class="total">
-      <div><span class="lbl">Total da fatura</span><span class="big num">${fmt(F.total)}</span></div>
-      <div class="side">sua parte <b class="num">${fmt(F.eu)}</b><br>de terceiros <b class="num">${fmt(F.terc)}</b></div>
+  // resumo: o total e a fita dividida entre a sua parte (destaque) e a de outras pessoas (dourado)
+  $('cartResumo').innerHTML = `<div class="n-vidro n-resumo">
+      <div class="n-resumo-topo"><span class="n-rot">Total da fatura</span></div>
+      <span class="big num" data-conta="${F.total}">${fmt(F.total)}</span>
+      <div class="n-chips"><span class="n-chip">sua parte&nbsp;<b class="num">${fmt(F.eu)}</b></span>${F.terc ? `<span class="n-chip n-chip-ouro">de terceiros&nbsp;<b class="num">${fmt(F.terc)}</b></span>` : ''}</div>
+      ${F.total > 0 ? fita([{ w: F.eu / F.total, cor: 'var(--accent)' }, { w: F.terc / F.total, cor: 'var(--gold)' }], null) : ''}
     </div>`;
   if (!S.cartoes.length) {
-    $('cartFaturas').innerHTML = `<p class="empty">Cadastre um cartão em “Meus cartões”, lá embaixo, para lançar compras parceladas e assinaturas.</p>`;
+    $('cartFaturas').innerHTML = `<p class="empty n-vidro">Cadastre um cartão em “Meus cartões” para lançar compras parceladas e assinaturas.</p>`;
   } else {
     $('cartFaturas').innerHTML = S.cartoes.map(ct => {
       const its = F.itens.filter(i => i.c.cartao === ct.id);
       const tot = its.reduce((a,i)=>a+i.valor,0);
-      return `<div class="flat"><div class="vhead"><h3>${esc(ct.nome)}</h3><span class="num" style="font-weight:700">${fmt(tot)}</span></div>
+      return `<section class="n-vidro n-fatura"><div class="n-sec"><h3><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg></span><span>${esc(ct.nome)}</span></h3><span class="n-chip num">${fmt(tot)}</span></div>
         <div class="list">${its.length ? its.map(i => `<div class="item">
           <span class="dot" style="background:${i.c.dono ? 'var(--gold)' : 'var(--accent)'}"></span>
           <span class="desc">${esc(i.c.desc)}${i.c.ex ? '<span class="ex">exemplo</span>' : ''}</span>
           <span class="val num">${fmt(i.valor)}</span>
           <span class="sub">${i.N ? `parcela ${i.n}/${i.N}` : 'assinatura'}${i.c.dono ? ` · de ${esc(i.c.dono)}` : ''}</span>
-        </div>`).join('') : `<p class="empty">Nada nesta fatura.</p>`}</div></div>`;
+        </div>`).join('') : `<p class="empty">Nada nesta fatura.</p>`}</div></section>`;
     }).join('');
   }
   // terceiros
@@ -2164,9 +2354,11 @@ const Graf = (() => {
   const legenda = itens => itens.length ? `<div class="legend">${itens.map(it => `<span><i class="${it.tracejado ? 'tracejado' : 'dot'}" style="${it.tracejado ? 'border-top-color:' : 'background:'}${esc(it.cor)}"></i>${esc(it.nome)}</span>`).join('')}</div>` : '';
   function guardar(el, f, op, w){ el._graf = { f, op }; el.dataset.gw = String(w); }
   function vazio(el, f, op, texto){ guardar(el, f, op, 'v'); el.innerHTML = `<p class="n-vazio">${esc(texto)}</p>`; }
-  /* as duas camadas; pontos: [{ forma, dica, extra }]. O texto da dica vira o rótulo do ponto (a quebra de linha vira vírgula). */
-  function camadas(W, H, desenho, resumo, pontos, ativo){
-    const pts = pontos.length ? `<svg class="n-graf-p" viewBox="0 0 ${W} ${H}">${pontos.map((p, i) =>
+  /* as duas camadas; pontos: [{ forma, dica, extra, x }]. O texto da dica vira o rótulo do ponto (a quebra de linha vira vírgula).
+     perto: os pontos são estreitos demais para o dedo (um por dia, um por mês do prazo); uma área só recebe o toque e escolhe
+     o ponto mais próximo de onde ele caiu (pela posição x de cada um). O teclado continua andando ponto a ponto. */
+  function camadas(W, H, desenho, resumo, pontos, ativo, perto){
+    const pts = pontos.length ? `<svg class="n-graf-p${perto ? ' g-perto' : ''}" viewBox="0 0 ${W} ${H}"${perto ? ` data-xs="${pontos.map(p => n2(p.x)).join(',')}"` : ''}>${perto ? `<rect class="g-area" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>` : ''}${pontos.map((p, i) =>
       `<g class="g-pt" tabindex="${i === ativo ? 0 : -1}" role="img" aria-label="${esc(String(p.dica).replace(/\n/g, ', '))}" data-dica="${esc(p.dica)}" data-i="${i}"${p.extra || ''}>${p.forma}</g>`).join('')}</svg>` : '';
     return `<div class="n-graf"><svg class="n-graf-d" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(resumo)}">${desenho}</svg>${pts}</div>`;
   }
@@ -2190,7 +2382,7 @@ const Graf = (() => {
     const topo = 24, base = H - (op.rotulos ? 22 : 4), esq = 5, dir = 6, fim = ate ? serie[ate - 1] : 0;
     const max = Math.max(total, 1, ...serie, ...ideal);
     const x = d => n2(esq + d / n * (W - esq - dir)), y = v => n2(base - Math.max(0, v) / max * (base - topo));
-    const passou = ate > 0 && ideal.length >= ate && fim > ideal[ate - 1] + 0.5, cor = passou ? 'var(--over)' : 'var(--accent)';
+    const passou = total > 0 && ate > 0 && ideal.length >= ate && fim > ideal[ate - 1] + 0.5, cor = passou ? 'var(--over)' : 'var(--accent)'; // sem limite não há ritmo a passar
     const rot = rotulador(W);
     let g = `<line class="g-base" x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--glass-line)" stroke-width="1"/>`;
     if (ideal.length) g += `<path d="M${x(0)} ${y(0)}${ideal.map((v, i) => `L${x(i + 1)} ${y(v)}`).join('')}" fill="none" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 5"/>`;
@@ -2206,18 +2398,18 @@ const Graf = (() => {
       }
     }
     if (total > 0) { const t = 'limite ' + fmt0(total), yl = y(total); textos += rot(W, Math.max(11, yl - 7), t, 'end') || rot(W, yl + 15, t, 'end'); }
-    if (op.rotulos) for (let i = 0; i < n; i = i === 0 ? 6 : i + 7) { // dia 1, 7, 14, 21, 28 e o último
-      textos += rot(x(i + 1), H - 5, op.rotulos[i] || '', 'middle');
-      if (i + 7 >= n && i !== n - 1) textos += rot(x(n), H - 5, op.rotulos[n - 1] || '', 'middle');
+    if (op.rotulos) { // dia 1, 7, 14, 21, 28 e o último; o último entra antes, e quem não couber perto dele é o 28
+      textos += rot(x(n), H - 5, op.rotulos[n - 1] || '', 'middle');
+      for (let i = 0; i < n - 1; i = i === 0 ? 6 : i + 7) textos += rot(x(i + 1), H - 5, op.rotulos[i] || '', 'middle');
     }
     const resumo = op.resumo || (ate ? `Gasto acumulado de ${fmt(fim)} até o dia ${ate}` + (ideal.length >= ate && total > 0 ? `; no ritmo ideal seriam ${fmt(ideal[ate - 1])}` : '') + (total > 0 ? `; limite do mês de ${fmt(total)}.` : '.')
       : `Ritmo ideal do mês até o limite de ${fmt(total)}; ainda sem dias com gasto.`);
     const pontos = op.dica ? Array.from({ length: n }, (_, i) => {
       const xi = x(i + 1), meio = (W - esq - dir) / n / 2, v = i < ate ? serie[i] : (ideal[i] || 0);
-      return { dica: op.dica(i), forma: `<rect x="${n2(xi - meio)}" y="0" width="${n2(meio * 2)}" height="${H}" fill="transparent"/><line class="g-mira" x1="${xi}" y1="${topo - 8}" x2="${xi}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/><circle class="g-mira g-ancora" cx="${xi}" cy="${y(v)}" r="5" fill="var(--bg)" stroke="${i < ate ? cor : 'var(--faint)'}" stroke-width="2"/>` };
+      return { x: xi, dica: op.dica(i), forma: `<rect x="${n2(xi - meio)}" y="0" width="${n2(meio * 2)}" height="${H}" fill="transparent"/><line class="g-mira" x1="${xi}" y1="${topo - 8}" x2="${xi}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/><circle class="g-mira g-ancora" cx="${xi}" cy="${y(v)}" r="5" fill="var(--bg)" stroke="${i < ate ? cor : 'var(--faint)'}" stroke-width="2"/>` };
     }) : [];
     guardar(el, 'linha', op, w);
-    el.innerHTML = camadas(W, H, g + textos, resumo, pontos, ate ? ate - 1 : 0);
+    el.innerHTML = camadas(W, H, g + textos, resumo, pontos, ate ? ate - 1 : 0, true);
   }
 
   /* Curvas (simulador, saldo devedor): séries com o mesmo eixo; tracejado = referência; area/bola = a curva principal. */
@@ -2242,10 +2434,10 @@ const Graf = (() => {
     const pontos = op.dica ? idx.map((i, j) => {
       const a = j ? (x(idx[j - 1]) + x(i)) / 2 : esq, b = j < idx.length - 1 ? (x(i) + x(idx[j + 1])) / 2 : W - dir;
       const miras = series.filter(s => !s.tracejado && i < s.valores.length).map((s, k) => `<circle class="g-mira${k ? '' : ' g-ancora'}" cx="${x(i)}" cy="${y(s.valores[i])}" r="4.5" fill="var(--bg)" stroke="${s.cor}" stroke-width="2"/>`).join('');
-      return { dica: op.dica(i), forma: `<rect x="${n2(a)}" y="0" width="${n2(Math.max(2, b - a))}" height="${H}" fill="transparent"/><line class="g-mira" x1="${x(i)}" y1="${topo}" x2="${x(i)}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/>${miras}` };
+      return { x: x(i), dica: op.dica(i), forma: `<rect x="${n2(a)}" y="0" width="${n2(Math.max(2, b - a))}" height="${H}" fill="transparent"/><line class="g-mira" x1="${x(i)}" y1="${topo}" x2="${x(i)}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/>${miras}` };
     }) : [];
     guardar(el, 'curvas', op, w);
-    el.innerHTML = camadas(W, H, g + textos, op.resumo || series.map(s => s.nome).join(', '), pontos, pontos.length - 1)
+    el.innerHTML = camadas(W, H, g + textos, op.resumo || series.map(s => s.nome).join(', '), pontos, pontos.length - 1, pontos.length > 12)
       + legenda(op.legenda || series.map(s => ({ nome: s.nome, cor: s.cor, tracejado: s.tracejado })));
   }
 
@@ -2363,6 +2555,18 @@ const Graf = (() => {
   document.addEventListener('focus', e => { const p = ponto(e); if (p) dica(p, p.dataset.dica); }, true);
   document.addEventListener('blur', e => { const p = ponto(e); if (p && p === atual) semDica(); }, true);
   document.addEventListener('pointerdown', e => { if (atual && !(e.target instanceof Element && e.target.closest('.g-pt'))) semDica(); }, true);
+  // área de toque dos gráficos de pontos estreitos: mostra o ponto mais perto de onde o dedo (ou o mouse) está
+  function perto(e){
+    const a = e.target instanceof Element && e.target.classList.contains('g-area') ? e.target : null; if (!a) return;
+    const s = a.ownerSVGElement, r = s.getBoundingClientRect(), W = s.viewBox.baseVal.width, xs = (s.dataset.xs || '').split(',').map(Number);
+    if (!r.width || !xs.length) return;
+    const x = (e.clientX - r.left) / r.width * W; let i = 0;
+    xs.forEach((v, j) => { if (Math.abs(v - x) < Math.abs(xs[i] - x)) i = j; });
+    const p = s.querySelectorAll('.g-pt')[i]; if (p && p !== atual) dica(p, p.dataset.dica);
+  }
+  document.addEventListener('pointerdown', perto);
+  document.addEventListener('pointermove', perto, { passive: true });
+  document.addEventListener('pointerleave', e => { if (e.target instanceof Element && e.target.classList.contains('g-area') && e.pointerType !== 'touch') semDica(); }, true);
   window.addEventListener('scroll', () => { if (atual) dica(atual, atual.dataset.dica); }, { passive: true, capture: true });
   document.addEventListener('click', e => {
     const p = e.target instanceof Element ? e.target.closest('.g-pt') : null; if (!p) return;
@@ -2372,6 +2576,8 @@ const Graf = (() => {
   });
   // teclado: Enter ou espaço tocam; as setas andam entre os pontos do mesmo gráfico (no calendário, para cima e para baixo é uma semana)
   document.addEventListener('keydown', e => {
+    // Esc com a etiqueta aberta só fecha a etiqueta (o atalho do Esc, que volta um passo, fica para o próximo)
+    if (e.key === 'Escape' && atual && !e.ctrlKey && !e.altKey && !e.metaKey) { semDica(); e.preventDefault(); e.stopImmediatePropagation(); return; }
     const p = ponto(e); if (!p || e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
     const sem = p.hasAttribute('data-dia') ? 7 : 1, passo = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: sem, ArrowUp: -sem, Home: -1e4, End: 1e4 }[e.key];
@@ -2390,7 +2596,9 @@ const Graf = (() => {
       const w = medir(el); if (w && w !== Number(el.dataset.gw)) desenhos[el._graf.f](el, el._graf.op);
     });
   }
-  return { linha, curvas, rosca, barras, calendario, dica, semDica, refazer };
+  /* guarda o gráfico sem desenhar (contêiner escondido): o refazer() o desenha quando ele ganhar largura */
+  function adiar(el, f, op){ guardar(el, f, op, 0); el.innerHTML = ''; }
+  return { linha, curvas, rosca, barras, calendario, dica, semDica, refazer, adiar };
 })();
 /* Leituras do mês para os gráficos */
 function gastoPorDia(k){
@@ -2407,8 +2615,7 @@ function historico(k, n = 6){
   return Array.from({ length: n }, (_, i) => { const m = addMonths(k, i - n + 1), R = resumoMes(m); return { k: m, rotulo: monthLabel(m, true), gasto: R.gasto, limite: R.limite }; });
 }
 /* "Últimos 6 meses" (Gráficos e Início no PC): mês que estourou o próprio limite em cor de alerta; a linha é o limite do mês escolhido */
-function opSeis(k){
-  const h = historico(k);
+function opSeis(k, h = historico(k)){
   return { itens: h.map(m => ({ rotulo: m.rotulo, valor: m.gasto, alerta: m.limite > 0 && m.gasto > m.limite + 0.004 })), linha: h[h.length - 1].limite,
     dica: i => `${monthLabel(h[i].k)}\n${fmt(h[i].gasto)}${h[i].limite > 0 ? ' de ' + fmt(h[i].limite) : ''}`,
     resumo: 'Gasto nos últimos 6 meses: ' + h.map(m => `${monthLabel(m.k).toLowerCase()} ${fmt(m.gasto)}${m.limite > 0 && m.gasto > m.limite + 0.004 ? ' (passou do limite)' : ''}`).join('; ') + '.',
@@ -2436,9 +2643,14 @@ function quando(m){ if (m === null) return 'mais de 100 anos'; if (m === 0) retu
 function renderMetas(){
   const ms = S.metas;
   const totAtual = ms.reduce((a,m)=>a+m.atual,0), totAp = ms.reduce((a,m)=>a+m.aporte,0);
-  $('metasResumo').innerHTML = ms.length ? `<div class="total">
-      <div><span class="lbl">Guardado nas metas</span><span class="big num">${fmt(totAtual)}</span></div>
-      <div class="side">aportes planejados<br><b class="num">${fmt(totAp)}</b> por mês</div></div>` : '';
+  const totAlvo = ms.reduce((a,m)=>a+Math.max(0, m.alvo),0), batidas = ms.filter(m => m.alvo > 0 && m.atual >= m.alvo).length;
+  $('metasResumo').innerHTML = ms.length ? `<div class="n-vidro n-resumo">
+      <div class="n-resumo-topo"><span class="n-rot">Guardado nas metas</span></div>
+      <span class="big num" data-conta="${totAtual}">${fmt(totAtual)}</span>
+      <div class="n-chips"><span class="n-chip"><b class="num">${fmt(totAp)}</b>&nbsp;por mês planejados</span>${batidas ? `<span class="n-chip ok">${batidas} ${batidas === 1 ? 'meta batida' : 'metas batidas'}</span>` : ''}</div>
+      ${totAlvo > 0 ? fita([{ w: Math.min(totAtual, totAlvo) / totAlvo, cor: 'var(--accent)' }], null) : ''}
+      ${totAlvo > 0 ? `<p class="n-fatos">${pct(Math.min(100, totAtual / totAlvo * 100))} do total dos alvos, <b class="num">${fmt(totAlvo)}</b></p>` : ''}
+    </div>` : '';
   $('metasLista').innerHTML = ms.length ? ms.map(m => {
     const p = m.alvo > 0 ? Math.min(100, m.atual / m.alvo * 100) : 0;
     const t = mesesAte(m.alvo, m.atual, m.aporte, m.taxa);
@@ -2888,12 +3100,13 @@ document.addEventListener('click', e => {
     case 'onb-replay': UI.onb = 0; UI.onbVals = null; UI.onbCx = null; UI.onbReplay = true; go('inicio'); renderInicio(); window.scrollTo(0, 0); break;
     case 'ed-gasto': {
       const a = achaGasto(id); if (!a) break;
-      UI.editG = id; UI.mes = a.k; renderMes();
+      UI.editG = id; irMes(a.k); renderMes();
       $('gValor').value = numStr(a.g.valor); $('gDesc').value = a.g.descricao; $('gData').value = a.g.data;
       if (![...$('gForma').options].some(o => o.value === a.g.forma)) $('gForma').add(new Option(a.g.forma, a.g.forma));
       $('gForma').value = a.g.forma;
       const r = [...document.querySelectorAll('input[name="gCx"]')].find(x => x.value === a.g.caixinha); if (r) r.checked = true;
       $('gHead').textContent = 'Editar gasto'; $('gBtn').textContent = 'Salvar alterações';
+      $('gApagar').dataset.id = id; $('gApagar').hidden = false; renderApagar();
       previewGasto(); abrirFolha(); break;
     }
     case 'gasto-novo': abrirFolha(); break;
@@ -2930,10 +3143,10 @@ document.addEventListener('click', e => {
     case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
     case 'onb-tema': usarTema(id); renderInicio(); break;
     case 'mes-prev': case 'mes-next': case 'mes-hoje':
-      UI.mes = act === 'mes-hoje' ? thisMonth() : addMonths(UI.mes, act === 'mes-prev' ? -1 : 1); renderMes();
+      irMes(act === 'mes-hoje' ? thisMonth() : addMonths(UI.mes, act === 'mes-prev' ? -1 : 1)); renderMes();
       if (!$('v-graficos').hidden) animarGraficos($('v-graficos')); // nos Gráficos, o mês novo se desenha
       break;
-    case 'filtro-dia-tirar': UI.filtroDia = null; renderLista(UI.mes); break;
+    case 'filtro-dia-tirar': UI.filtroDia = null; renderLista(UI.mes); $('mesLista').focus({ preventScroll: true }); break; // o × sumiu: o foco vai para a lista
     case 'cart-prev': UI.cart = addMonths(UI.cart, -1); renderCartao(); break;
     case 'cart-next': UI.cart = addMonths(UI.cart, 1); renderCartao(); break;
     case 'cart-hoje': UI.cart = thisMonth(); renderCartao(); break;
@@ -2946,9 +3159,9 @@ document.addEventListener('click', e => {
         if (f) { (f.pulados = f.pulados || []).push(k); }
         S.meses[k].gastos = S.meses[k].gastos.filter(g => g.id !== id);
         persist({ meses: [k], estado: !!f }); toast(f ? 'Gasto apagado (o fixo não volta neste mês)' : 'Gasto apagado');
-        if (UI.editG === id) sairEdicaoGasto();
+        if (UI.editG === id) { if (folhaAberta()) fecharFolha(); else sairEdicaoGasto(); }
       }
-      renderMes(); break;
+      renderMes(); focoNaLista(id); break;
     }
     case 'lim-reset': { const m = S.meses[UI.mes]; if (m) { delete m.limites; persist({ meses: [UI.mes] }); } renderMes(); toast('Este mês voltou aos limites padrão'); break; }
     case 'saldo-lancar': {
@@ -3123,20 +3336,33 @@ $('fGasto').addEventListener('submit', e => {
       S.meses[edit.k].gastos = S.meses[edit.k].gastos.filter(x => x.id !== edit.g.id); ensureMes(k).gastos.push(edit.g);
     }
     persist({ meses: [...new Set([edit.k, k])], estado: fixoMudou });
-    sairEdicaoGasto(); fecharFolha(); UI.mes = k; renderMes(); renderInicio(); toast('Gasto atualizado'); return;
+    const eid = edit.g.id; sairEdicaoGasto(); fecharFolha(); irMes(k); renderMes(); renderInicio(); focoNaLista(eid); toast('Gasto atualizado'); return;
   }
   const antes = Object.assign({ gasto: 0, limite: 0 }, resumoMes(k).por[c]);
   ensureMes(k).gastos.push({ id: uid(), valor: r2(v), descricao: desc, caixinha: c, forma: $('gForma').value, data, criado: Date.now() });
   persist({ meses: [k] });
   $('gValor').value = ''; $('gDesc').value = '';
-  fecharFolha(); UI.mes = k; renderMes(); renderInicio();
+  fecharFolha(); irMes(k); renderMes(); renderInicio();
   const p = resumoMes(k).por[c];
   reagirGasto(c, r2(v), antes, p, k);
   toast(`Lançado. ${cx(c).nome}: sobra ${fmt(p.sobra)}`);
 });
 function sairEdicaoGasto(){
+  if (UI.editG && UI.armed === 'g:' + UI.editG) disarm(); // a confirmação de apagar não sobra para depois
   UI.editG = null; $('gHead').textContent = 'Lançar gasto'; $('gBtn').textContent = 'Lançar';
+  $('gApagar').hidden = true; delete $('gApagar').dataset.id; renderApagar();
   $('gValor').value = ''; $('gDesc').value = ''; previewGasto();
+}
+/* botão Apagar da folha de edição: a mesma confirmação em dois toques da 1.9 (arm/disarm) */
+function renderApagar(){
+  const b = $('gApagar'), armado = !!UI.editG && UI.armed === 'g:' + UI.editG;
+  b.textContent = armado ? 'Toque de novo para apagar' : 'Apagar gasto'; b.classList.toggle('armed', armado);
+}
+/* depois de salvar ou apagar pela folha, a linha foi refeita: o foco volta para ela (ou para a lista, se ela sumiu) */
+function focoNaLista(id){
+  if (abaAtual() !== 'mes' || folhaAberta() || (document.activeElement && document.activeElement !== document.body)) return;
+  const b = [...document.querySelectorAll('#mesLista .n-lanc')].find(x => x.dataset.id === id);
+  (b || $('mesLista')).focus({ preventScroll: true });
 }
 $('fEnt').addEventListener('submit', e => {
   e.preventDefault();
@@ -3144,7 +3370,7 @@ $('fEnt').addEventListener('submit', e => {
   if (!Number.isFinite(v) || v <= 0) { toast('Digite um valor maior que zero'); $('eValor').focus(); return; }
   if (!desc) { toast('Diga de onde veio'); $('eDesc').focus(); return; }
   const m = ensureMes(k); (m.entradas = m.entradas || []).push({ id: uid(), valor: r2(v), descricao: desc, data, criado: Date.now() });
-  persist({ meses: [k] }); $('eValor').value = ''; $('eDesc').value = ''; UI.mes = k; renderMes(); toast(`Entrada de ${fmt(v)} registrada`);
+  persist({ meses: [k] }); $('eValor').value = ''; $('eDesc').value = ''; irMes(k); renderMes(); toast(`Entrada de ${fmt(v)} registrada`);
 });
 $('fFixo').addEventListener('submit', e => {
   e.preventDefault();
@@ -3382,6 +3608,8 @@ function mostrarAjustes(){
   const parte = UI.ajParte || null;
   $('ajMenu').hidden = !!parte; $('ajVoltar').hidden = !parte;
   document.querySelectorAll('.aj-parte').forEach(x => { x.hidden = x.dataset.parte !== parte; });
+  // no PC a lista fica à vista ao lado da parte: a parte aberta é dita também ao leitor de tela, não só pela cor
+  document.querySelectorAll('#ajMenu [data-parte]').forEach(b => { if (b.dataset.parte === parte) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
 }
 function route(){
   const [h, hp] = (location.hash || '').slice(1).split('/');
@@ -3396,6 +3624,7 @@ function route(){
   document.querySelectorAll('#lado a[data-tab]').forEach(a => { if (a.dataset.tab === marcaLado) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (t === 'ajustes' || t === 'apoie') $('btnAjustes').setAttribute('aria-current', 'page'); else $('btnAjustes').removeAttribute('aria-current');
   const trocou = UI.abaVista !== t; UI.abaVista = t;
+  if (trocou) soltarMov('conta'); // a contagem da tela que ficou para trás termina no valor real (e não segura a abertura curta do Início)
   if (trocou && UI.listaToda) { UI.listaToda = false; renderLista(UI.mes); }
   if (t === 'inicio') {
     renderInicio();
@@ -3408,18 +3637,36 @@ function route(){
   if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'graficos' ? $('v-graficos') : null);
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { if (trocou) UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); } // dentro dos Ajustes, a edição das caixinhas não se perde
+  if (trocou) entrarNaTela(t);
   window.scrollTo(0, 0);
+}
+/* Movimento ao entrar numa tela (nada disso com "reduzir movimento"; anima() e tween() já respeitam):
+   a passagem curta da tela inteira (≤ 180 ms), os números grandes contando até o valor real, as barras e a fita enchendo.
+   Uma ação nova que redesenha a tela troca os elementos: o valor real aparece na hora. */
+function entrarNaTela(t){
+  const v = $('v-' + t); if (!v || !movLigado()) return;
+  anima(v, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 170, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  soltarMov('conta'); // uma contagem anterior termina no valor dela (o then abaixo) antes de outra começar
+  v.querySelectorAll('[data-conta]').forEach(el => {
+    const fim = Number(el.dataset.conta); if (!Number.isFinite(fim) || Math.abs(fim) < 0.005) return;
+    tween(x => { if (el.isConnected) el.textContent = fmt(r2(x)); }, 0, fim, 650, 60, outQuart, 'conta').then(() => { if (el.isConnected) el.textContent = fmt(fim); });
+  });
+  v.querySelectorAll('.box .bar i, .meta-card .bar i').forEach((i, n) => anima(i, [{ width: '0%' }, { width: i.style.width }], { duration: 650, delay: 80 + n * 60, easing: 'cubic-bezier(.25,1,.5,1)', fill: 'backwards' }));
+  v.querySelectorAll('.n-fita').forEach(f => anima(f, [{ clipPath: 'inset(-6px 100% -6px 0)' }, { clipPath: 'inset(-6px 0 -6px 0)' }], { duration: 700, delay: 60, easing: 'cubic-bezier(.25,1,.5,1)', fill: 'backwards' }));
 }
 window.addEventListener('hashchange', () => { TAB = null; route(); });
 // janela do PC mudando de tamanho, celular girando: os gráficos da aba à vista se refazem na largura nova
-let grafT = 0;
-window.addEventListener('resize', () => { Graf.semDica(); clearTimeout(grafT); grafT = setTimeout(() => Graf.refazer(document.querySelector('.view:not([hidden])')), 150); });
+let grafT = 0, grafW = innerWidth;
+window.addEventListener('resize', () => {
+  if (innerWidth === grafW) return; // a barra de endereço do celular sumindo muda só a altura: a etiqueta e os desenhos ficam
+  grafW = innerWidth; Graf.semDica(); clearTimeout(grafT); grafT = setTimeout(() => Graf.refazer(document.querySelector('.view:not([hidden])')), 150);
+});
 window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
   const t = a.getAttribute('href').slice(1); if (!TABS.includes(t.split('/')[0])) return;
   e.preventDefault();
-  if (a.hasAttribute('data-mes-atual') && UI.mes !== thisMonth()) { UI.mes = thisMonth(); renderMes(); } // o Início é sempre do mês atual: os Gráficos abrem nele
+  if (a.hasAttribute('data-mes-atual') && UI.mes !== thisMonth()) { irMes(thisMonth()); renderMes(); } // o Início é sempre do mês atual: os Gráficos abrem nele
   go(t);
 });
 
@@ -3443,13 +3690,16 @@ function voltarUmPasso(){
   return true;
 }
 /* Atalhos de teclado (teclado físico): N lança, / vai à busca do Mês, Esc volta um passo, 1 a 5 trocam de aba.
-   Não agem com Ctrl/Alt/Meta (são do navegador: Ctrl+N, Alt+1), digitando num campo, com a folha aberta
-   ou com o PIN na frente. O Esc é a exceção: age sempre, e voltarUmPasso() já respeita a trava do PIN. */
+   Não agem com Ctrl/Alt/Meta (são do navegador: Ctrl+N, Alt+1), digitando num campo de texto ou lista de escolha,
+   com a folha aberta, com o PIN na frente nem com o passo a passo da primeira abertura no Início.
+   O Esc tem regra própria: num campo fora da folha só tira o foco; fora dele volta um passo (a folha aberta fecha);
+   com a etiqueta de um gráfico aberta, o Graf já o usou para fechá-la. voltarUmPasso() respeita a trava do PIN. */
 const ATALHO_ABAS = ['inicio', 'mes', 'graficos', 'cartao', 'metas'];
+const NAO_TEXTO = /^(checkbox|radio|button|submit|reset|range|color|file|image)$/; // input que não recebe texto: atalhos valem
 function atalho(e){
   if (e.isComposing || e.ctrlKey || e.altKey || e.metaKey) return;
-  const alvo = e.target instanceof Element ? e.target : null;
-  const campo = !!alvo && (!!alvo.closest('input, select, textarea') || alvo.isContentEditable);
+  const alvo = e.target instanceof Element ? e.target : null, entrada = alvo && alvo.closest('input, select, textarea');
+  const campo = !!alvo && ((!!entrada && !(entrada.tagName === 'INPUT' && NAO_TEXTO.test(entrada.type))) || alvo.isContentEditable);
   if (e.key === 'Escape') {
     // num campo fora da folha, o Esc só tira o foco (na busca o navegador ainda limpa o texto); o próximo Esc volta um passo
     if (campo && !folhaAberta()) { if (alvo.type !== 'search') e.preventDefault(); alvo.blur(); return; }
@@ -3458,6 +3708,8 @@ function atalho(e){
   }
   if (campo) return;
   if (folhaAberta() || document.documentElement.hasAttribute('data-trava')) return;
+  // passo a passo da primeira abertura na tela: as caixinhas ainda não foram escolhidas, e um número solto tiraria a pessoa dele
+  if (UI.abaVista === 'inicio' && $('inOnb').childElementCount) return;
   const k = e.key;
   if (k === 'n' || k === 'N') { e.preventDefault(); abrirFolha(); }
   else if (k === '/') { e.preventDefault(); go('mes'); $('fBusca').focus(); }
@@ -3477,6 +3729,20 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- Render: Início ---------- */
+/* Duas colunas (PC, celular deitado): cada peça vai para a sua coluna, para a ordem de leitura (Tab, TalkBack) ser a que se vê.
+   Numa coluna só, elas voltam para a ordem do HTML, que é a do celular. A mesma condição está no CSS (.n-cols em grade). */
+const MQ_COLS = window.matchMedia ? window.matchMedia('(min-width:900px), (min-width:600px) and (max-height:500px)') : null;
+const COLUNAS = { esq: ['inResumo', 'inRitmo', 'seisIni', 'atalhos'], dir: ['inCx', 'inVencer', 'inUltimos', 'inFatura', 'inMetas'] };
+const ORDEM_CEL = ['inResumo', 'inCx', 'inRitmo', 'seisIni', 'inVencer', 'inFatura', 'inMetas', 'inUltimos', 'atalhos'];
+function arrumarColunas(){
+  const raiz = $('inCols'), peca = id => id === 'atalhos' ? raiz.querySelector('.atalhos') : $(id), foco = document.activeElement;
+  const col = { esq: raiz.querySelector('[data-col="esq"]'), dir: raiz.querySelector('[data-col="dir"]') };
+  if (MQ_COLS && MQ_COLS.matches) Object.keys(COLUNAS).forEach(c => COLUNAS[c].forEach(id => col[c].appendChild(peca(id))));
+  else ORDEM_CEL.forEach(id => raiz.insertBefore(peca(id), col.esq));
+  if (foco && foco !== document.activeElement && foco.isConnected) try { foco.focus({ preventScroll: true }); } catch (e) {}
+}
+arrumarColunas();
+if (MQ_COLS) { if (MQ_COLS.addEventListener) MQ_COLS.addEventListener('change', arrumarColunas); else if (MQ_COLS.addListener) MQ_COLS.addListener(arrumarColunas); }
 function renderOnb(){
   const box = $('inOnb');
   if ((S.onboarded || hasData(S)) && !UI.onbReplay) { box.innerHTML = ''; return; }
@@ -3550,7 +3816,7 @@ function montarInicio(k, R, dl, ent){
       </svg>
       <span class="ficha num" data-d="ficha" aria-hidden="true"></span>
       <div class="n-arco-c"><span class="num" id="inSobra"></span>
-        <p class="dia"><span data-d="rot">sobram</span> · <b class="num" id="inDia"></b> por dia</p></div>
+        <p class="dia"><span data-d="rot">sobram</span><span data-d="pordia"> · <b class="num" id="inDia"></b> por dia</span></p></div>
     </div>
     <div class="n-chips"><span class="n-chip" id="chipRitmo"></span><span class="n-chip" id="chipDias">${dl === 1 ? 'último dia do mês' : 'faltam ' + dl + ' dias'}</span></div>
     <p class="n-fatos">gasto <b class="num" data-d="gasto"></b> de <b class="num">${fmt(R.limite)}</b>${ent ? ` · entrou <b class="num">${fmt(ent)}</b>` : ''}</p>`;
@@ -3562,7 +3828,7 @@ function montarInicio(k, R, dl, ent){
         <span class="nome">${esc(c.nome)}</span><span class="v num"></span><span class="de">${p.limite > 0 ? 'de ' + fmt(p.limite) : 'sem limite'}</span><small></small></button>`;
     }).join('')}<button class="n-bloco n-novo" type="button" data-go="ajustes/caixinhas"><b aria-hidden="true">+</b>Nova caixinha</button></div>`;
   const q = s => $('inResumo').querySelector('[data-d="' + s + '"]');
-  Vis.el = { sobra: $('inSobra'), pordia: $('inDia'), rot: q('rot'), ficha: q('ficha'), gasto: q('gasto'), arco: $('arco'), hoje: $('arcoHoje'), hojeTxt: q('hojeTxt'), alerta: q('alerta'), ini: q('ini'), fim: q('fim'), orf: $('inResumo').querySelector('.arco-orf') };
+  Vis.el = { sobra: $('inSobra'), pordia: $('inDia'), pdia: q('pordia'), rot: q('rot'), ficha: q('ficha'), gasto: q('gasto'), arco: $('arco'), hoje: $('arcoHoje'), hojeTxt: q('hojeTxt'), alerta: q('alerta'), ini: q('ini'), fim: q('fim'), orf: $('inResumo').querySelector('.arco-orf') };
   Vis.seg = {}; Vis.linhas = {}; Vis.lim = {}; Vis.ids = S.caixinhas.map(c => c.id);
   const g0 = Vis.g, e0 = Vis.ent; Vis.g = {}; Vis.ent = {};
   S.caixinhas.forEach(c => {
@@ -3603,7 +3869,8 @@ function desenharInicio(){
     sg.el.setAttribute('d', arcoD(t, w > corte * 2 ? fimSeg - corte : fimSeg));
     const dentro = escala > 0 ? Math.min(g, lim) / escala : 0, passou = g > lim + 0.004;
     sg.exc.setAttribute('d', passou ? arcoD(t + dentro, w > corte * 2 ? fimSeg - corte : fimSeg) : 'M0 0');
-    if (w > .0005) { if (!primeiro) primeiro = sg.cor; ultimo = passou ? 'var(--over)' : sg.cor; }
+    // a ponta esquerda segue o começo do primeiro pedaço: se ele é todo excedente (caixinha sem limite ou já estourada), é a cor de alerta
+    if (w > .0005) { if (!primeiro) primeiro = passou && Math.min(g, lim) <= 0 ? 'var(--over)' : sg.cor; ultimo = passou ? 'var(--over)' : sg.cor; }
     t = fimSeg;
   });
   E.orf.setAttribute('d', escala > 0 && orf > 0 ? arcoD(t, t + orf / escala) : 'M0 0');
@@ -3617,6 +3884,7 @@ function desenharInicio(){
   E.sobra.textContent = txt; E.sobra.classList.toggle('neg', sobra < 0); E.sobra.classList.toggle('longo', fmt(Vis.fin).length > 12); // pelo valor final, para o tamanho não pular durante a contagem
   E.pordia.textContent = fmt(Vis.dl > 0 ? Math.max(0, sobra / Vis.dl) : 0);
   E.rot.textContent = sobra < 0 ? 'passou do limite' : 'sobram';
+  E.pdia.hidden = sobra < 0; // com a sobra negativa, "R$ 0,00 por dia" não diz nada
   E.gasto.textContent = fmt(r2(gasto));
   const d = Math.min(100, Math.max(0, Vis.dia)) / 100, [tx, ty] = arcoXY(d, ARCO_R + 30);
   E.hoje.setAttribute('transform', 'rotate(' + n2(d * 180) + ' ' + ARCO_X + ' ' + ARCO_Y + ')');
@@ -3634,6 +3902,7 @@ function abertura(longa, alvo, diaPct){
   if (longa) {
     anima(Vis.el.arco, ENTRA_ARCO, { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
     tween(v => { Vis.dia = v; }, 0, diaPct, 1000, 80);
+    requestAnimationFrame(() => { animarGraficos($('inRitmo')); animarGraficos($('seisIni')); }); // o ritmo do mês (e, no PC, os 6 meses) se desenham junto, depois que o renderInicio os refaz
   }
   Vis.ids.forEach((id, i) => {
     tween(v => { Vis.g[id] = v; }, 0, alvo[id], longa ? 850 : 350, longa ? 160 + i * 85 : 0, undefined, 'g');
@@ -3744,12 +4013,14 @@ function renderInicio(){
   chip.textContent = rt.diff > 0.5 ? fmt0(rt.diff) + ' abaixo do ritmo' : rt.diff < -0.5 ? fmt0(-rt.diff) + ' acima do ritmo' : 'no ritmo';
   // ritmo do mês (o cartão inteiro é um link para os Gráficos: sem pontos de tocar aqui) e, no PC, os últimos 6 meses
   const ate = rt.acumulado.length;
-  $('inRitmo').innerHTML = `<div class="n-sec"><h3>Ritmo do mês</h3><span>ver gráficos ›</span></div><div id="ritmoIni"></div>`
+  $('inRitmo').innerHTML = `<div class="n-sec"><h3>Ritmo do mês</h3><span class="n-ver">ver gráficos ›</span></div><div id="ritmoIni"></div>`
     + (rt.limite > 0 ? '' : '<p class="hint">Defina os limites das caixinhas para ver o ritmo ideal.</p>');
   Graf.linha($('ritmoIni'), { serie: rt.acumulado, ideal: rt.ideal, total: rt.limite, alto: 96, marca: ate ? 'hoje · ' + fmt0(rt.acumulado[ate - 1]) : '', vazio: 'Ainda sem gastos neste mês.',
     resumo: ate ? `Gasto acumulado de ${fmt(rt.acumulado[ate - 1])} até o dia ${ate}; no ritmo ideal seriam ${fmt(rt.ideal[ate - 1])}.` : 'Ritmo do mês ainda sem dias.' });
-  $('seisIni').innerHTML = `<div class="n-sec"><h3>Últimos 6 meses</h3><a class="link" href="#graficos" data-mes-atual>ver gráficos</a></div><div id="seisIniG"></div>`;
-  Graf.barras($('seisIniG'), Object.assign(opSeis(k), { alto: 132 }));
+  $('seisIni').innerHTML = `<div class="n-sec"><h3>Últimos 6 meses</h3><a class="n-ver" href="#graficos" data-mes-atual>ver gráficos ›</a></div><div id="seisIniG"></div>`;
+  // só no PC ele aparece: escondido (celular, ou o Início fora da tela), fica guardado e se desenha quando aparecer (Graf.refazer)
+  const op6 = Object.assign(opSeis(k), { alto: 132 });
+  if ($('seisIni').getClientRects().length) Graf.barras($('seisIniG'), op6); else Graf.adiar($('seisIniG'), 'barras', op6);
   const venc = aVencer(7);
   $('inVencer').hidden = !venc.length;
   $('inVencer').innerHTML = venc.length ? `<div class="vhead"><h3>A vencer</h3>${qm('vencer')}</div><div class="out">${venc.map(v =>
