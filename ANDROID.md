@@ -14,7 +14,51 @@ Os dados de um APK de teste anterior à 2.0 (`com.joah.caixinhas`) **não passam
 
 As versões das bibliotecas ficam presas no `package-lock.json` (o workflow usa `npm ci`). Para atualizar o Capacitor: `npm install` no PC e commitar o `package-lock.json` novo.
 
-O arquivo da loja (`.aab`) e a chave de envio ainda não existem; entram quando o app for para a Play.
+## Versão da Google Play (.aab)
+
+O pacote da loja é montado pelo workflow **App Android (loja)** (`.github/workflows/android-loja.yml`), que só roda quando você pede. Ele monta o projeto com `CX_LOJA=1` (identificador `com.joah.caixinhas`, sem o `.teste`, e o app fica sabendo que é o da loja pela marca `DA_LOJA` do `index.html`), assina o `.aab` com a **chave de envio** e falha se a permissão de internet aparecer no manifesto final. A chave nunca entra no repositório.
+
+O `versionCode` sai da versão do `index.html`: `(a*10000 + b*100 + c) * 10`, então a 2.0.0 vira 200000 e a 2.0.1 vira 200010. Ele sempre cresce; para mandar uma atualização à loja, suba a versão antes (`VERSION`, `CACHE` do `sw.js`, `package.json`).
+
+**Ensaio (sem a chave de verdade):** em Actions › "App Android (loja)" › Run workflow, marque **Ensaio**. O workflow cria uma chave descartável na hora e gera um `.aab` que só prova que a montagem funciona. Esse arquivo **não serve para a loja**.
+
+### Criar a chave de envio (uma vez)
+
+No PC, num terminal (o `keytool` vem com o Java; se o comando não for achado, ele fica na pasta `bin` do Java instalado):
+
+```powershell
+keytool -genkeypair -keystore caixinhas-envio.jks -storetype PKCS12 -alias caixinhas -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Ele pede uma senha (anote num gerenciador de senhas) e um nome; o resto pode ficar em branco. Depois, transforme o arquivo em texto para o GitHub:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("caixinhas-envio.jks")) | Set-Content -NoNewline caixinhas-envio.base64.txt
+```
+
+Guarde o `caixinhas-envio.jks` e a senha **fora do repositório**, num lugar com backup. Não commite nenhum dos dois arquivos.
+
+### Cadastrar os segredos no GitHub (uma vez)
+
+No repositório: **Settings › Secrets and variables › Actions › New repository secret**:
+
+- `CX_CHAVE_BASE64`: o conteúdo de `caixinhas-envio.base64.txt`
+- `CX_CHAVE_SENHA`: a senha da chave
+- `CX_CHAVE_ALIAS`: `caixinhas` (o `-alias` usado acima)
+
+Depois de cadastrar, pode apagar o `caixinhas-envio.base64.txt`.
+
+### Gerar o .aab
+
+1. Na aba **Actions**, abra **App Android (loja)** e clique em **Run workflow**, na branch que vai para a loja (a `main`, depois de juntar a versão), com o Ensaio desmarcado.
+2. No fim, o resumo do envio mostra a versão, o `versionCode` e as permissões que ficaram no app.
+3. Baixe o `.aab` em **Artifacts** (`Caixinhas-<versão>-google-play`, guardado por 30 dias) e envie no Play Console.
+
+Na primeira publicação, deixe ativado o **Play App Signing** (o padrão): o Google guarda a chave final do app, e a chave de envio pode ser trocada pelo suporte se um dia se perder.
+
+**Quem já tem um APK de teste:**
+- da 2.0 em diante (`com.joah.caixinhas.teste`, "Orolon Caixinhas (teste)"): o app da loja instala ao lado, sem apagar nada. Para levar os dados, exporte um backup no APK de teste e importe no app da loja.
+- de antes da 2.0 (`com.joah.caixinhas`, o mesmo identificador da loja, mas assinado com a chave de teste): a Play **não instala por cima**. Antes: Ajustes › Backup e dados › Exportar backup (ou Enviar backup) e guarde o arquivo fora do app; depois desinstale o APK antigo, instale pela Play e importe o backup. Desinstalar sem backup apaga tudo.
 
 ## O que muda dentro do app
 
