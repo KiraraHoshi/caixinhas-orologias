@@ -3088,9 +3088,15 @@ function voltarUmPasso(){
 const ATALHO_ABAS = ['inicio', 'mes', 'graficos', 'cartao', 'metas'];
 function atalho(e){
   if (e.isComposing || e.ctrlKey || e.altKey || e.metaKey) return;
-  if (e.key === 'Escape') { if (voltarUmPasso()) e.preventDefault(); return; }
   const alvo = e.target instanceof Element ? e.target : null;
-  if (alvo && (alvo.closest('input, select, textarea') || alvo.isContentEditable)) return;
+  const campo = !!alvo && (!!alvo.closest('input, select, textarea') || alvo.isContentEditable);
+  if (e.key === 'Escape') {
+    // num campo fora da folha, o Esc só tira o foco (na busca o navegador ainda limpa o texto); o próximo Esc volta um passo
+    if (campo && !folhaAberta()) { if (alvo.type !== 'search') e.preventDefault(); alvo.blur(); return; }
+    if (voltarUmPasso()) e.preventDefault();
+    return;
+  }
+  if (campo) return;
   if (folhaAberta() || document.documentElement.hasAttribute('data-trava')) return;
   const k = e.key;
   if (k === 'n' || k === 'N') { e.preventDefault(); abrirFolha(); }

@@ -996,6 +996,12 @@ const TESTES = {
     igual(await p.abaAtual(), "inicio", "com a folha aberta os números não trocam de aba");
     await tecla(p, "Escape"); await p.espera(150);
     certo(!(await p.visivel("#folhaGasto")), "Esc fecha a folha");
+    // dentro da folha, Esc com o foco num campo continua fechando a folha
+    await p.clicar("#ladoLancar"); await p.espera(100);
+    await p.avaliar(() => document.querySelector("#gDesc").focus());
+    await tecla(p, "Escape"); await p.espera(150);
+    certo(!(await p.visivel("#folhaGasto")), "Esc com o foco em O que foi fecha a folha");
+    igual(await p.abaAtual(), "inicio", "fechar a folha pelo Esc não troca de aba");
     // Ctrl, Alt e Meta: são do navegador (Ctrl+N abre janela, Alt+1 troca de aba do navegador)
     for (const mod of ["ctrlKey", "altKey", "metaKey"]) {
       igual(await tecla(p, "n", { [mod]: true }), true, `${mod}+N não devia ser engolido`);
@@ -1009,6 +1015,14 @@ const TESTES = {
     await tecla(p, "1"); await tecla(p, "n");
     igual(await p.abaAtual(), "mes", "digitar na busca não troca de aba");
     certo(!(await p.visivel("#folhaGasto")), "digitar n na busca não abre a folha");
+    // Esc num campo fora da folha só tira o foco; o segundo Esc volta um passo
+    await tecla(p, "Escape"); await p.espera(350);
+    igual(await p.abaAtual(), "mes", "Esc na busca não sai do Mês");
+    certo(await p.avaliar(() => document.activeElement !== document.querySelector("#fBusca")), "Esc na busca devia tirar o foco do campo");
+    await tecla(p, "Escape"); await p.espera(350);
+    igual(await p.abaAtual(), "inicio", "o segundo Esc volta um passo");
+    await p.aba("mes");
+    await p.avaliar(() => document.querySelector("#fBusca").focus());
     await p.avaliar(() => document.querySelector("#fCx").focus());
     await tecla(p, "3");
     igual(await p.abaAtual(), "mes", "uma tecla numa lista de escolha não troca de aba");
