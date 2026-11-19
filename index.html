@@ -2014,7 +2014,9 @@ function renderMes(){
   $('gCats').innerHTML = S.caixinhas.map((c,i) => `<input type="radio" name="gCx" id="gCx${i}" value="${esc(c.id)}" ${c.id === sel ? 'checked' : ''}><label for="gCx${i}">${cxi(c, 'xs')}${esc(c.nome)}</label>`).join('');
   if (!document.querySelector('input[name="gCx"]:checked')) { const f = document.querySelector('input[name="gCx"]'); if (f) f.checked = true; }
   const fSel = $('gForma').value;
-  $('gForma').innerHTML = S.formas.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
+  // na edição, a forma do gasto pode ter saído da lista: ela continua como opção, para um redesenho não trocar o que está na folha
+  const formasG = UI.editG && fSel && !S.formas.includes(fSel) ? S.formas.concat([fSel]) : S.formas;
+  $('gForma').innerHTML = formasG.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
   if (!UI.editG && (!$('gData').value || monthOf($('gData').value) !== k)) $('gData').value = k === thisMonth() ? today() : k + '-01';
   previewGasto(); renderApagar();
 
@@ -3152,7 +3154,7 @@ document.addEventListener('click', e => {
     case 'cart-hoje': UI.cart = thisMonth(); renderCartao(); break;
     case 'cx-help': { const h = $('help-' + b.dataset.id); if (h) { h.hidden = !h.hidden; b.setAttribute('aria-expanded', String(!h.hidden)); } break; }
     case 'del-gasto': {
-      if (UI.armed !== 'g:' + id) { arm('g:' + id); renderMes(); break; }
+      if (UI.armed !== 'g:' + id) { arm('g:' + id); renderApagar(); break; } // só o botão muda: a folha de edição fica como está
       disarm(); const k = Object.keys(S.meses).find(k => (S.meses[k].gastos || []).some(g => g.id === id));
       if (k) {
         const g = S.meses[k].gastos.find(g => g.id === id), f = g && g.fixoId ? S.fixos.find(f => f.id === g.fixoId) : null;

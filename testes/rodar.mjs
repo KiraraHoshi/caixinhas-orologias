@@ -1490,6 +1490,29 @@ const TESTES = {
     igual(await p.texto("#gApagar"), "Apagar gasto", "a confirmação desarma depois de uns segundos");
     await p.clicar('.folha-topo [data-act="folha-fechar"]');
   },
+  "Armar o Apagar na folha de edição não mexe nos campos do gasto": async (p) => {
+    // gasto com uma forma que saiu da lista de formas (o select da folha ganha uma opção só para ela)
+    const semear = () => p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, formas: ["Pix", "Débito", "Crédito"],
+        caixinhas: [{ id: "a", nome: "Casa", cor: "#9C9BF5" }, { id: "b", nome: "Lazer", cor: "#E3C98A" }], limitesPadrao: { a: 500, b: 300 },
+        meses: { [k]: { gastos: [{ id: "g1", valor: 42, descricao: "Feira", caixinha: "b", forma: "Cheque", data: k + "-02" }] } } }));
+      return k;
+    });
+    const gravado = () => p.avaliar(() => { const m = Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses)[0]; const g = m.gastos.find((x) => x.id === "g1"); return [g.forma, g.caixinha, g.valor, g.descricao, g.data].join("|"); });
+    for (const esperar of [false, true]) {
+      const k = await semear(); await p.recarregar(); await p.aba("mes");
+      await p.clicar('#mesLista .n-lanc[data-id="g1"]');
+      igual(await p.avaliar(() => document.querySelector("#gForma").value), "Cheque", "a folha abre com a forma do gasto");
+      await p.clicar("#gApagar");
+      igual(await p.texto("#gApagar"), "Toque de novo para apagar", "Apagar armado");
+      if (esperar) { await p.espera(3700); igual(await p.texto("#gApagar"), "Apagar gasto", "desarmou sozinho"); }
+      const tela = await p.avaliar(() => ["#gForma", "#gValor", "#gDesc", "#gData"].map((q) => document.querySelector(q).value).concat([(document.querySelector('input[name="gCx"]:checked') || {}).value]).join("|"));
+      igual(tela, "Cheque|42|Feira|" + k + "-02|b", "os campos da folha depois de armar" + (esperar ? " e desarmar" : ""));
+      await p.clicar("#gBtn"); await p.espera(150);
+      igual(await gravado(), "Cheque|b|42|Feira|" + k + "-02", "o gasto salvo depois de desistir de apagar" + (esperar ? " (com o desarme automático)" : ""));
+    }
+  },
   "Metas não fala em investimentos no título": async (p) => {
     await comExemplo(p); await p.aba("metas");
     igual(await p.texto("#v-metas h2"), "Metas", "título da tela");
