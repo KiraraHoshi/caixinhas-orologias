@@ -149,12 +149,148 @@ const TESTES = {
     certo(!(await p.visivel("#folhaGasto")), "a folha não devia abrir sozinha");
     await p.print("01-primeira-abertura");
   },
-  "Início mostra a sobra, o mostrador e as caixinhas com ícone": async (p) => {
+  "Início mostra a sobra, o arco e as caixinhas com ícone": async (p) => {
     await comExemplo(p);
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra do mês");
-    certo(await p.visivel("#inResumo .dial"), "mostrador não apareceu");
-    igual(await p.avaliar(() => document.querySelectorAll("#inCx .cxl .cxi svg").length), 3, "caixinhas com ícone no Início");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra do mês");
+    certo(await p.visivel("#inResumo #arco"), "o arco não apareceu");
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .n-bloco[data-cx] .cxi svg").length), 3, "caixinhas com ícone no Início");
     await p.print("02-inicio", true);
+  },
+  "Barra do celular tem 4 abas e o + no meio; Ajustes fica na engrenagem": async (p) => {
+    await comExemplo(p);
+    igual(await p.avaliar(() => [...document.querySelectorAll(".tabs a[data-tab]")].map((a) => a.dataset.tab).join(",")), "inicio,mes,cartao,metas", "abas na barra");
+    igual(await p.avaliar(() => !!document.querySelector(".tabs #fab")), true, "o + devia ficar dentro da barra");
+    igual(await p.avaliar(() => [...document.querySelector(".tabs nav").children].map((e) => (e.id === "fab" ? "+" : e.dataset.tab)).join(",")), "inicio,mes,+,cartao,metas", "ordem da barra");
+    certo(await p.visivel("header.top #btnAjustes"), "a engrenagem não está no topo");
+    await p.clicar("#btnAjustes");
+    igual(await p.abaAtual(), "ajustes", "a engrenagem leva aos Ajustes");
+    igual(await p.avaliar(() => document.querySelector("#btnAjustes").getAttribute("aria-current")), "page", "engrenagem marcada nos Ajustes");
+    igual(await p.avaliar(() => document.querySelectorAll('.tabs a[aria-current="page"]').length), 0, "nenhuma aba da barra marcada nos Ajustes");
+    await p.clicar("#fab");
+    certo(await p.visivel("#folhaGasto"), "o + devia abrir a folha de lançar");
+  },
+  "Arco do Início tem um pedaço por caixinha com gasto e o marcador de hoje": async (p) => {
+    await comExemplo(p);
+    const comGasto = await p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      return [...new Set(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses[k].gastos.filter((g) => g.valor > 0).map((g) => g.caixinha))].sort().join(",");
+    });
+    igual(comGasto, "diaadia,lazer", "caixinhas com gasto no exemplo");
+    igual(await p.avaliar(() => [...document.querySelectorAll("#arco .arco-seg")].map((s) => s.dataset.cx).sort().join(",")), comGasto, "um pedaço do arco por caixinha com gasto");
+    // o tamanho de cada pedaço segue o gasto sobre o limite total (Lazer 179,90 e Dia a dia 89,40 de 1.500)
+    const comp = await p.avaliar(() => Object.fromEntries([...document.querySelectorAll("#arco .arco-seg")].map((s) => [s.dataset.cx, s.getTotalLength()])));
+    const trilha = await p.avaliar(() => document.querySelector("#arco .arco-trilha").getTotalLength());
+    certo(Math.abs((comp.lazer + comp.diaadia) / trilha - 269.3 / 1500) < 0.02, "o arco aceso devia ser 18% da trilha: " + JSON.stringify(comp) + " de " + trilha);
+    certo(comp.lazer > comp.diaadia * 1.7, "o pedaço do Lazer devia ser o dobro do Dia a dia: " + JSON.stringify(comp));
+    certo(await p.visivel("#arcoHoje"), "o marcador de hoje não apareceu");
+    const ang = await p.avaliar(() => parseFloat(/rotate\(([-\d.]+)/.exec(document.querySelector("#arcoHoje").getAttribute("transform") || "")?.[1]));
+    const esperado = await p.avaliar(() => { const d = new Date(); return (d.getDate() / new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()) * 180; });
+    certo(Math.abs(ang - esperado) < 0.5, "o marcador de hoje devia estar em " + esperado + "° e está em " + ang + "°");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra no centro do arco");
+    certo(/^R\$ [\d.]+,\d\d$/.test(await p.texto("#inDia")), "valor por dia: " + await p.texto("#inDia"));
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .n-bloco[data-cx]").length), 3, "blocos das caixinhas");
+  },
+  "Ritmo do mês: abaixo e acima": async (p) => {
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 1500 } })));
+    await p.recarregar();
+    const ideal = await p.avaliar(() => { const d = new Date(); return Math.round((1500 * d.getDate()) / new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()); });
+    igual(await p.texto("#chipRitmo"), "R$ " + ideal.toLocaleString("pt-BR") + " abaixo do ritmo", "nada gasto: abaixo do ritmo pelo ideal de hoje");
+    certo(await p.visivel("#ritmoIni"), "o gráfico do ritmo não apareceu");
+    await lancar(p, 2000, "Notebook");
+    igual(await p.texto("#chipRitmo"), "R$ " + (2000 - ideal).toLocaleString("pt-BR") + " acima do ritmo", "gasto maior que o ritmo do dia: acima");
+    const ruim = await p.avaliar(() => [...document.querySelectorAll("#ritmoIni, #ritmoIni *")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((v) => /NaN|undefined|Infinity/.test(v)));
+    igual(ruim.join(" | "), "", "atributos quebrados no gráfico do ritmo");
+    await p.clicar("#inRitmo");
+    igual(await p.abaAtual(), "graficos", "tocar no Ritmo do mês leva aos Gráficos");
+  },
+  "Início aguenta valores e nomes grandes": async (p) => {
+    const semear = (sinal) => p.avaliar((sinal) => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      const cores = ["#9C9BF5", "#E3C98A", "#C9A6F5", "#8FD3B4", "#F2A48A", "#8FB8F5"];
+      const caixinhas = Array.from({ length: 12 }, (_, i) => ({ id: "c" + i, nome: i === 2 ? "Supermercado, padaria e feiras" : "Caixinha " + (i + 1), cor: cores[i % cores.length] }));
+      const limitesPadrao = Object.fromEntries(caixinhas.map((c) => [c.id, 0]));
+      const gastos = [{ id: "g1", valor: 100, descricao: "Sem limite", caixinha: "c1", forma: "Pix", data: k + "-01" }];
+      if (sinal > 0) limitesPadrao.c0 = 1234667.89; // sobra total de 1.234.567,89, com a c1 negativa
+      else gastos.push({ id: "g2", valor: 1234467.89, descricao: "Casa", caixinha: "c0", forma: "Pix", data: k + "-01" }); // sobra total de -1.234.567,89
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas, limitesPadrao, meses: { [k]: { gastos } } }));
+    }, sinal);
+    await p.tamanho(320, 640);
+    for (const [sinal, txt] of [[1, "R$ 1.234.567,89"], [-1, "-R$ 1.234.567,89"]]) {
+      await semear(sinal); await p.recarregar();
+      igual(await p.texto("#inSobra"), txt, "sobra grande");
+      igual(await p.avaliar(() => "Supermercado, padaria e feiras".length), 30, "nome de 30 letras");
+      const m = await p.avaliar(() => {
+        const a = document.querySelector("#arco").getBoundingClientRect(), s = document.querySelector("#inSobra").getBoundingClientRect();
+        const blocos = [...document.querySelectorAll("#inCx .n-bloco[data-cx]")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.dataset.cx);
+        return { sobra: document.documentElement.scrollWidth - innerWidth, dentro: s.left >= a.left - 0.5 && s.right <= a.right + 0.5 && s.width > 0, larg: [a.left, a.right, s.left, s.right].map(Math.round).join(","), blocos: blocos.join(","), n: document.querySelectorAll("#inCx .n-bloco[data-cx]").length };
+      });
+      certo(m.sobra <= 0, "o Início passa " + m.sobra + "px da largura");
+      certo(m.dentro, "a sobra passa da caixa do arco (arco e sobra: " + m.larg + ")");
+      igual(m.blocos, "", "blocos com conteúdo estourando");
+      igual(m.n, 12, "doze blocos");
+      certo((await p.texto('#inCx .n-bloco[data-cx="c1"]')).includes("passou R$ 100,00"), "a caixinha sem limite com gasto avisa quanto passou");
+    }
+    await p.print("16-inicio-valores-grandes", true);
+  },
+  "Início vazio não mostra NaN": async (p) => {
+    const casos = [
+      ["primeira abertura", null, 0],
+      ["sem caixinhas e sem lançamentos", { onboarded: true, guiaVisto: true, caixinhas: [], limitesPadrao: {} }, 0],
+      ["caixinha sem limite", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 } }, 0],
+      ["caixinha sem limite com gasto", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 }, gasto: 30 }, 1],
+    ];
+    for (const [nome, estado, pedacos] of casos) {
+      if (estado) {
+        await p.avaliar((estado) => {
+          const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+          if (estado.gasto) estado.meses = { [k]: { gastos: [{ id: "g1", valor: estado.gasto, descricao: "Pão", caixinha: "a", forma: "Pix", data: k + "-01" }] } };
+          localStorage.setItem("caixinhas-orologia-v1", JSON.stringify(estado));
+        }, estado);
+        await p.recarregar();
+      }
+      const r = await p.avaliar(() => {
+        const v = document.querySelector("#v-inicio");
+        const attrs = [...v.querySelectorAll("*")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((x) => /NaN|Infinity|undefined/.test(x));
+        return { txt: (v.textContent.match(/.{0,30}(NaN|Infinity|undefined).{0,30}/) || [""])[0], attrs: attrs.join(" | "), segs: document.querySelectorAll("#arco .arco-seg").length };
+      });
+      igual(r.txt, "", "texto quebrado no Início (" + nome + ")");
+      igual(r.attrs, "", "atributos quebrados no Início (" + nome + ")");
+      igual(r.segs, pedacos, "pedaços do arco (" + nome + ")");
+      certo(await p.visivel("#arco .arco-trilha"), "a trilha do arco devia aparecer (" + nome + ")");
+    }
+  },
+  "Quem vem da 1.9 abre a 2.0 com tudo no lugar": async (p) => {
+    await semearContas(p);
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-mare", meus: [{ id: "tmeu1", nome: "Meu roxo", fundo: "#1A1030", card: "#2A1F45", texto: "#F5F0FF", suave: "#B8A8D8", destaque: "#C78BFF", secundaria: "#FFD27A", raio: 16, fonte: "padrao" }] })));
+    await p.recarregar();
+    igual(await p.avaliar(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()), "#0A1418", "o tema escolhido (Maré) continua aplicado");
+    const esperado = await p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      const gs = JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses[k].gastos;
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(1000 - gs.reduce((a, g) => a + g.valor, 0)).replace(/\s/g, " ");
+    });
+    igual(await p.texto("#inSobra"), esperado, "sobra com os gastos fixos lançados");
+    certo((await p.texto("#inVencer")).includes("Internet"), "o A vencer continua no Início");
+    await p.aba("mes");
+    certo((await p.texto("#mesLista")).includes("Internet"), "os lançamentos continuam no Mês");
+    await p.aba("ajustes/aparencia");
+    certo((await p.texto("#temaBox")).includes("Meu roxo"), "o tema próprio continua na Aparência");
+  },
+  "Início e telas vizinhas sem estourar, nos temas noite e dia (prints)": async (p) => {
+    await comExemplo(p);
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
+        await p.tamanho(w, h); await p.recarregar();
+        for (const t of ["inicio", "mes", "cartao", "metas", "ajustes"]) {
+          await p.aba(t);
+          const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
+          certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura em ${w}px no tema ${tema}`);
+          await p.print(`20-${t}-${tema}-${w}`);
+          if (t === "inicio") await p.print(`20-${t}-${tema}-${w}-inteira`, true);
+        }
+      }
+    }
   },
   "Lançar pelo botão fixo, sem sair do Início": async (p) => {
     await comExemplo(p);
@@ -168,7 +304,7 @@ const TESTES = {
     await p.espera(200);
     certo(!(await p.visivel("#folhaGasto")), "a folha devia fechar depois de lançar");
     igual(await p.abaAtual(), "inicio", "aba depois de lançar");
-    igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois do gasto");
+    igual(await p.texto("#inSobra"), "R$ 1.180,70", "sobra depois do gasto");
     certo(await p.visivel("#fab"), "botão Lançar devia voltar");
   },
   "Não cabe: avisa em quanto estoura": async (p) => {
@@ -203,9 +339,9 @@ const TESTES = {
     await p.espera(250);
     igual(await p.abaAtual(), "cartao", "fechar no × não devia trocar de aba");
   },
-  "Barra com 5 abas e Calculadoras pelo Início": async (p) => {
+  "Barra com 4 abas e o +, e Calculadoras pelo Início": async (p) => {
     await comExemplo(p);
-    igual(await p.avaliar(() => document.querySelectorAll(".tabs a").length), 5, "abas na barra");
+    igual(await p.avaliar(() => document.querySelectorAll(".tabs nav > *").length), 5, "4 abas e o + na barra");
     await p.clicar('.atalho[data-go="calc"]');
     igual(await p.abaAtual(), "calc", "atalho das calculadoras");
     igual(await p.avaliar(() => document.querySelector('.tabs a[aria-current="page"]').dataset.tab), "inicio", "aba acesa nas calculadoras");
@@ -263,30 +399,30 @@ const TESTES = {
     await comExemplo(p);
     await p.espera(2200);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "primeira abertura do dia");
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura longa");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra ao fim da abertura longa");
     await p.recarregar(); await p.espera(300);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "abrir o app de novo no mesmo dia");
     await p.espera(2200); await p.aba("mes"); await p.aba("inicio"); await p.espera(700);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "curta", "voltar para o Início sem fechar o app");
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da abertura curta");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra ao fim da abertura curta");
   } },
   "Durante a abertura a sobra conta até o valor": { movimento: true, fn: async (p) => {
     await comExemplo(p);
     await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
     let contou = false;
-    for (let i = 0; i < 24 && !contou; i++) { await p.espera(50); const v = await p.texto("#inResumo .big").catch(() => null); if (v && v !== "R$ 1.230,70") contou = true; }
+    for (let i = 0; i < 24 && !contou; i++) { await p.espera(50); const v = await p.texto("#inSobra").catch(() => null); if (v && v !== "R$ 1.230,70") contou = true; }
     certo(contou, "a sobra apareceu pronta, sem contar");
     await p.espera(2200);
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra ao fim da contagem");
-    igual(await p.avaliar(() => document.querySelectorAll("#inCx .cxl").length), 3, "caixinhas no Início");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra ao fim da contagem");
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .n-bloco[data-cx]").length), 3, "caixinhas no Início");
   } },
   "Início se refaz quando as caixinhas mudam": async (p) => {
     await comExemplo(p);
     await p.aba("ajustes");
     await p.clicar('[data-act="cx-add"]'); await p.clicar('[data-act="cx-save"]');
     await p.aba("inicio");
-    igual(await p.avaliar(() => document.querySelectorAll("#inCx .cxl").length), 4, "caixinhas no Início depois de criar uma");
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra não muda com caixinha sem limite");
+    igual(await p.avaliar(() => document.querySelectorAll("#inCx .n-bloco[data-cx]").length), 4, "caixinhas no Início depois de criar uma");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra não muda com caixinha sem limite");
   },
   "Com PIN, a abertura espera o desbloqueio": { movimento: true, fn: async (p) => {
     await comExemplo(p);
@@ -300,17 +436,17 @@ const TESTES = {
     await p.espera(300);
     igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "abertura depois de desbloquear");
     await p.espera(2200);
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra depois de desbloquear");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra depois de desbloquear");
   } },
   "Início no tema claro": async (p) => {
     await comExemplo(p);
     await p.aba("ajustes");
     await p.avaliar(() => document.querySelectorAll('[data-tm="usar"]')[1].click());
     await p.aba("inicio"); await p.espera(3600);
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra no tema claro");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra no tema claro");
     await p.print("07-inicio-claro");
   },
-  "Mostrador aguenta caixinha sem limite": async (p) => {
+  "Arco aguenta caixinha sem limite": async (p) => {
     const semear = (comGasto) => p.avaliar((comGasto) => {
       const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
       localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }, { id: "b", nome: "Outra", cor: "#E3C98A" }], limitesPadrao: { a: 0, b: 0 },
@@ -318,25 +454,26 @@ const TESTES = {
     }, comGasto);
     for (const comGasto of [true, false]) {
       await semear(comGasto); await p.recarregar();
-      const ruim = await p.avaliar(() => [...document.querySelectorAll("#inResumo .dial, #inResumo .dial *")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((v) => /NaN|undefined|Infinity/.test(v)));
-      igual(ruim.length, 0, "atributos quebrados no mostrador (" + (comGasto ? "com" : "sem") + " gasto): " + ruim.join(" | "));
-      igual(await p.texto("#inResumo .big"), comGasto ? "-R$ 30,00" : "R$ 0,00", "sobra sem limite");
+      const ruim = await p.avaliar(() => [...document.querySelectorAll("#inResumo #arco, #inResumo #arco *")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((v) => /NaN|undefined|Infinity/.test(v)));
+      igual(ruim.length, 0, "atributos quebrados no arco (" + (comGasto ? "com" : "sem") + " gasto): " + ruim.join(" | "));
+      igual(await p.texto("#inSobra"), comGasto ? "-R$ 30,00" : "R$ 0,00", "sobra sem limite");
     }
   },
   "Estourou: mostra quanto passou": async (p) => {
     await comExemplo(p);
     await lancar(p, 600, "Viagem de fim de semana");
-    certo((await p.texto('#inCx .cxl[data-cx="lazer"]')).includes("passou R$ 79,90"), "a caixinha estourada devia dizer quanto passou: " + await p.texto('#inCx .cxl[data-cx="lazer"]'));
-    igual(await p.texto('#inCx .cxl[data-cx="diaadia"] small'), "", "caixinha dentro do limite não tem aviso");
+    certo((await p.texto('#inCx .n-bloco[data-cx="lazer"]')).includes("passou R$ 79,90"), "a caixinha estourada devia dizer quanto passou: " + await p.texto('#inCx .n-bloco[data-cx="lazer"]'));
+    igual(await p.texto('#inCx .n-bloco[data-cx="diaadia"] small'), "", "caixinha dentro do limite não tem aviso");
+    certo(await p.avaliar(() => { const e = document.querySelector('#arco .arco-exc[data-cx="lazer"]'); return !!e && e.getTotalLength() > 1; }), "o trecho que passou do limite devia aparecer no arco");
   },
-  "Lançar no Início faz o mostrador reagir": { movimento: true, fn: async (p) => {
+  "Lançar no Início faz o arco reagir": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.espera(2300);
     await lancar(p, 50, "Cinema");
     certo((await animando(p)) > 0, "nada se moveu depois de lançar");
-    igual(await p.texto("#inResumo .ficha"), "− R$ 50,00", "valor lançado no centro do mostrador");
+    igual(await p.texto("#inResumo .ficha"), "− R$ 50,00", "valor lançado no centro do arco");
     await p.espera(1500);
     igual(await animando(p), 0, "animações que não terminaram");
-    igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois de lançar");
+    igual(await p.texto("#inSobra"), "R$ 1.180,70", "sobra depois de lançar");
   } },
   "Lançar no Mês faz a barra da caixinha reagir": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.aba("mes");
@@ -351,14 +488,14 @@ const TESTES = {
     await p.espera(350);
     await lancar(p, 50, "Cinema");
     await p.espera(2500);
-    igual(await p.texto("#inResumo .big"), "R$ 1.180,70", "sobra depois de lançar durante a abertura");
-    igual(await p.texto('#inCx .cxl[data-cx="lazer"] .v'), "R$ 470,10", "sobra do Lazer");
+    igual(await p.texto("#inSobra"), "R$ 1.180,70", "sobra depois de lançar durante a abertura");
+    igual(await p.texto('#inCx .n-bloco[data-cx="lazer"] .v'), "R$ 470,10", "sobra do Lazer");
   } },
-  "Abertura curta: só o anel e as barras contam, os números já vêm certos": { movimento: true, fn: async (p) => {
+  "Abertura curta: só o arco e os anéis andam, os números já vêm certos": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.espera(2300); // a longa já tocou
     await p.aba("mes"); await p.avaliar(() => { location.hash = "#inicio"; }); // voltar para o Início toca a curta
     const vistos = [];
-    for (let i = 0; i < 12; i++) { await p.espera(30); const v = await p.avaliar(() => { const b = document.querySelector("#inResumo .big"), l = document.querySelector('#inCx .cxl[data-cx="lazer"] .v'); return b && l && b.textContent ? (b.textContent + " | " + l.textContent).replace(/\s/g, " ") : null; }).catch(() => null); if (v) vistos.push(v); }
+    for (let i = 0; i < 12; i++) { await p.espera(30); const v = await p.avaliar(() => { const b = document.querySelector("#inSobra"), l = document.querySelector('#inCx .n-bloco[data-cx="lazer"] .v'); return b && l && b.textContent ? (b.textContent + " | " + l.textContent).replace(/\s/g, " ") : null; }).catch(() => null); if (v) vistos.push(v); }
     certo(vistos.length >= 3, "poucas amostras: " + vistos.length);
     const errados = vistos.filter((v) => v !== "R$ 1.230,70 | R$ 520,10");
     igual(errados.length, 0, "números que contaram na abertura curta: " + errados.slice(0, 3).join(" ; "));
@@ -371,9 +508,9 @@ const TESTES = {
       localStorage.removeItem("caixinhas-orologia-abertura"); location.reload();
     }).catch(() => {});
     const classes = new Set();
-    for (let i = 0; i < 40; i++) { await p.espera(40); const c = await p.avaliar(() => { const b = document.querySelector("#inResumo .big"); return b && b.textContent ? String(b.classList.contains("longo")) : null; }).catch(() => null); if (c) classes.add(c); }
+    for (let i = 0; i < 40; i++) { await p.espera(40); const c = await p.avaliar(() => { const b = document.querySelector("#inSobra"); return b && b.textContent ? String(b.classList.contains("longo")) : null; }).catch(() => null); if (c) classes.add(c); }
     igual(classes.size, 1, "o tamanho do número mudou durante a contagem: " + [...classes].join(","));
-    igual(await p.texto("#inResumo .big"), "R$ 5,00", "sobra no fim");
+    igual(await p.texto("#inSobra"), "R$ 5,00", "sobra no fim");
   } },
   "Aviso 'passou R$' aparece inteiro mesmo com nome comprido": async (p) => {
     await p.avaliar(() => {
@@ -382,34 +519,31 @@ const TESTES = {
         meses: { [mes]: { gastos: [{ id: "g1", valor: 250, descricao: "Compras", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
     });
     await p.tamanho(320, 640); await p.recarregar(); await p.espera(1500);
-    const m = await p.avaliar(() => { const b = document.querySelector("#inCx .cxl b"), s = b.querySelector("small"), r = s.getBoundingClientRect(), rb = b.getBoundingClientRect(); return { texto: s.textContent, dentro: r.right <= rb.right + 1 && r.width > 0, nomeCortado: b.scrollWidth > b.clientWidth + 1 }; });
+    const m = await p.avaliar(() => { const b = document.querySelector("#inCx .n-bloco[data-cx]"), s = b.querySelector("small"), r = s.getBoundingClientRect(), rb = b.getBoundingClientRect(); return { texto: s.textContent, dentro: r.right <= rb.right + 1 && r.left >= rb.left - 1 && r.bottom <= rb.bottom + 1 && r.width > 0, nomeCortado: b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1 }; });
     igual(m.texto.replace(/\s/g, " "), "passou R$ 150,00", "texto do aviso");
-    certo(m.dentro, "o aviso 'passou' ficou fora da área visível da linha");
-    igual(m.nomeCortado, false, "a linha inteira estourou a largura");
+    certo(m.dentro, "o aviso 'passou' ficou fora da área visível do bloco");
+    igual(m.nomeCortado, false, "o bloco inteiro estourou a largura");
   },
-  "Gastar além do limite durante a abertura não corta o giro": { movimento: true, fn: async (p) => {
+  "Gastar além do limite durante a abertura não corta o marcador de hoje": { movimento: true, fn: async (p) => {
     await comExemplo(p);
-    await p.avaliar(() => {
-      localStorage.removeItem("caixinhas-orologia-abertura");
-      window.__fio = () => parseFloat(document.querySelector('#inResumo [data-d="fio"]').getAttribute("stroke-dasharray"));
-      location.reload();
-    }).catch(() => {});
+    await p.avaliar(() => { localStorage.removeItem("caixinhas-orologia-abertura"); location.reload(); }).catch(() => {});
     await p.espera(120);
     await p.avaliar(() => {
-      window.__fio = () => parseFloat(document.querySelector('#inResumo [data-d="fio"]').getAttribute("stroke-dasharray"));
+      // ângulo do marcador de hoje no arco (anda de 0 até a posição do dia durante a abertura longa)
+      window.__fio = () => parseFloat((/rotate\(([-\d.]+)/.exec(document.querySelector("#arcoHoje").getAttribute("transform") || "") || [0, 0])[1]);
       document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#gBtn")) { window.__antes = window.__fio(); setTimeout(() => { window.__depois = window.__fio(); }, 40); } }, true);
     });
     await lancar(p, 600, "Viagem");
     await p.espera(2500);
     const f = await p.avaliar(() => ({ antes: window.__antes, depois: window.__depois, fim: window.__fio() }));
-    certo(f.antes < f.fim * 0.9, "o teste chegou tarde: o fio já estava em " + f.antes + " de " + f.fim);
-    certo(f.depois - f.antes < f.fim * 0.15, "o fio saltou de " + f.antes + " para " + f.depois + " (fim " + f.fim + ")");
+    certo(f.antes < f.fim * 0.9, "o teste chegou tarde: o marcador já estava em " + f.antes + " de " + f.fim);
+    certo(f.depois - f.antes < f.fim * 0.15, "o marcador saltou de " + f.antes + " para " + f.depois + " (fim " + f.fim + ")");
   } },
   "Lançamentos seguidos não se atropelam": { movimento: true, fn: async (p) => {
     await comExemplo(p);
     await lancar(p, 10, "Um"); await lancar(p, 20, "Dois"); await lancar(p, 30, "Três");
     await p.espera(1600);
-    igual(await p.texto("#inResumo .big"), "R$ 1.170,70", "sobra depois de três lançamentos");
+    igual(await p.texto("#inSobra"), "R$ 1.170,70", "sobra depois de três lançamentos");
     igual(await animando(p), 0, "animações que não terminaram");
   } },
   "Meta batida aparece como batida": async (p) => {
@@ -464,10 +598,10 @@ const TESTES = {
   },
   "Leitor de tela ouve os valores atuais no Início": async (p) => {
     await comExemplo(p);
-    const rotulo = () => p.avaliar(() => document.querySelector('#inCx .cxl[data-cx="lazer"]').getAttribute("aria-label").replace(/\s+/g, " "));
+    const rotulo = () => p.avaliar(() => document.querySelector('#inCx .n-bloco[data-cx="lazer"]').getAttribute("aria-label").replace(/\s+/g, " "));
     igual(await rotulo(), "Lazer: sobra R$ 520,10 de R$ 700,00", "rótulo do Lazer");
-    const dial = await p.avaliar(() => document.querySelector("#inResumo .dial").getAttribute("aria-label"));
-    certo(/^18% do limite do mês gasto, com \d+% do mês passado$/.test(dial), "rótulo do mostrador: " + dial);
+    const dial = await p.avaliar(() => document.querySelector("#inResumo #arco").getAttribute("aria-label"));
+    certo(/^18% do limite do mês gasto, com \d+% do mês passado$/.test(dial), "rótulo do arco: " + dial);
     await lancar(p, 50, "Cinema");
     igual(await rotulo(), "Lazer: sobra R$ 470,10 de R$ 700,00", "rótulo do Lazer depois de lançar");
   },
@@ -478,11 +612,11 @@ const TESTES = {
         meses: { [mes]: { gastos: [{ id: "g1", valor: 50, descricao: "Luz", caixinha: "a", forma: "Pix", data: mes + "-01" }, { id: "g2", valor: 100, descricao: "Antigo", caixinha: "fantasma", forma: "Pix", data: mes + "-02" }] } } }));
     });
     await p.recarregar();
-    igual(await p.texto("#inResumo .big"), "R$ 850,00", "sobra com o gasto órfão");
+    igual(await p.texto("#inSobra"), "R$ 850,00", "sobra com o gasto órfão");
     await p.aba("mes");
     await p.clicar('[data-act="del-gasto"][data-id="g2"]'); await p.clicar('[data-act="del-gasto"][data-id="g2"]');
     await p.aba("inicio");
-    igual(await p.texto("#inResumo .big"), "R$ 950,00", "sobra depois de apagar o gasto órfão");
+    igual(await p.texto("#inSobra"), "R$ 950,00", "sobra depois de apagar o gasto órfão");
   },
   "Abrir em outra aba não gasta a abertura longa": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.aba("mes");
@@ -519,7 +653,7 @@ const TESTES = {
   },
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
-    igual(await p.texto("#inResumo .big"), "R$ 1.230,70", "sobra pronta, sem contar");
+    igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra pronta, sem contar");
     for (const t of ["inicio", "cartao", "metas", "mes"]) {
       await p.aba(t); if (t === "mes") await p.clicar("#dGraf summary");
       igual(await p.avaliar(() => document.getAnimations().filter((a) => !a.animationName || !a.animationName.startsWith("fl-")).length), 0, "animações na aba " + t);
@@ -745,7 +879,7 @@ const TESTES = {
   "Nenhuma tela passa da largura em celular estreito": async (p) => {
     await comExemplo(p);
     await p.tamanho(320, 640);
-    for (const t of ["inicio", "mes", "cartao", "metas", "calc", "ajustes", "guia"]) {
+    for (const t of ["inicio", "mes", "cartao", "metas", "calc", "ajustes", "guia", "graficos"]) {
       await p.aba(t);
       const sobra = await p.avaliar(() => document.documentElement.scrollWidth - window.innerWidth);
       certo(sobra <= 0, `a aba ${t} passa ${sobra}px da largura`);

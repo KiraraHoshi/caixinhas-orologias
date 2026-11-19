@@ -47,6 +47,10 @@ function tokens(t){
     '--ok':e ? '#8FD3B4' : '#1F7A55', '--warn':e ? '#F2B45A' : '#8F5400', '--over':e ? '#FF5C7A' : '#C42848'
   };
   if (t.extra) for (var k in t.extra) v[k] = t.extra[k];
+  /* Visual 2.0: clarão parado do fundo e cartões de vidro, sempre calculados das cores do tema (funcionam em tema claro e escuro). */
+  v['--glow'] = mix(t.destaque, t.fundo, .35);
+  v['--glass'] = 'color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) ' + (e ? 55 : 72) + '%, transparent))';
+  v['--glass-line'] = 'color-mix(in srgb, var(--fg) ' + (e ? 12 : 14) + '%, transparent)';
   return v;
 }
 function ler(){ var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ o = {}; } if (!Array.isArray(o.meus)) o.meus = []; return o; }
@@ -98,6 +102,7 @@ aplicar(atual());
   --display:"Cinzel", Constantia, Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --glow:#6B6BA8; --glass:color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) 55%, transparent)); --glass-line:color-mix(in srgb, var(--fg) 12%, transparent);
   --tabh:64px;
   color-scheme:dark;
 }
@@ -107,7 +112,7 @@ body{background:var(--bg) radial-gradient(120% 50% at 50% -10%, color-mix(in srg
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 a{color:var(--accent)}
-.wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 96px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 40px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 /* Cabeçalho */
@@ -123,13 +128,11 @@ h1{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.1;
 .sync[data-s="ok"] i{background:var(--ok)} .sync[data-s="err"] i{background:var(--over)} .sync[data-s="wait"] i{background:var(--warn)}
 .rule{height:2px;border:0;margin:0;border-radius:1px;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 50%,var(--gold)) 50%,var(--gold))}
 
-/* Abas */
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--deep) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--base);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-.tabs nav{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
-.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:var(--muted);font-size:.68rem;font-weight:600;letter-spacing:.03em;border-radius:10px}
+/* Abas: barra flutuante arredondada (2.0), com o + de lançar no meio. O desfoque fica só nela. */
+.tabs{position:fixed;z-index:20;left:0;right:0;bottom:calc(10px + var(--base));margin:0 auto;width:calc(100% - 24px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));max-width:480px;border-radius:calc(var(--tabh) / 2);background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-line);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.tabs nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;height:var(--tabh);padding:0 6px}
+.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:100%;min-width:0;text-decoration:none;color:var(--muted);font-size:.68rem;font-weight:600;letter-spacing:.03em;border-radius:calc(var(--tabh) / 2)}
 .tabs a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.tabs a[aria-current="page"]{color:var(--gold)}
-.tabs a[aria-current="page"] svg{stroke:var(--gold)}
 
 /* Vistas */
 .view{display:flex;flex-direction:column;gap:18px}
@@ -259,7 +262,7 @@ table.mini input{padding:6px 8px;min-width:80px}
 .icon:disabled{opacity:.35;cursor:default}
 .cx-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .cx-row:last-child{border-bottom:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 14px + var(--base));z-index:30;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
 textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:120px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 .support{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
@@ -270,7 +273,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 .free div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);font-size:.85rem;color:var(--muted)}
 .free b{display:block;color:var(--fg);font-size:.92rem;margin-bottom:2px}
 /* Aparência (temas) */
-:root[data-claro] .bar i,:root[data-claro] .dot,:root[data-claro] .dial .seg{filter:brightness(.8) saturate(1.35)}
+:root[data-claro] .bar i,:root[data-claro] .dot,:root[data-claro] .arco-seg,:root[data-claro] .n-anel .anel-v{filter:brightness(.8) saturate(1.35)}
 :root[data-claro] .toast{box-shadow:0 8px 24px rgba(30,26,43,.25)}
 .temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .tema-card{position:relative;border:2px solid var(--line);border-radius:12px;background:var(--surface2);display:flex;flex-direction:column}
@@ -353,35 +356,13 @@ html[data-trava] body{overflow:hidden}
 .box .bar{height:8px;margin-top:4px}
 .box .help{grid-column:1/-1}
 .chips label{padding:5px 12px 5px 6px}
-/* Início: destaque do mês com mostrador */
-.hero{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
-.hero .lbl{text-transform:uppercase;font-size:.7rem;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center}
-.hero .big{display:block;font-size:2.15rem;font-family:var(--display);font-weight:700;color:var(--accent);line-height:1.1;margin-top:2px}
-.hero .big.neg{color:var(--over)}
-.hero .dia{font-size:.9rem;color:var(--muted);margin:6px 0 0}
-.hero .dia b{color:var(--fg);font-weight:600}
-.hero .pe{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
-.hero .pe b{color:var(--fg);font-weight:600}
-.dial{width:92px;height:92px;display:block}
-.dial text{font-family:var(--mono);font-size:15px;font-weight:600;fill:var(--fg)}
-.dial .sub{font-family:var(--body);font-size:8px;font-weight:500;fill:var(--muted);letter-spacing:.06em}
-.cxs{display:flex;flex-direction:column;gap:12px}
-.cxl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;background:none;border:0;padding:0;text-align:left;width:100%}
-.cxl .cxi{grid-row:1/3}
-.cxl b{font-weight:600;min-width:0;overflow:hidden;display:flex;flex-wrap:wrap;column-gap:8px;align-items:baseline;white-space:nowrap}
-.cxl .cxnome{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.cxl b small{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.cxl .v{font-weight:600;text-align:right}
-.cxl .bar{grid-column:2/-1;height:6px;display:block}
 .view>div:empty{display:none}
 .atalho.linha{flex-direction:row;align-items:center;gap:10px;padding:12px}
 .atalho.linha b{font-size:.9rem;font-weight:600}
-/* Botão de lançar (sempre à mão) e folha que sobe */
-.fab{position:fixed;z-index:25;right:max(16px,calc(50% - 304px));bottom:calc(var(--tabh) + 14px + var(--base));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 20px 13px 16px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 75%,var(--tint)));color:var(--accent-ink);font-family:var(--display);font-weight:700;letter-spacing:.08em;box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
-.fab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
-.fab:active{transform:scale(.97)}
-html[data-trava] .fab,html[data-folha] .fab{display:none}
-.toast{bottom:calc(var(--tabh) + 76px + var(--base))}
+/* Botão de lançar: o + no meio da barra (2.0) e a folha que sobe */
+.fab{justify-self:center;display:grid;place-items:center;width:56px;height:56px;margin-top:-22px;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--gold));color:var(--accent-ink);box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 35%,rgba(0,0,0,.4)),inset 0 1px 0 rgba(255,255,255,.3)}
+.fab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+.fab:active{transform:scale(.95)}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
@@ -402,9 +383,10 @@ html[data-trava] .folha{visibility:hidden}
 .icos button{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--deep);padding:0;color:var(--muted)}
 .icos button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .icos button[aria-pressed="true"]{border-color:var(--accent);color:var(--fg);background:color-mix(in srgb,var(--accent) 18%,var(--surface))}
-/* ===== Visual 1.6: o mostrador do mês é a peça central; o resto fica quieto =====
+/* ===== Visual 1.6 (base que a 2.0 continua): o arco do mês é a peça central; o resto fica quieto =====
    Âmbar (--gold) marca o tempo: dia de hoje, mês que passou, aba em que você está. Lavanda (--accent) marca o que se toca. */
-body{background:var(--bg)}
+/* 2.0: clarões parados no topo (cor --glow, derivada do destaque do tema; --gold num canto). Não animam. */
+body{background:radial-gradient(ellipse 680px 460px at 36% -70px,color-mix(in srgb,var(--glow) 74%,transparent),color-mix(in srgb,var(--glow) 24%,transparent) 50%,transparent 76%) no-repeat,radial-gradient(ellipse 420px 300px at 96% -60px,color-mix(in srgb,var(--gold) 14%,transparent),transparent 70%) no-repeat,var(--bg)}
 .wrap{gap:20px}
 .rule{display:none}
 .crest svg{width:34px;height:34px}
@@ -418,39 +400,22 @@ h3{font-size:1.04rem;letter-spacing:0;text-transform:none}
 .panel,details{border-radius:18px}
 .guia-card.slim{border-radius:14px}
 input,select,textarea,.ghost,.primary,.sponsor{border-radius:12px}
-.primary,.sponsor,.fab{background:var(--accent);font-family:var(--body);letter-spacing:0;font-weight:700}
-.fab{box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.primary,.sponsor{background:var(--accent);font-family:var(--body);letter-spacing:0;font-weight:700}
 .pill{border:0;background:color-mix(in srgb,currentColor 15%,transparent);text-transform:none;letter-spacing:0;font-size:.74rem;font-weight:600;padding:2px 9px}
 .ex{text-transform:none;letter-spacing:0;font-size:.7rem;font-weight:600}
 .total .lbl{text-transform:none;letter-spacing:0;font-size:.82rem}
 .daygroup{text-transform:none;letter-spacing:0;font-size:.8rem;color:var(--muted);font-weight:600}
 table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
-.box .name small,.dial text{font-family:inherit}
+.box .name small{font-family:inherit}
 .qm{font-family:var(--body)}
 .calc-tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent)}
 .folha-topo h3{font-size:1.12rem}
 .folha .valor input{font-family:var(--body);font-variant-numeric:tabular-nums lining-nums}
 .teclado button,.trava-box input{font-family:var(--body);font-variant-numeric:tabular-nums lining-nums}
-.tabs{background:color-mix(in srgb,var(--bg) 94%,transparent)}
 .tabs a{position:relative;letter-spacing:0;font-size:.7rem;font-weight:500}
 .tabs a[aria-current="page"]{color:var(--fg);font-weight:700}
 .tabs a[aria-current="page"] svg{stroke:var(--fg)}
-.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:50%;width:3px;height:9px;margin-left:-1.5px;border-radius:0 0 2px 2px;background:var(--gold)}
-/* Mostrador do mês */
-.hero{display:flex;flex-direction:column;align-items:center;gap:14px;position:relative}
-.hero>.qm{position:absolute;top:0;right:0;margin:0}
-.dialbox{position:relative;width:min(100%,268px);aspect-ratio:1}
-.dial{width:100%;height:100%}
-.dial-c{position:absolute;inset:17%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px}
-.dial-c .lbl{display:block;font-size:.84rem;color:var(--muted);text-transform:none;letter-spacing:0}
-.hero .big{font-size:1.72rem;margin:0;line-height:1.1}
-.hero .big.longo{font-size:1.36rem}
-.dial-c .dia{margin:0;font-size:.84rem;color:var(--muted)}
-.dial-c .dia b{color:var(--fg);font-weight:600}
-.fatos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;border-top:1px solid var(--line);padding-top:12px}
-.fatos div{min-width:0}
-.fatos span{display:block;font-size:.78rem;color:var(--muted)}
-.fatos b{display:block;font-weight:600;font-size:.9rem;white-space:nowrap}
+.tabs a[aria-current="page"]::after{content:"";position:absolute;bottom:7px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--gold)}
 #mesResumo .total{flex-direction:column;align-items:flex-start;gap:6px}
 #mesResumo .total .side{text-align:left}
 .copia{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
@@ -458,9 +423,6 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .copia small{display:block;color:var(--muted);font-size:.78rem}
 .bkp{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px}
 .bkp>b{font-family:var(--display);font-size:1rem}
-.cxl .bar i{transition:none}
-.cxl b small{font-weight:600;font-size:.72rem;color:var(--over)}
-.dialbox .dial{transform-origin:50% 50%}
 .gb{transform-box:fill-box;transform-origin:50% 100%}
 .ga-bola{transform-box:fill-box;transform-origin:center}
 .metabox{position:relative}
@@ -469,7 +431,73 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .faisca{position:absolute;right:0;top:2px;width:6px;height:6px;border-radius:2px;pointer-events:none}
 .certo{display:inline-block;width:14px;height:14px;fill:none;stroke:var(--ok);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:4px}
 .meta-card .facts b.batida{color:var(--ok);transform-origin:left center}
-.ficha{position:absolute;left:50%;bottom:4%;transform:translate(-50%,0);opacity:0;font-weight:700;font-size:.95rem;color:var(--gold);pointer-events:none;white-space:nowrap}
+.ficha{position:absolute;left:50%;top:30%;transform:translate(-50%,0);opacity:0;font-weight:700;font-size:.95rem;color:var(--gold);pointer-events:none;white-space:nowrap}
+/* ===== Visual 2.0 "Noite Orologia": vidro, engrenagem, arco do mês e blocos das caixinhas =====
+   Cartões sem desfoque (custa caro com muitos na tela); o desfoque fica só na barra e na folha. */
+.top .crest{flex:0 1 auto;min-width:0}
+.top h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-dir{display:flex;align-items:center;gap:10px;min-width:0}
+@media (max-width:380px){.top .sync span{display:none}}
+.n-eng{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-line);color:var(--muted)}
+.n-eng svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.n-eng[aria-current="page"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line))}
+.n-vidro{background:var(--glass);border:1px solid var(--glass-line);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--fg) 6%,transparent)}
+.n-vidro h3{font-size:.98rem}
+.n-sec{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.n-sec .link{white-space:nowrap}
+.n-chip{display:inline-flex;align-items:center;border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:600;line-height:1.3;background:color-mix(in srgb,var(--fg) 8%,transparent);color:var(--fg);white-space:nowrap}
+.n-chip.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.n-chip.over{background:color-mix(in srgb,var(--over) 16%,transparent);color:var(--over)}
+/* Arco do mês (meia-lua): um pedaço por caixinha, o que passou do limite em --over, marcador de hoje em --gold */
+.n-arco{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative}
+.n-arco-topo{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-height:24px}
+.n-arco-topo .qm{position:absolute;top:0;right:0;margin:0}
+.n-mes{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.n-arco-caixa{position:relative;width:min(100%,320px)}
+#arco{display:block;width:100%;height:auto;overflow:visible;transform-origin:50% 100%}
+#arco .arco-trilha{stroke:color-mix(in srgb,var(--fg) 10%,transparent)}
+#arco text{font:600 9px var(--body);fill:var(--muted);letter-spacing:.04em}
+.n-arco-c{position:absolute;left:12%;right:12%;bottom:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}
+#inSobra{display:block;font-family:var(--display);font-weight:700;font-size:2rem;line-height:1.1;color:var(--fg);white-space:nowrap}
+#inSobra.longo{font-size:1.45rem}
+#inSobra.neg{color:var(--over)}
+.n-arco-c .dia{margin:0;font-size:.84rem;color:var(--muted)}
+.n-arco-c .dia b{color:var(--fg);font-weight:600}
+.n-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.n-fatos{margin:0;font-size:.8rem;color:var(--muted);text-align:center}
+.n-fatos b{color:var(--fg);font-weight:600}
+/* Blocos das caixinhas: fila que rola de lado, cada bloco tingido pela cor da caixinha (--c) */
+.n-cxs{display:flex;flex-direction:column;gap:10px;min-width:0}
+.n-blocos{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none;overscroll-behavior-x:contain}
+.n-blocos::-webkit-scrollbar{display:none}
+.n-bloco{--c:var(--accent);flex:none;width:142px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border-radius:20px;text-align:left;color:var(--fg);overflow:hidden;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 24%,transparent),color-mix(in srgb,var(--c) 3%,transparent) 75%),var(--glass);border:1px solid color-mix(in srgb,var(--c) 30%,var(--glass-line))}
+.n-bloco:active{transform:scale(.98)}
+.n-anel{position:relative;flex:none;width:44px;height:44px;display:grid;place-items:center;margin-bottom:6px}
+.n-anel>svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.n-anel .cxi{background:none;border:0}
+.n-anel .anel-t{stroke:color-mix(in srgb,var(--fg) 12%,transparent)}
+#arco .arco-luz{filter:drop-shadow(0 3px 10px color-mix(in srgb,var(--glow) 45%,transparent))}
+.n-bloco .nome{max-width:100%;font-weight:700;font-size:.92rem;line-height:1.2;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.n-bloco .v{max-width:100%;font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere;margin-top:auto;padding-top:4px}
+.n-bloco .v.longo{font-size:.8rem}
+.n-bloco .de{max-width:100%;font-size:.74rem;color:var(--muted);overflow-wrap:anywhere}
+.n-bloco small{max-width:100%;font-size:.74rem;font-weight:600;color:var(--over);overflow-wrap:anywhere}
+.n-bloco small:empty{display:none}
+.n-bloco.n-novo{justify-content:center;align-items:center;gap:6px;border-style:dashed;background:none;border-color:var(--glass-line);color:var(--muted);font-weight:600;font-size:.88rem;text-align:center}
+.n-novo b{font-size:1.5rem;line-height:1;color:var(--gold);font-weight:400}
+/* Ritmo do mês (a linha é desenhada aqui por enquanto; tocar leva aos Gráficos) */
+.n-ritmo{text-decoration:none;color:var(--fg);gap:6px}
+.n-ritmo .n-sec span{font-size:.8rem;color:var(--muted)}
+#ritmoIni{display:block;width:100%;height:auto;overflow:visible}
+#ritmoIni text{font:500 10px var(--body);fill:var(--muted)}
+/* Últimos gastos */
+.n-linhas{display:flex;flex-direction:column;gap:10px}
+.n-linha{display:flex;align-items:center;gap:10px;min-width:0;font-size:.9rem}
+.n-linha .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.n-linha .desc,.n-linha small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-linha .desc{font-weight:500}
+.n-linha small{color:var(--muted);font-size:.76rem}
+.n-linha .num{flex:none;font-weight:600}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -500,7 +528,10 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
       </svg>
       <h1>Orolon Caixinhas</h1>
     </div>
-    <span class="sync" id="sync" data-s="wait"><i></i><span id="syncTxt">Abrindo…</span></span>
+    <div class="top-dir">
+      <span class="sync" id="sync" data-s="wait"><i></i><span id="syncTxt">Abrindo…</span></span>
+      <a class="n-eng" id="btnAjustes" href="#ajustes" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+    </div>
   </header>
   <hr class="rule">
 
@@ -509,16 +540,18 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
     <div id="inGuia"></div>
     <div id="inOnb"></div>
     <div id="inBanner"></div>
-    <div class="panel" id="inResumo"></div>
-    <div class="panel" id="inCx"></div>
-    <div class="panel" id="inVencer" hidden></div>
-    <div class="panel" id="inFatura"></div>
-    <div class="panel" id="inMetas"></div>
+    <div class="n-arco" id="inResumo"></div>
+    <div class="n-cxs" id="inCx"></div>
+    <a class="n-vidro n-ritmo" id="inRitmo" href="#graficos"></a>
+    <div class="n-vidro" id="inVencer" hidden></div>
+    <div class="n-vidro" id="inFatura"></div>
+    <div class="n-vidro" id="inMetas"></div>
+    <div class="n-vidro" id="inUltimos" hidden></div>
     <div class="atalhos">
-      <button class="atalho linha" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
-      <button class="atalho linha" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
-      <button class="atalho linha" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Calculadoras</b></button>
-      <button class="atalho linha" type="button" data-go="guia"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg><b>Como usar</b></button>
+      <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
+      <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
+      <button class="atalho linha n-vidro" type="button" data-go="calc"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01"/></svg><b>Calculadoras</b></button>
+      <button class="atalho linha n-vidro" type="button" data-go="guia"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg><b>Como usar</b></button>
     </div>
     <p class="hint" style="text-align:center"><a href="#apoie">Apoie o projeto</a> · <a href="#ajustes">Temas e ajustes</a></p>
   </section>
@@ -768,6 +801,11 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
   </section>
 
   <!-- ===================== CARTÃO ===================== -->
+  <!-- ===================== GRÁFICOS (preenchida na etapa dos gráficos) ===================== -->
+  <section class="view" id="v-graficos" hidden>
+    <div class="vhead"><div><h2>Gráficos</h2></div></div>
+  </section>
+
   <section class="view" id="v-cartao" hidden>
     <div class="vhead">
       <div><p class="eyebrow">Fatura que vence em</p><h2><span class="cap" id="cartLabel">—</span></h2></div>
@@ -1119,12 +1157,11 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
   <nav aria-label="Seções">
     <a href="#inicio" data-tab="inicio"><svg viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></svg>Início</a>
     <a href="#mes" data-tab="mes"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Mês</a>
+    <button class="fab" id="fab" type="button" data-act="gasto-novo" aria-label="Lançar gasto" title="Lançar gasto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
     <a href="#cartao" data-tab="cartao"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg>Cartão</a>
     <a href="#metas" data-tab="metas"><svg viewBox="0 0 24 24"><path d="M4 19V11M10 19V7M16 19v-5M21 4l-5 5-4-3-8 6"/></svg>Metas</a>
-    <a href="#ajustes" data-tab="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Ajustes</a>
   </nav>
 </div>
-<button class="fab" id="fab" type="button" data-act="gasto-novo" aria-label="Lançar gasto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Lançar</button>
 
 <div class="folha" id="folhaGasto" hidden>
   <button class="folha-fundo" type="button" data-act="folha-fechar" aria-label="Fechar" tabindex="-1"></button>
@@ -1153,7 +1190,7 @@ const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F2
 
 /* ---------- Ajuda curta (botões "?") ---------- */
 const AJUDAS = {
-  sobra: 'Sobra do mês é a soma dos limites das caixinhas menos o que você já gastou. O valor “por dia” divide a sobra pelos dias que faltam no mês: é quanto dá para gastar por dia sem estourar. No mostrador do Início, cada pedaço do anel é uma caixinha: o tamanho é o limite dela e a parte acesa é o que já foi gasto. O fio dourado em volta mostra quanto do mês já passou.',
+  sobra: 'Sobra do mês é a soma dos limites das caixinhas menos o que você já gastou. O valor “por dia” divide a sobra pelos dias que faltam no mês: é quanto dá para gastar por dia sem estourar. No arco do Início, cada pedaço colorido é uma caixinha: o tamanho é o quanto ela já gastou do limite total do mês, e o que passou do limite da caixinha fica em vermelho. O marcador dourado mostra em que ponto do mês estamos, e a etiqueta do ritmo compara o que você gastou até hoje com o ritmo ideal (limite dividido pelos dias do mês).',
   gasto: 'Digite o valor, escolha a caixinha e diga o que foi: o app mostra na hora se cabe. Gastos no crédito não saem da conta agora, mas contam no limite do mês. Se uma caixinha estourar, dá para remanejar limite de outra, em “Remanejar entre caixinhas”.',
   atencao: 'Caixinhas que já usaram 80% ou mais do limite, ou que já estouraram.',
   fatura: 'Soma das parcelas e assinaturas que caem na fatura deste mês. “Sua parte” não inclui o que é de outras pessoas no seu cartão.',
@@ -1307,7 +1344,7 @@ function defaults(){
 function normalize(o){
   const d = defaults();
   const s = Object.assign(d, o || {});
-  if (!Array.isArray(s.caixinhas) || !s.caixinhas.length) s.caixinhas = d.caixinhas;
+  if (!Array.isArray(s.caixinhas) || !s.caixinhas.length) s.caixinhas = defaults().caixinhas; // d já foi sobrescrito pelo Object.assign
   ['cartoes','compras','metas','formas'].forEach(k => { if (!Array.isArray(s[k])) s[k] = defaults()[k]; });
   if (!s.tabelas || !s.tabelas.inss || !s.tabelas.irrf || !s.tabelas.fgts) s.tabelas = clone(T2026);
   if (!s.meses || typeof s.meses !== 'object') s.meses = {};
@@ -2405,7 +2442,7 @@ document.addEventListener('click', e => {
     case 'lista-toda': UI.listaToda = !UI.listaToda; renderLista(UI.mes); break;
     case 'filtro-limpar': $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false; renderLista(UI.mes); break;
     case 'qm': {
-      const host = b.closest('.vhead, .total, .hero, .folha-topo') || b.parentElement, nx = host.nextElementSibling;
+      const host = b.closest('.vhead, .total, .n-arco, .folha-topo') || b.parentElement, nx = host.nextElementSibling;
       if (nx && nx.classList.contains('qmtxt') && nx.dataset.for === id) { nx.remove(); b.setAttribute('aria-expanded', 'false'); break; }
       const t = document.createElement('p'); t.className = 'qmtxt'; t.dataset.for = id; t.setAttribute('role', 'note'); t.textContent = AJUDAS[id] || '';
       host.insertAdjacentElement('afterend', t); b.setAttribute('aria-expanded', 'true'); break;
@@ -2888,7 +2925,7 @@ $('temaBox').addEventListener('change', e => {
 });
 
 /* ---------- Abas ---------- */
-const TABS = ['inicio','guia','mes','cartao','metas','calc','apoie','ajustes'];
+const TABS = ['inicio','guia','mes','graficos','cartao','metas','calc','apoie','ajustes'];
 /* A navegação não depende do endereço da página: dentro de uma página embutida (iframe isolado) o hash não muda.
    Guardamos a aba em TAB e tentamos, sem obrigação, refletir no endereço. */
 let TAB = null;
@@ -2912,7 +2949,10 @@ function route(){
   if (!TAB) UI.ajParte = h === 'ajustes' && PARTES.includes(hp) ? hp : null; // veio do endereço (recarregar, voltar do aparelho)
   const t = TAB && TABS.includes(TAB) ? TAB : (TABS.includes(h) ? h : 'inicio');
   TABS.forEach(x => { $('v-' + x).hidden = x !== t; });
-  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === ({ apoie: 'ajustes', guia: 'inicio', calc: 'inicio' }[t] || t)) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  // no celular, Guia, Calculadoras e Gráficos abrem pelo Início; Ajustes (e Apoie, que sai dele) acendem a engrenagem do topo
+  const marca = { guia: 'inicio', calc: 'inicio', graficos: 'inicio' }[t] || t;
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.tab === marca) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (t === 'ajustes' || t === 'apoie') $('btnAjustes').setAttribute('aria-current', 'page'); else $('btnAjustes').removeAttribute('aria-current');
   const trocou = UI.abaVista !== t; UI.abaVista = t;
   if (trocou && UI.listaToda) { UI.listaToda = false; renderLista(UI.mes); }
   if (t === 'inicio') {
@@ -2993,53 +3033,91 @@ function renderOnb(){
   box.innerHTML = `<div class="panel onb"><div class="onb-dots" aria-hidden="true">${dots}</div>${corpo}</div>`;
 }
 /* ---------- Início: peças fixas, números animados ----------
-   O mostrador e as linhas das caixinhas são montados uma vez (montarInicio) e só os números mudam (desenharInicio).
+   O arco e os blocos das caixinhas são montados uma vez (montarInicio) e só os números mudam (desenharInicio).
    Vis.g é o gasto "visto" de cada caixinha: anda até o gasto real por tween(). */
 const Vis = { chave: null, fixo: null, fin: 0, abreDe: 0, abreAte: 0, g: {}, ent: {}, dia: 0, seg: {}, linhas: {}, lim: {}, ids: [], limTotal: 0, orfaos: 0, dl: 0, alvo: '', abriu: false, ultima: 0, el: {} };
-const DIAL_R = 92, DIAL_VOLTA = 2 * Math.PI * DIAL_R, DIAL_RF = 112, DIAL_VF = 2 * Math.PI * DIAL_RF;
+/* Arco do mês: meia-lua de centro (ARCO_X, ARCO_Y) e raio ARCO_R. A posição t vai de 0 (ponta esquerda) a 1 (ponta direita). */
+const ARCO_X = 130, ARCO_Y = 142, ARCO_R = 104, ARCO_FOLGA = .007, ANEL_R = 18, ANEL_VOLTA = 2 * Math.PI * ANEL_R;
 const n2 = v => Math.round(v * 100) / 100;
-/* Mostrador do mês: cada pedaço do anel é uma caixinha (tamanho = limite; parte acesa = gasto).
-   O fio de fora, em âmbar, mostra quanto do mês já passou. */
+const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmt0 = v => BRL0.format(Number.isFinite(v) ? v : 0);
+function arcoXY(t, r = ARCO_R){ const a = Math.PI * (1 - t); return [n2(ARCO_X + r * Math.cos(a)), n2(ARCO_Y - r * Math.sin(a))]; }
+/* trecho do arco entre de e ate; trecho vazio vira um ponto solto, que não desenha nada */
+function arcoD(de, ate){ if (!(ate - de > .0005)) return 'M0 0'; const [x1, y1] = arcoXY(de), [x2, y2] = arcoXY(Math.min(1, ate)); return `M${x1} ${y1}A${ARCO_R} ${ARCO_R} 0 0 1 ${x2} ${y2}`; }
+/* Ritmo do mês: gasto acumulado dia a dia contra o ritmo ideal (limite ÷ dias). Conta os mesmos gastos que resumoMes;
+   gasto com data depois de hoje (gasto fixo já lançado) entra no dia de hoje, para o acumulado de hoje bater com a sobra. */
+function ritmoMes(k){
+  const dias = daysInMonth(k), cur = thisMonth();
+  const hoje = k === cur ? new Date().getDate() : (k < cur ? dias : 0);
+  const limite = resumoMes(k).limite, porDia = new Array(dias).fill(0);
+  if (hoje > 0) gastos(k).forEach(g => { const d = Number(String(g.data || '').slice(8, 10)) || 1; porDia[Math.min(Math.max(d, 1), hoje) - 1] += g.valor; });
+  const acumulado = []; let soma = 0;
+  for (let i = 0; i < hoje; i++) { soma += porDia[i]; acumulado.push(r2(soma)); }
+  const ideal = Array.from({ length: dias }, (_, i) => r2(limite * (i + 1) / dias));
+  const diff = hoje > 0 ? r2(ideal[hoje - 1] - acumulado[hoje - 1]) : 0; // positivo: abaixo do ritmo
+  return { dias, hoje, limite, acumulado, ideal, diff };
+}
+/* Linha do ritmo no Início, desenhada à mão (a etapa dos Gráficos troca pela base de desenho comum).
+   W é a largura do cartão em pixels, para os textos não crescerem junto com a tela. */
+function svgRitmo(rt, W){
+  const H = 96, topo = 18, base = H - 4, ate = rt.acumulado.length;
+  const max = Math.max(rt.limite, ate ? rt.acumulado[ate - 1] : 0, 1);
+  const x = d => n2(d / rt.dias * W), y = v => n2(base - v / max * (base - topo));
+  const pts = [[0, 0]].concat(rt.acumulado.map((v, i) => [i + 1, v]));
+  const linha = 'M' + pts.map(([d, v]) => x(d) + ' ' + y(v)).join('L');
+  const [dF, vF] = pts[pts.length - 1], xF = x(dF), yF = y(vF), cor = rt.diff < -0.5 ? 'var(--over)' : 'var(--accent)';
+  const rotHoje = ate ? `<text x="${xF > W * .62 ? n2(xF - 9) : n2(xF + 9)}" y="${n2(Math.max(topo + 10, yF - 8))}" text-anchor="${xF > W * .62 ? 'end' : 'start'}" style="fill:var(--fg);font-weight:700">hoje · ${fmt0(vF)}</text>` : '';
+  const rotulo = ate ? `Gasto acumulado de ${fmt(vF)} até o dia ${dF}; no ritmo ideal seriam ${fmt(rt.ideal[ate - 1])}.` : 'Ritmo do mês ainda sem dias.';
+  return `<svg id="ritmoIni" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(rotulo)}">
+      <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--glass-line)" stroke-width="1"/>
+      <line x1="0" y1="${y(0)}" x2="${W}" y2="${y(rt.limite)}" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 5"/>
+      ${rt.limite > 0 ? `<text x="${W}" y="${n2(Math.max(10, y(rt.limite) - 6))}" text-anchor="end">limite ${fmt0(rt.limite)}</text>` : ''}
+      ${ate ? `<path d="${linha}L${xF} ${base}L0 ${base}Z" fill="${cor}" fill-opacity=".16"/>
+      <path d="${linha}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${xF}" cy="${yF}" r="4.5" fill="${cor}" stroke="var(--bg)" stroke-width="2"/>${rotHoje}` : ''}
+    </svg>`;
+}
+/* Monta o arco e os blocos. Cada pedaço aceso do arco é uma caixinha com gasto, na cor dela, do tamanho do gasto sobre o limite total;
+   o que passou do limite da caixinha fica em --over. O marcador dourado mostra em que ponto do mês estamos. */
 function montarInicio(k, R, dl, ent){
-  const partes = S.caixinhas.map(c => { const p = R.por[c.id]; return { c, p, peso: Math.max(p.limite, p.gasto) }; }).filter(x => x.peso > 0);
-  const total = partes.reduce((a, x) => a + x.peso, 0), folga = partes.length > 1 ? 4 : 0;
-  let ang = folga / 2, anel = '';
-  const comp = {};
-  partes.forEach(x => {
-    const graus = Math.max(1, x.peso / total * 360 - folga);
-    comp[x.c.id] = { comp: graus / 360 * DIAL_VOLTA, ang };
-    const base = `cx="120" cy="120" r="${DIAL_R}" fill="none" stroke-width="15" transform="rotate(${n2(ang - 90)} 120 120)"`;
-    anel += `<circle class="seg" ${base} stroke="${esc(corOk(x.c.cor))}" stroke-opacity=".22" stroke-dasharray="${n2(comp[x.c.id].comp)} ${n2(DIAL_VOLTA)}"/><circle class="seg" data-seg="${esc(x.c.id)}" ${base} stroke="${esc(corOk(x.c.cor))}" stroke-dasharray="0 ${n2(DIAL_VOLTA)}"/>`;
-    ang += graus + folga;
-  });
-  if (!partes.length) anel = `<circle cx="120" cy="120" r="${DIAL_R}" fill="none" stroke="var(--track)" stroke-width="15"/>`;
-  const usado = R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0;
-  $('inResumo').innerHTML = `<div class="hero">
-      ${qm('sobra')}
-      <div class="dialbox"><svg class="dial" viewBox="0 0 240 240" role="img" aria-label="${usado}% do limite do mês gasto">
-          <circle cx="120" cy="120" r="${DIAL_RF}" fill="none" stroke="var(--track)" stroke-width="2"/>
-          <circle data-d="fio" cx="120" cy="120" r="${DIAL_RF}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-dasharray="0 ${n2(DIAL_VF)}" transform="rotate(-90 120 120)"/>
-          <circle data-d="ponto" cx="120" cy="${120 - DIAL_RF}" r="4.5" fill="var(--gold)"/>
-          ${anel}<circle data-d="alerta" cx="120" cy="120" r="${DIAL_R}" fill="none" stroke="var(--over)" stroke-width="15" opacity="0"/></svg>
-        <div class="dial-c"><span class="lbl">Sobra de ${esc(monthLabel(k).split(' ')[0].toLowerCase())}</span><span class="big num" data-d="sobra"></span>
-          ${dl > 0 ? '<p class="dia"><b class="num" data-d="pordia"></b> por dia</p>' : ''}<span class="ficha num" data-d="ficha" aria-hidden="true"></span></div>
-      </div>
-      <div class="fatos">
-        <div><span>Gasto</span><b class="num" data-d="gasto"></b></div>
-        <div><span>Limite</span><b class="num">${fmt(R.limite)}</b></div>
-        ${ent ? `<div><span>Entrou</span><b class="num">${fmt(ent)}</b></div>` : `<div><span>Faltam</span><b>${dl} ${dl === 1 ? 'dia' : 'dias'}</b></div>`}
-      </div>
-    </div>`;
-  $('inCx').innerHTML = `<div class="vhead"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="cxs">${S.caixinhas.map(c =>
-    `<button class="cxl" type="button" data-go="mes" data-cx="${esc(c.id)}" aria-label="${esc(c.nome)}: sobra ${fmt(R.por[c.id].sobra)} de ${fmt(R.por[c.id].limite)}">${cxi(c)}<b><span class="cxnome">${esc(c.nome)}</span><small></small></b><span class="v num"></span><span class="bar"><i></i></span></button>`).join('')}</div>`;
+  const comGasto = S.caixinhas.filter(c => R.por[c.id].gasto > 0);
+  const segs = comGasto.map(c => `<path class="arco-seg" data-cx="${esc(c.id)}" d="M0 0" stroke="${esc(corOk(c.cor))}"/>`).join('')
+    + comGasto.map(c => `<path class="arco-exc" data-cx="${esc(c.id)}" d="M0 0" stroke="var(--over)"/>`).join('');
+  const usado = R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0, [hx, hy] = arcoXY(0);
+  $('inResumo').innerHTML = `<div class="n-arco-topo"><span class="n-mes">${esc(monthLabel(k).split(' ')[0])}</span>${qm('sobra')}</div>
+    <div class="n-arco-caixa">
+      <svg id="arco" viewBox="0 0 260 150" role="img" aria-label="${usado}% do limite do mês gasto">
+        <path class="arco-trilha" d="${arcoD(0, 1)}" fill="none" stroke-width="14" stroke-linecap="round"/>
+        <g class="arco-luz" fill="none" stroke-width="14">
+          <circle data-d="ini" cx="${hx}" cy="${hy}" r="7" stroke="none" opacity="0"/><circle data-d="fim" cx="${hx}" cy="${hy}" r="7" stroke="none" opacity="0"/>
+          ${segs}<path class="arco-orf" d="M0 0" stroke="var(--faint)"/>
+          <path data-d="alerta" d="M0 0" stroke="var(--over)" opacity="0"/>
+        </g>
+        <g id="arcoHoje" transform="rotate(0 ${ARCO_X} ${ARCO_Y})"><line x1="${n2(hx - 11)}" y1="${hy}" x2="${n2(hx + 11)}" y2="${hy}" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round"/><circle cx="${n2(hx - 18)}" cy="${hy}" r="3.5" fill="var(--gold)"/></g>
+        <text data-d="hojeTxt" x="${hx}" y="${hy}" text-anchor="middle" dominant-baseline="middle" visibility="hidden">hoje</text>
+      </svg>
+      <span class="ficha num" data-d="ficha" aria-hidden="true"></span>
+      <div class="n-arco-c"><span class="num" id="inSobra"></span>
+        <p class="dia"><span data-d="rot">sobram</span> · <b class="num" id="inDia"></b> por dia</p></div>
+    </div>
+    <div class="n-chips"><span class="n-chip" id="chipRitmo"></span><span class="n-chip" id="chipDias">${dl === 1 ? 'último dia do mês' : 'faltam ' + dl + ' dias'}</span></div>
+    <p class="n-fatos">gasto <b class="num" data-d="gasto"></b> de <b class="num">${fmt(R.limite)}</b>${ent ? ` · entrou <b class="num">${fmt(ent)}</b>` : ''}</p>`;
+  $('inCx').innerHTML = `<div class="n-sec"><h3>Caixinhas</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div>
+    <div class="n-blocos">${S.caixinhas.map(c => {
+      const p = R.por[c.id], cor = esc(corOk(c.cor));
+      return `<button class="n-bloco" type="button" data-go="mes" data-cx="${esc(c.id)}" style="--c:${cor}" aria-label="${esc(c.nome)}: sobra ${fmt(p.sobra)} de ${fmt(p.limite)}">
+        <span class="n-anel"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="anel-t" cx="22" cy="22" r="${ANEL_R}" fill="none" stroke-width="4.5"/><circle class="anel-v" cx="22" cy="22" r="${ANEL_R}" fill="none" stroke="${cor}" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="0 ${n2(ANEL_VOLTA)}" stroke-opacity="0"/></svg>${cxi(c, 'sm')}</span>
+        <span class="nome">${esc(c.nome)}</span><span class="v num"></span><span class="de">${p.limite > 0 ? 'de ' + fmt(p.limite) : 'sem limite'}</span><small></small></button>`;
+    }).join('')}<button class="n-bloco n-novo" type="button" data-go="ajustes/caixinhas"><b aria-hidden="true">+</b>Nova caixinha</button></div>`;
   const q = s => $('inResumo').querySelector('[data-d="' + s + '"]');
-  Vis.el = { fio: q('fio'), ponto: q('ponto'), alerta: q('alerta'), sobra: q('sobra'), pordia: q('pordia'), ficha: q('ficha'), gasto: q('gasto'), dial: $('inResumo').querySelector('.dial') };
+  Vis.el = { sobra: $('inSobra'), pordia: $('inDia'), rot: q('rot'), ficha: q('ficha'), gasto: q('gasto'), arco: $('arco'), hoje: $('arcoHoje'), hojeTxt: q('hojeTxt'), alerta: q('alerta'), ini: q('ini'), fim: q('fim'), orf: $('inResumo').querySelector('.arco-orf') };
   Vis.seg = {}; Vis.linhas = {}; Vis.lim = {}; Vis.ids = S.caixinhas.map(c => c.id);
   const g0 = Vis.g, e0 = Vis.ent; Vis.g = {}; Vis.ent = {};
   S.caixinhas.forEach(c => {
-    const l = [...$('inCx').querySelectorAll('.cxl')].find(x => x.dataset.cx === c.id), sg = [...$('inResumo').querySelectorAll('[data-seg]')].find(x => x.dataset.seg === c.id);
-    Vis.linhas[c.id] = { el: l, v: l.querySelector('.v'), bar: l.querySelector('.bar i'), aviso: l.querySelector('small'), cor: corOk(c.cor) };
-    if (sg) Vis.seg[c.id] = Object.assign({ el: sg, cor: corOk(c.cor) }, comp[c.id]);
+    const l = [...$('inCx').querySelectorAll('.n-bloco[data-cx]')].find(x => x.dataset.cx === c.id);
+    const sg = [...$('inResumo').querySelectorAll('.arco-seg')].find(x => x.dataset.cx === c.id), ex = [...$('inResumo').querySelectorAll('.arco-exc')].find(x => x.dataset.cx === c.id);
+    Vis.linhas[c.id] = { el: l, v: l.querySelector('.v'), anel: l.querySelector('.anel-v'), aviso: l.querySelector('small'), cor: corOk(c.cor) };
+    if (sg) Vis.seg[c.id] = { el: sg, exc: ex, cor: corOk(c.cor), de: 0, ate: 0 };
     Vis.lim[c.id] = R.por[c.id].limite;
     Vis.g[c.id] = Number.isFinite(g0[c.id]) ? g0[c.id] : R.por[c.id].gasto; // caixinha que já estava na tela continua de onde estava
     Vis.ent[c.id] = Number.isFinite(e0[c.id]) ? e0[c.id] : 1;
@@ -3051,25 +3129,49 @@ function desenharInicio(){
   const E = Vis.el; if (!Vis.chave || !E.sobra || !E.sobra.isConnected) return;
   let gasto = Vis.orfaos;
   Vis.ids.forEach(id => {
-    const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id], sg = Vis.seg[id];
-    const gn = Vis.fixo && Number.isFinite(Vis.fixo[id]) ? Vis.fixo[id] : g, passouN = gn > lim + 0.004; // na abertura curta só o anel e as barras andam; os números já vêm certos
+    const g = Vis.g[id] || 0, lim = Vis.lim[id] || 0, passou = g > lim + 0.004, L = Vis.linhas[id];
+    const gn = Vis.fixo && Number.isFinite(Vis.fixo[id]) ? Vis.fixo[id] : g, passouN = gn > lim + 0.004; // na abertura curta só o arco e os anéis andam; os números já vêm certos
     gasto += gn;
     const frac = lim > 0 ? Math.min(1, g / lim) : (g > 0 ? 1 : 0);
-    if (sg) { sg.el.setAttribute('stroke-dasharray', n2(sg.comp * frac) + ' ' + n2(DIAL_VOLTA)); sg.el.setAttribute('stroke', passou ? 'var(--over)' : sg.cor); }
-    L.bar.style.width = n2(frac * 100) + '%'; L.bar.style.background = passou ? 'var(--over)' : L.cor;
+    L.anel.setAttribute('stroke-dasharray', n2(ANEL_VOLTA * frac) + ' ' + n2(ANEL_VOLTA)); L.anel.setAttribute('stroke-opacity', frac > .001 ? '1' : '0'); L.anel.setAttribute('stroke', passou ? 'var(--over)' : L.cor);
     L.v.textContent = fmt(r2(lim - gn)); L.v.style.color = passouN ? 'var(--over)' : (lim > 0 && gn >= lim * 0.8 ? 'var(--warn)' : '');
+    L.v.classList.toggle('longo', Math.max(Math.abs(lim), Math.abs(lim - gn)) >= 100000);
     L.aviso.textContent = passouN ? 'passou ' + fmt(r2(gn - lim)) : '';
     const e = Vis.ent[id]; L.el.style.opacity = e >= 1 ? '' : e; L.el.style.transform = e >= 1 ? '' : 'translateY(' + n2((1 - e) * 10) + 'px)';
   });
+  // arco: os pedaços seguem a ordem das caixinhas; a escala é o limite total (ou o gasto visto, se ele passou do limite)
+  const orf = Math.max(0, Vis.orfaos), visto = Vis.ids.reduce((a, id) => a + (Vis.seg[id] ? Math.max(0, Vis.g[id] || 0) : 0), 0) + orf;
+  const escala = Math.max(Vis.limTotal, visto), vivos = Vis.ids.filter(id => Vis.seg[id] && (Vis.g[id] || 0) > 0);
+  let t = 0, primeiro = null, ultimo = null;
+  Vis.ids.forEach(id => {
+    const sg = Vis.seg[id]; if (!sg) return;
+    const g = Math.max(0, Vis.g[id] || 0), lim = Math.max(0, Vis.lim[id] || 0), w = escala > 0 ? g / escala : 0;
+    const fimSeg = t + w, corte = id === vivos[vivos.length - 1] && !orf ? 0 : ARCO_FOLGA; // folga fina entre um pedaço e o próximo
+    sg.de = t; sg.ate = fimSeg;
+    sg.el.setAttribute('d', arcoD(t, w > corte * 2 ? fimSeg - corte : fimSeg));
+    const dentro = escala > 0 ? Math.min(g, lim) / escala : 0, passou = g > lim + 0.004;
+    sg.exc.setAttribute('d', passou ? arcoD(t + dentro, w > corte * 2 ? fimSeg - corte : fimSeg) : 'M0 0');
+    if (w > .0005) { if (!primeiro) primeiro = sg.cor; ultimo = passou ? 'var(--over)' : sg.cor; }
+    t = fimSeg;
+  });
+  E.orf.setAttribute('d', escala > 0 && orf > 0 ? arcoD(t, t + orf / escala) : 'M0 0');
+  if (escala > 0 && orf > 0) { if (!primeiro) primeiro = 'var(--faint)'; ultimo = 'var(--faint)'; t += orf / escala; }
+  // pontas arredondadas da parte acesa, na cor do primeiro e do último pedaço
+  const [xi, yi] = arcoXY(0), [xf, yf] = arcoXY(Math.min(1, t));
+  E.ini.setAttribute('fill', primeiro || 'none'); E.ini.setAttribute('opacity', primeiro ? '1' : '0');
+  E.fim.setAttribute('cx', xf); E.fim.setAttribute('cy', yf); E.fim.setAttribute('fill', ultimo || 'none'); E.fim.setAttribute('opacity', ultimo && t > .02 ? '1' : '0');
+  E.ini.setAttribute('cx', xi); E.ini.setAttribute('cy', yi);
   const sobra = r2(Vis.limTotal - gasto), txt = fmt(sobra);
   E.sobra.textContent = txt; E.sobra.classList.toggle('neg', sobra < 0); E.sobra.classList.toggle('longo', fmt(Vis.fin).length > 12); // pelo valor final, para o tamanho não pular durante a contagem
-  if (E.pordia) E.pordia.textContent = fmt(Vis.dl > 0 ? Math.max(0, sobra / Vis.dl) : 0);
+  E.pordia.textContent = fmt(Vis.dl > 0 ? Math.max(0, sobra / Vis.dl) : 0);
+  E.rot.textContent = sobra < 0 ? 'passou do limite' : 'sobram';
   E.gasto.textContent = fmt(r2(gasto));
-  const d = Math.min(100, Math.max(0, Vis.dia)), a = d / 100 * 2 * Math.PI;
-  E.fio.setAttribute('stroke-dasharray', n2(d / 100 * DIAL_VF) + ' ' + n2(DIAL_VF));
-  E.ponto.setAttribute('cx', n2(120 + Math.sin(a) * DIAL_RF)); E.ponto.setAttribute('cy', n2(120 - Math.cos(a) * DIAL_RF));
+  const d = Math.min(100, Math.max(0, Vis.dia)) / 100, [tx, ty] = arcoXY(d, ARCO_R + 30);
+  E.hoje.setAttribute('transform', 'rotate(' + n2(d * 180) + ' ' + ARCO_X + ' ' + ARCO_Y + ')');
+  E.hojeTxt.setAttribute('x', tx); E.hojeTxt.setAttribute('y', ty); E.hojeTxt.setAttribute('visibility', d > .1 && d < .9 ? 'visible' : 'hidden');
 }
-/* Abertura: a longa (mostrador gira, fio corre, pedaços e linhas em sequência) toca cada vez que o app abre; ao voltar para o Início, só a curta. */
+const ENTRA_ARCO = [{ opacity: 0, transform: 'translateY(12px) scale(.94)' }, { opacity: 1, transform: 'none' }];
+/* Abertura: a longa (arco sobe, marcador de hoje corre, pedaços e blocos em sequência) toca cada vez que o app abre; ao voltar para o Início, só a curta. */
 function abertura(longa, alvo, diaPct){
   pararMov();
   Vis.abriu = true; Vis.ultima = Date.now();
@@ -3078,7 +3180,7 @@ function abertura(longa, alvo, diaPct){
   Vis.ids.forEach(id => { Vis.g[id] = 0; Vis.ent[id] = longa ? 0 : 1; });
   Vis.dia = longa ? 0 : diaPct; desenharInicio();
   if (longa) {
-    anima(Vis.el.dial, [{ opacity: 0, transform: 'scale(.94) rotate(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    anima(Vis.el.arco, ENTRA_ARCO, { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
     tween(v => { Vis.dia = v; }, 0, diaPct, 1000, 80);
   }
   Vis.ids.forEach((id, i) => {
@@ -3086,20 +3188,20 @@ function abertura(longa, alvo, diaPct){
     if (longa) tween(v => { Vis.ent[id] = v; }, 0, 1, 420, 240 + i * 60);
   });
 }
-/* Reação a um gasto novo: no Início o mostrador responde; no Mês, a barra da caixinha. */
+/* Reação a um gasto novo: no Início o arco responde; no Mês, a barra da caixinha. */
 const TREMIDA = [0, -6, 5, -3, 2, 0].map(x => ({ transform: 'translateX(' + x + 'px)' })), PISCA = [{ color: 'var(--gold)' }, { color: 'var(--gold)', offset: .5 }, {}];
 function reagirGasto(id, valor, antes, depois, k){
   if (!movLigado()) return;
   const estourou = depois.limite > 0 && antes.gasto <= antes.limite && depois.gasto > depois.limite, aba = abaAtual();
   if (aba === 'inicio' && k === thisMonth() && Vis.linhas[id]) {
     const sg = Vis.seg[id], L = Vis.linhas[id], f = Vis.el.ficha;
-    if (sg) anima(sg.el, [{ strokeWidth: 15 }, { strokeWidth: 21 }, { strokeWidth: 15 }], { duration: 520, easing: 'ease-out' });
+    if (sg) anima(sg.el, [{ strokeWidth: 14 }, { strokeWidth: 20 }, { strokeWidth: 14 }], { duration: 520, easing: 'ease-out' });
     anima(L.v, PISCA, 700);
     if (f) { f.textContent = '− ' + fmt(valor); anima(f, [{ opacity: 0, transform: 'translate(-50%,10px)' }, { opacity: 1, transform: 'translate(-50%,0)', offset: .25 }, { opacity: 1, transform: 'translate(-50%,-4px)', offset: .7 }, { opacity: 0, transform: 'translate(-50%,-14px)' }], 1100); }
     if (estourou) setTimeout(() => {
       anima(L.el, TREMIDA, { duration: 380, easing: 'ease-out' });
-      const s2 = Vis.seg[id], al = Vis.el.alerta; // um anel vermelho abre e some, uma vez só
-      if (s2 && al && al.isConnected) { al.setAttribute('stroke-dasharray', n2(s2.comp) + ' ' + n2(DIAL_VOLTA)); al.setAttribute('transform', 'rotate(' + n2(s2.ang - 90) + ' 120 120)'); anima(al, [{ opacity: .55, strokeWidth: 15 }, { opacity: 0, strokeWidth: 40 }], { duration: 650, easing: 'ease-out' }); }
+      const s2 = Vis.seg[id], al = Vis.el.alerta; // o pedaço da caixinha acende em vermelho, alarga e some, uma vez só
+      if (s2 && al && al.isConnected) { al.setAttribute('d', arcoD(s2.de, s2.ate)); anima(al, [{ opacity: .55, strokeWidth: 14 }, { opacity: 0, strokeWidth: 34 }], { duration: 650, easing: 'ease-out' }); }
     }, 300);
   } else if (aba === 'mes') {
     const box = [...document.querySelectorAll('#mesBoxes .box')].find(b => b.dataset.cx === id); if (!box) return;
@@ -3141,7 +3243,7 @@ function animarGraficos(raiz){
 }
 function inicioVisivel(){ return UI.abaVista === 'inicio' && !$('v-inicio').hidden && !document.hidden && !document.documentElement.hasAttribute('data-trava'); }
 function renderInicio(){
-  const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k);
+  const k = thisMonth(), R = resumoMes(k), dl = daysLeft(k), ent = totalEntradas(k), rt = ritmoMes(k);
   const pronto = S.onboarded || hasData(S);
   $('inGuia').innerHTML = !S.guiaVisto && pronto && !UI.onbReplay ? `<button class="guia-card slim" type="button" data-go="guia">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
@@ -3149,36 +3251,44 @@ function renderInicio(){
   renderOnb();
   const exN = Object.values(S.meses).reduce((a,m)=>a+(m.gastos||[]).filter(g=>g.ex).length,0) + S.compras.filter(c=>c.ex).length + S.metas.filter(m=>m.ex).length;
   $('inBanner').innerHTML = backupBanner(exN);
-  const diaPct = (daysInMonth(k) - dl) / daysInMonth(k) * 100;
-  const chave = JSON.stringify([k, dl, ent, R.limite, S.caixinhas.map(c => [c.id, c.nome, corOk(c.cor), iconeDe(c), R.por[c.id].limite, Math.max(R.por[c.id].limite, R.por[c.id].gasto) > R.por[c.id].limite ? R.por[c.id].gasto : 0])]);
+  const diaPct = rt.hoje / rt.dias * 100;
+  const chave = JSON.stringify([k, dl, ent, R.limite, S.caixinhas.map(c => [c.id, c.nome, corOk(c.cor), iconeDe(c), R.por[c.id].limite, R.por[c.id].gasto > 0])]);
   const alvo = {}; S.caixinhas.forEach(c => { alvo[c.id] = R.por[c.id].gasto; });
   const alvoTxt = JSON.stringify(alvo);
   Vis.fin = r2(R.limite - R.gasto);
   if (chave !== Vis.chave) {
-    // refazer o mostrador no meio da abertura longa (ex.: uma caixinha estourou) não corta o giro: o fio segue e o giro continua de onde estava
+    // refazer o arco no meio da abertura longa (ex.: a primeira compra numa caixinha) não corta a entrada: o marcador de hoje segue e o arco continua de onde estava
     const abrindo = Vis.abriu && Date.now() < Vis.abreAte, decorrido = Date.now() - Vis.abreDe;
     if (abrindo) soltarMov('g'); else { pararMov(); Vis.abreAte = 0; }
     Vis.fixo = null; Vis.chave = chave; montarInicio(k, R, dl, ent);
-    if (abrindo) anima(Vis.el.dial, [{ opacity: 0, transform: 'scale(.94) rotate(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: -decorrido, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+    if (abrindo) anima(Vis.el.arco, ENTRA_ARCO, { duration: 700, delay: -decorrido, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
     else if (Vis.abriu) Vis.dia = diaPct;
     Vis.alvo = '';
   }
   const orfaos = r2(R.gasto - S.caixinhas.reduce((a, c) => a + R.por[c.id].gasto, 0));
   if (orfaos !== Vis.orfaos) { Vis.orfaos = orfaos; desenharInicio(); }
   S.caixinhas.forEach(c => { const L = Vis.linhas[c.id]; if (L) L.el.setAttribute('aria-label', c.nome + ': sobra ' + fmt(R.por[c.id].sobra) + ' de ' + fmt(R.por[c.id].limite)); });
-  if (Vis.el.dial) Vis.el.dial.setAttribute('aria-label', (R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0) + '% do limite do mês gasto, com ' + Math.round(diaPct) + '% do mês passado');
+  if (Vis.el.arco) Vis.el.arco.setAttribute('aria-label', (R.limite > 0 ? Math.round(R.gasto / R.limite * 100) : 0) + '% do limite do mês gasto, com ' + Math.round(diaPct) + '% do mês passado');
   if (!Vis.abriu) {
     // a abertura espera o Início estar à vista e haver dados; até lá, tudo aparece pronto
     if (inicioVisivel() && hasData(S)) abertura(movLigado(), alvo, diaPct); // a longa toca a cada vez que o app abre; voltar para o Início sem fechar toca a curta
     else { Vis.ids.forEach(id => { Vis.g[id] = alvo[id]; Vis.ent[id] = 1; }); Vis.dia = diaPct; desenharInicio(); }
   } else if (alvoTxt !== Vis.alvo) {
-    // uma mudança nova interrompe a animação em curso e parte do valor final dela; na abertura longa só as contagens são trocadas, o giro e o fio seguem
+    // uma mudança nova interrompe a animação em curso e parte do valor final dela; na abertura longa só as contagens são trocadas, a entrada do arco e o marcador seguem
     if (Date.now() < Vis.abreAte) soltarMov('g'); else { pararMov(); Vis.abreAte = 0; }
     Vis.fixo = null;
     Vis.ids.forEach(id => { if (Vis.g[id] !== alvo[id]) tween(v => { Vis.g[id] = v; }, Vis.g[id], alvo[id], 560, 0, undefined, 'g'); });
     desenharInicio();
   }
   Vis.alvo = alvoTxt;
+  // etiquetas: ritmo do mês (pelo ritmo ideal até hoje) e os dias que faltam
+  const chip = $('chipRitmo');
+  chip.hidden = !(rt.limite > 0 && rt.hoje > 0);
+  chip.className = 'n-chip' + (rt.diff > 0.5 ? ' ok' : rt.diff < -0.5 ? ' over' : '');
+  chip.textContent = rt.diff > 0.5 ? fmt0(rt.diff) + ' abaixo do ritmo' : rt.diff < -0.5 ? fmt0(-rt.diff) + ' acima do ritmo' : 'no ritmo';
+  const larg = $('inRitmo').clientWidth; // 0 com o Início escondido: desenha em 300 e refaz ao voltar para ele
+  $('inRitmo').innerHTML = `<div class="n-sec"><h3>Ritmo do mês</h3><span>ver gráficos ›</span></div>${svgRitmo(rt, larg > 0 ? Math.min(1000, Math.max(220, larg - 34)) : 300)}`
+    + (rt.limite > 0 ? '' : '<p class="hint">Defina os limites das caixinhas para ver o ritmo ideal.</p>');
   const venc = aVencer(7);
   $('inVencer').hidden = !venc.length;
   $('inVencer').innerHTML = venc.length ? `<div class="vhead"><h3>A vencer</h3>${qm('vencer')}</div><div class="out">${venc.map(v =>
@@ -3192,6 +3302,11 @@ function renderInicio(){
     const p = m.alvo > 0 ? Math.min(100, m.atual / m.alvo * 100) : 0;
     return `<div class="flat" style="gap:6px"><div class="vhead" style="align-items:baseline"><b>${esc(m.nome)}</b><span class="num hint">${pct(p)}</span></div><div class="bar"><i style="width:${p}%;background:${p >= 100 ? 'var(--ok)' : 'var(--accent)'}"></i></div></div>`;
   }).join('') : `<p class="hint">Nenhuma meta ainda. Comece pela reserva de emergência.</p>`);
+  // últimos gastos do mês, do mais recente para o mais antigo
+  const ult = gastos(k).slice().sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.criado || 0) - (a.criado || 0)).slice(0, 3);
+  $('inUltimos').hidden = !ult.length;
+  $('inUltimos').innerHTML = ult.length ? `<div class="n-sec"><h3>Últimos gastos</h3><button class="link" type="button" data-go="mes">Ver o mês</button></div><div class="n-linhas">${ult.map(g => { const c = cx(g.caixinha);
+    return `<div class="n-linha">${cxi(c, 'sm')}<span class="txt"><span class="desc">${esc(g.descricao)}</span><small>${esc(c.nome)} · ${esc(dayLabel(g.data))}</small></span><span class="num">${fmt(g.valor)}</span></div>`; }).join('')}</div>` : '';
 }
 
 /* ---------- Início ---------- */
