@@ -42,11 +42,17 @@ public class CaixinhasPlugin extends Plugin {
 
     // Marca deste aparelho (4 letras/números), tirada do identificador que o Android dá ao app neste aparelho.
     // Ela não vem junto quando o Android restaura os dados num celular novo; por isso cada aparelho tem a sua.
+    // APK de teste (identificador terminado em ".teste"): desde o Android 8 o ANDROID_ID depende da chave de assinatura,
+    // não do pacote, e o APK de teste antigo (com.joah.caixinhas) e o novo (.teste) usam a mesma chave de android-teste/.
+    // Sem diferença, os dois teriam a mesma marca e, na mesma pasta, um apagaria as cópias do outro. Por isso o pacote
+    // entra na conta só no APK de teste; o app da loja (com.joah.caixinhas, outra chave) fica com a marca de sempre.
     @PluginMethod
     public void aparelho(PluginCall call) {
         JSObject r = new JSObject();
         try {
             String id = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+            String pacote = getContext().getPackageName();
+            if (id != null && !id.isEmpty() && pacote != null && pacote.endsWith(".teste")) id = id + ":" + pacote;
             if (id != null && !id.isEmpty()) {
                 final String letras = "abcdefghijkmnpqrstuvwxyz23456789";
                 int h = id.hashCode();

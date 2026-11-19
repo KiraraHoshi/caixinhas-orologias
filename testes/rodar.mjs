@@ -1417,6 +1417,22 @@ const TESTES = {
     await p.espera(600);
     igual(await folha(), true, "destravado, a folha abre");
   } },
+  "Android: o PIN que trava com a folha do widget aberta fecha a folha e a devolve depois do código": { nativo: true, fn: async (p) => {
+    await comExemplo(p);
+    const folha = () => p.avaliar(() => !document.querySelector("#folhaGasto").hidden);
+    await p.aba("ajustes/pin"); await p.digitar("#pinNovo", "1234"); await p.digitar("#pinRep", "1234"); await p.clicar('[data-pin="ativar"]'); await p.espera(400);
+    await p.aba("inicio");
+    // o toque no widget chega antes de o app se travar ao voltar do segundo plano
+    await p.avaliar(() => window.__nativo.urlAberta({ url: "caixinhas://lancar" })); await p.espera(300);
+    igual(await folha(), true, "a folha abriu pelo widget");
+    await p.avaliar(() => { document.querySelector("#gValor").focus(); document.querySelector('[data-pin="agora"]').click(); }); await p.espera(300);
+    certo(await p.visivel("#trava"), "o PIN travou o app");
+    igual(await folha(), false, "com o PIN na frente, a folha fecha (o teclado não segue digitando nela escondida)");
+    igual(await p.avaliar(() => !!document.activeElement && !!document.activeElement.closest("#folhaGasto")), false, "nenhum campo da folha fica com o foco");
+    for (const d of "1234") await p.clicar(`#trava [data-tk="${d}"]`);
+    await p.espera(600);
+    igual(await folha(), true, "depois do código, a folha de lançar volta");
+  } },
   "Android: o botão de apoio pelo GitHub não aparece no app": { nativo: true, fn: async (p) => {
     await comExemplo(p);
     // links de apoio (a tela Apoie e o GitHub Sponsors) que aparecem na tela
@@ -1464,23 +1480,47 @@ const TESTES = {
     igual(await p.abaAtual(), "apoie", "no site a tela Apoie abre");
     certo(await p.visivel('#v-apoie a[href*="github.com/sponsors"]'), "no site aparece o botão Apoiar no GitHub");
   },
-  "Android: o script monta barras, widget, ícone e sufixo de teste no projeto gerado": async () => {
+  "Android: o script monta widget, ícone e sufixo de teste no projeto gerado": async () => {
     const cfg = JSON.parse(readFileSync(join(RAIZ, "capacitor.config.json"), "utf8"));
-    igual(cfg.plugins.SystemBars.insetsHandling, "native", "barras do sistema tratadas pelo Android (conserto do Player)");
+    // barras do sistema como na 1.9 (conferido no celular); o conserto do Player (native + EdgeToEdge) deu defeito num celular de verdade
+    igual(cfg.plugins.SystemBars.insetsHandling, "css", "barras do sistema pelo CSS, como na 1.9");
     igual(cfg.plugins.LocalNotifications.smallIcon, "ic_notif", "ícone próprio da notificação");
+    const rodar = (pasta, loja) => spawnSync(process.execPath, [join(RAIZ, "scripts", "plugin-android.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "", CX_COM_INTERNET: "" }) });
+    // projeto que o script não sabe ajustar: tem de parar com erro, não seguir em silêncio
+    {
+      const pasta = await mkdtemp(join(tmpdir(), "caixinhas-android-"));
+      try {
+        const proj = await projetoAndroidFalso(pasta), nomes = join(proj, "src/main/res/values/strings.xml");
+        await writeFile(nomes, readFileSync(nomes, "utf8").replace('<string name="app_name">', '<string name="app_name" translatable="false">'));
+        const r = rodar(pasta, false);
+        certo(r.status !== 0 && /teste/.test(r.stderr || ""), "sem conseguir pôr o (teste) no nome, o script devia falhar: " + r.status + " " + (r.stderr || "").trim());
+      } finally { await rm(pasta, { recursive: true, force: true }); }
+    }
+    // manifesto que já tem outro tools:node="remove": a retirada da INTERNET entra mesmo assim
+    {
+      const pasta = await mkdtemp(join(tmpdir(), "caixinhas-android-"));
+      try {
+        const proj = await projetoAndroidFalso(pasta), arq = join(proj, "src/main/AndroidManifest.xml");
+        await writeFile(arq, readFileSync(arq, "utf8").replace("<manifest ", '<manifest xmlns:tools="http://schemas.android.com/tools" ').replace("</application>", '    <meta-data android:name="outra.coisa" tools:node="remove" />\n    </application>'));
+        igual(rodar(pasta, false).status, 0, "o script terminou bem");
+        certo(/<uses-permission android:name="android\.permission\.INTERNET" tools:node="remove" \/>/.test(readFileSync(arq, "utf8")), "a retirada da INTERNET entra mesmo com outro tools:node=\"remove\" no manifesto");
+      } finally { await rm(pasta, { recursive: true, force: true }); }
+    }
     for (const loja of [false, true]) {
       const pasta = await mkdtemp(join(tmpdir(), "caixinhas-android-"));
       try {
         const proj = await projetoAndroidFalso(pasta);
-        const r = spawnSync(process.execPath, [join(RAIZ, "scripts", "plugin-android.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "", CX_COM_INTERNET: "" }) });
+        const r = rodar(pasta, loja);
         igual(r.status, 0, "o script terminou bem (" + (r.stderr || "").trim() + ")");
         const ler = (f) => readFileSync(join(proj, f), "utf8");
         const java = "src/main/java/com/joah/caixinhas/";
-        // MainActivity: de ponta a ponta antes de tudo, plugin registrado antes de o Capacitor iniciar
+        // MainActivity: plugin registrado antes de o Capacitor iniciar; sem o EdgeToEdge (barras como na 1.9)
         const main = ler(java + "MainActivity.java");
-        certo(main.startsWith("package com.joah.caixinhas;") && main.includes("import androidx.activity.EdgeToEdge;"), "MainActivity com o pacote e o EdgeToEdge");
-        const iE = main.indexOf("EdgeToEdge.enable(this);"), iP = main.indexOf("registerPlugin(CaixinhasPlugin.class);"), iS = main.indexOf("super.onCreate(savedInstanceState);");
-        certo(iE > 0 && iE < iP && iP < iS, "EdgeToEdge.enable(this) antes de registrar o plugin, e os dois antes do super.onCreate");
+        certo(main.startsWith("package com.joah.caixinhas;"), "MainActivity com o pacote do app");
+        certo(!main.includes("EdgeToEdge"), "a MainActivity não liga o EdgeToEdge (deu defeito no celular)");
+        const iP = main.indexOf("registerPlugin(CaixinhasPlugin.class);"), iS = main.indexOf("super.onCreate(savedInstanceState);");
+        certo(iP > 0 && iP < iS, "plugin registrado antes do super.onCreate");
+        certo(main.includes("FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY") && main.indexOf("setData(null)") < iS, "o endereço do widget sai antes do super.onCreate quando a tela é recriada");
         for (const f of ["CaixinhasPlugin.java", "LancarWidget.java"]) {
           const t = ler(java + f);
           certo(t.startsWith("package com.joah.caixinhas;") && !t.includes("package PACOTE"), f + " copiado com o pacote do app");

@@ -1,6 +1,6 @@
 // Ajusta o projeto Android gerado pelo Capacitor ("npx cap add android"), rodando na pasta do projeto (a que tem android/):
 // 1. copia o plugin "Caixinhas" e o widget "Lançar gasto" (android-plugin/) para o pacote do app;
-// 2. MainActivity: desenha de ponta a ponta (barras do sistema certas) e registra o plugin;
+// 2. MainActivity: registra o plugin e faz o toque no widget valer uma vez;
 // 3. copia os recursos de android-assets/res/ (widget, ícone da notificação) para res/;
 // 4. manifesto: registra o widget e tira a permissão de internet;
 // 5. APK de teste (sem CX_LOJA=1): identificador com ".teste" e nome "Orolon Caixinhas (teste)", para conviver com o da loja.
@@ -33,8 +33,9 @@ for (const f of ["CaixinhasPlugin.java", "LancarWidget.java"]) {
   writeFileSync(pasta + f, fonte.replace("package PACOTE;", `package ${pacote};`));
 }
 
-// 2. MainActivity: desenha de ponta a ponta em todo Android (no 13 e 14 as barras ficavam opacas; mesmo conserto do Orolon Player)
-//    e registra o plugin antes de o Capacitor iniciar.
+// 2. MainActivity: registra o plugin antes de o Capacitor iniciar.
+//    As barras do sistema ficam como na 1.9 (SystemBars "css" no capacitor.config.json, sem EdgeToEdge): o conserto do
+//    Orolon Player (native + EdgeToEdge) deu defeito num celular de verdade em 19/11/2026 e só vem para cá depois de provado lá.
 //    O toque no widget (caixinhas://lancar) vale uma vez: se o Android recria a tela (app reaberto pelos recentes,
 //    ou restaurado depois de fechado para liberar memória), o endereço sai antes de o Capacitor lê-lo.
 writeFileSync(main, `package ${pacote};
@@ -42,13 +43,11 @@ writeFileSync(main, `package ${pacote};
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import androidx.activity.EdgeToEdge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        EdgeToEdge.enable(this);
         Intent pedido = getIntent();
         Uri endereco = pedido != null ? pedido.getData() : null;
         if (endereco != null && "caixinhas".equals(endereco.getScheme())
@@ -89,7 +88,8 @@ if (!xml.includes('android:name=".LancarWidget"')) {
 if (process.env.CX_COM_INTERNET !== "1") {
   if (!xml.includes("xmlns:tools")) xml = xml.replace("<manifest", '<manifest xmlns:tools="http://schemas.android.com/tools"');
   xml = xml.replace(/\s*<uses-permission android:name="android\.permission\.INTERNET"\s*\/>/g, "");
-  if (!xml.includes('tools:node="remove"')) xml = xml.replace(/(\s*)<application/, `\n    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />\n$1<application`);
+  const tirarInternet = /<uses-permission android:name="android\.permission\.INTERNET" tools:node="remove"\s*\/>/;
+  if (!tirarInternet.test(xml)) xml = xml.replace(/(\s*)<application/, `\n    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />\n$1<application`);
 }
 writeFileSync(arq, xml);
 
@@ -105,11 +105,12 @@ if (!LOJA) {
   }
   writeFileSync(gradle, g);
   const nomes = "android/app/src/main/res/values/strings.xml";
-  if (existsSync(nomes)) {
-    let s = readFileSync(nomes, "utf8");
-    s = s.replace(/(<string name="(?:app_name|title_activity_main)">)([^<]*?)(?: \(teste\))?(<\/string>)/g, "$1$2 (teste)$3");
-    writeFileSync(nomes, s);
-  }
+  if (!existsSync(nomes)) falhar(nomes + " não encontrado: sem ele o APK de teste não ganha o (teste) no nome");
+  let s = readFileSync(nomes, "utf8");
+  s = s.replace(/(<string name="(?:app_name|title_activity_main)">)([^<]*?)(?: \(teste\))?(<\/string>)/g, "$1$2 (teste)$3");
+  // o nome de teste é o que diferencia os dois apps na tela: se o formato do strings.xml mudou, parar aqui
+  if (!/<string name="app_name">[^<]* \(teste\)<\/string>/.test(s)) falhar("Não deu para pôr o (teste) no app_name de " + nomes);
+  writeFileSync(nomes, s);
 }
 
 console.log(`Plugin Caixinhas e widget ligados em ${pacote}${LOJA ? " (pacote da loja)" : " (APK de teste: identificador com .teste)"}`);
