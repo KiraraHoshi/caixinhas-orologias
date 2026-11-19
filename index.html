@@ -245,8 +245,6 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .meta-card .hd b{font-size:1.02rem}
 .meta-card .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 12px;font-size:.82rem;color:var(--muted)}
 .meta-card .facts b{display:block;color:var(--fg);font-weight:600;font-size:.92rem}
-.chart{width:100%;max-width:100%;height:auto;display:block}
-.chart text{font-family:var(--body);font-size:10.5px;fill:var(--muted)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
 .legend span{display:flex;align-items:center;gap:6px}
 .tblwrap{overflow-x:auto}
@@ -327,7 +325,7 @@ details.plain>.inner{padding:6px 0 0}
 .cmp-b.ant .trk i{background:color-mix(in srgb,var(--muted) 60%,transparent)}
 .trava{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);align-items:center;justify-content:center;padding:24px;overflow:auto}
 html[data-trava] .trava{display:flex}
-html[data-trava] .wrap,html[data-trava] .tabs,html[data-trava] .n-lado,html[data-trava] .toast{visibility:hidden}
+html[data-trava] .wrap,html[data-trava] .tabs,html[data-trava] .n-lado,html[data-trava] .toast,html[data-trava] .n-dica{visibility:hidden}
 html[data-trava] body{overflow:hidden}
 .trava-box{width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
 .trava-box input{text-align:center;font:600 1.5rem/1 var(--mono);letter-spacing:.45em;max-width:220px}
@@ -423,7 +421,6 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .copia small{display:block;color:var(--muted);font-size:.78rem}
 .bkp{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px}
 .bkp>b{font-family:var(--display);font-size:1rem}
-.gb{transform-box:fill-box;transform-origin:50% 100%}
 .ga-bola{transform-box:fill-box;transform-origin:center}
 .metabox{position:relative}
 .metabox .bar{position:relative}
@@ -485,11 +482,46 @@ table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .n-bloco small:empty{display:none}
 .n-bloco.n-novo{justify-content:center;align-items:center;gap:6px;border-style:dashed;background:none;border-color:var(--glass-line);color:var(--muted);font-weight:600;font-size:.88rem;text-align:center}
 .n-novo b{font-size:1.5rem;line-height:1;color:var(--gold);font-weight:400}
-/* Ritmo do mês (a linha é desenhada aqui por enquanto; tocar leva aos Gráficos) */
+/* Ritmo do mês no Início (desenhado pelo Graf; tocar leva aos Gráficos) */
 .n-ritmo{text-decoration:none;color:var(--fg);gap:6px}
-.n-ritmo .n-sec span{font-size:.8rem;color:var(--muted)}
-#ritmoIni{display:block;width:100%;height:auto;overflow:visible}
-#ritmoIni text{font:500 10px var(--body);fill:var(--muted)}
+.n-ritmo .n-sec span,.n-sec>span:not(.n-chip){font-size:.8rem;color:var(--muted)}
+/* ===== 2.0: Gráficos. Base de desenho única (Graf): o desenho é um SVG com resumo em texto e, por cima,
+   uma camada com os pontos que se tocam ou recebem foco. Cores só por variáveis do tema; as das caixinhas são as delas. */
+.n-graf{position:relative;min-width:0}
+.n-graf svg{display:block;width:100%;height:auto;overflow:visible}
+.n-graf text{font:500 10.5px var(--body);fill:var(--muted)}
+.n-graf .g-forte{fill:var(--fg);font-weight:700}
+.n-graf-p{position:absolute;inset:0;height:100%!important;pointer-events:none}
+.n-graf-p .g-pt{pointer-events:all;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.g-mira{opacity:0;transition:opacity .12s}
+.g-pt:hover .g-mira,.g-pt:focus-visible .g-mira,.g-pt.on .g-mira{opacity:1}
+.gb{transform-box:fill-box;transform-origin:50% 100%}
+.gbd{transform-box:fill-box;transform-origin:0 50%}
+:root[data-claro] .n-graf .g-cor,:root[data-claro] .n-legenda i{filter:brightness(.8) saturate(1.35)}
+.n-vazio{margin:0;padding:6px 0;color:var(--muted);font-size:.88rem}
+.n-vazio.n-vidro{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px;padding:14px 16px;color:var(--fg)}
+.n-vazio.n-vidro p{margin:0;min-width:0;flex:1 1 180px}
+.n-vazio.n-vidro .primary{padding:10px 16px}
+.n-dica{position:fixed;z-index:35;left:0;top:0;max-width:min(260px,calc(100vw - 16px));display:flex;flex-direction:column;gap:1px;padding:7px 11px;border-radius:12px;background:var(--surface2);border:1px solid var(--glass-line);box-shadow:0 8px 22px rgba(0,0,0,.35);color:var(--fg);font-size:.82rem;line-height:1.3;pointer-events:none}
+.n-dica small{color:var(--muted);font-size:.74rem}
+.n-dica b{font-weight:700;font-variant-numeric:tabular-nums lining-nums}
+:root[data-claro] .n-dica{box-shadow:0 8px 22px rgba(30,26,43,.2)}
+.n-rosca{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px 22px}
+.n-rosca>.n-graf{flex:none;width:176px}
+.n-legenda{list-style:none;margin:0;padding:0;flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.n-legenda li{display:grid;grid-template-columns:auto minmax(0,1fr) auto 3.2em;align-items:center;gap:4px 9px;font-size:.86rem;min-width:0}
+.n-legenda i{width:10px;height:10px;border-radius:3px}
+.n-legenda span{min-width:0;overflow-wrap:anywhere}
+.n-legenda .num{color:var(--muted);white-space:nowrap}
+.n-legenda b{text-align:right;font-variant-numeric:tabular-nums lining-nums}
+.legend .tracejado{width:16px;height:0;border-top:2px dashed var(--faint)}
+.n-grade{display:flex;flex-direction:column;gap:18px;min-width:0}
+.n-grade>.n-vidro{gap:10px}
+.n-grade .n-sec{flex-wrap:wrap;row-gap:6px}
+a.guia-card{color:var(--fg);text-decoration:none}
+.n-filtro-dia{align-self:flex-start;gap:6px;padding-right:4px}
+.n-filtro-dia button{display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--fg) 10%,transparent);line-height:1}
+@media (prefers-reduced-motion:reduce){.g-mira{transition:none}}
 /* Últimos gastos */
 .n-linhas{display:flex;flex-direction:column;gap:10px}
 .n-linha{display:flex;align-items:center;gap:10px;min-width:0;font-size:.9rem}
@@ -542,6 +574,9 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   .n-col{display:flex;flex-direction:column;gap:18px;min-width:0}
   #v-inicio .n-col>*{order:0}
   #seisIni{display:flex}
+  /* Gráficos: grade de duas colunas; o ritmo e a comparação ocupam a largura toda */
+  .n-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+  .n-grade>.n-larga{grid-column:1/-1}
   .n-arco-caixa{width:min(100%,360px)}
   .n-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));overflow:visible;margin:0;padding:0;scroll-snap-type:none}
   .n-bloco{width:auto}
@@ -606,8 +641,8 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
     <div class="n-cols">
     <div class="n-col" data-col="esq">
     <div class="n-arco" id="inResumo"></div>
-    <a class="n-vidro n-ritmo" id="inRitmo" href="#graficos"></a>
-    <div class="n-vidro" id="seisIni" hidden></div><!-- "Últimos 6 meses": só no PC, desenhado na etapa dos gráficos -->
+    <a class="n-vidro n-ritmo" id="inRitmo" href="#graficos" data-mes-atual></a>
+    <div class="n-vidro" id="seisIni"></div><!-- "Últimos 6 meses": só no PC (no celular fica nos Gráficos) -->
     <div class="atalhos">
       <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dEnt" data-focus="eValor"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg><b>Registrar entrada</b></button>
       <button class="atalho linha n-vidro" type="button" data-go="mes" data-open="dFixos" data-focus="xValor"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg><b>Gastos fixos</b></button>
@@ -717,7 +752,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
       <summary>Buscar gastos, gráficos e planilha</summary>
       <div class="inner">
         <p>Em <b>Mês → Lançamentos</b>, use a busca e os filtros de caixinha e forma de pagamento. Marque “Buscar em todos os meses” para procurar no histórico inteiro.</p>
-        <p>Em <b>Mês → Gráficos e comparação</b>, veja quanto gastou em cada caixinha comparado com o mês anterior, e o total dos últimos 6 meses.</p>
+        <p>Em <b>Gráficos</b> (pelo Início, pelo Mês ou pela barra lateral no computador), veja o ritmo do mês, para onde foi o dinheiro, os últimos 6 meses, os dias do mês e as formas de pagamento, além da comparação de cada caixinha com o mês anterior. Toque num ponto para ver o valor.</p>
         <p class="hint">Para abrir no Excel ou no Google Planilhas: “Exportar esta lista (.csv)” embaixo da lista, ou “Exportar planilha (.csv)” em Ajustes → Backup e dados.</p>
       </div>
     </details>
@@ -786,16 +821,17 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
           <label>Forma<select id="fForma"></select></label>
         </div>
         <label class="check"><input type="checkbox" id="fTodos"> Buscar em todos os meses</label>
+        <span class="n-chip n-filtro-dia" id="fDia" hidden></span>
       </div>
       <p class="hint" id="fResumo"></p>
       <div class="list" id="mesLista"></div>
       <div id="csvBoxLista"></div>
     </div>
 
-    <details id="dGraf">
-      <summary>Gráficos e comparação</summary>
-      <div class="inner" id="grafBox"></div>
-    </details>
+    <a class="guia-card slim" id="mesGraf" href="#graficos">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/></svg>
+      <span style="flex:1;min-width:0"><b>Gráficos e comparação</b></span><span class="go" aria-hidden="true">›</span>
+    </a>
 
     <details id="dEnt">
       <summary>Entradas de dinheiro</summary>
@@ -871,9 +907,25 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   </section>
 
   <!-- ===================== CARTÃO ===================== -->
-  <!-- ===================== GRÁFICOS (preenchida na etapa dos gráficos) ===================== -->
+  <!-- ===================== GRÁFICOS (sempre do mês escolhido, o mesmo do Mês) ===================== -->
   <section class="view" id="v-graficos" hidden>
-    <div class="vhead"><div><h2>Gráficos</h2></div></div>
+    <div class="vhead">
+      <div><p class="eyebrow">Gráficos</p><h2><span class="cap" id="gMesLabel">—</span></h2></div>
+      <div class="month">
+        <button class="icon" type="button" data-act="mes-prev" aria-label="Mês anterior">‹</button>
+        <button class="icon sm" type="button" data-act="mes-hoje" aria-label="Voltar ao mês atual">◦</button>
+        <button class="icon" type="button" data-act="mes-next" aria-label="Próximo mês">›</button>
+      </div>
+    </div>
+    <div class="n-vidro n-vazio" id="gConvite" hidden></div>
+    <div class="n-grade">
+      <section class="n-vidro n-larga"><div class="n-sec"><h3>Ritmo do mês</h3><span class="n-chip" id="gRitmoChip" hidden></span></div><div id="gRitmo"></div></section>
+      <section class="n-vidro" id="gRoscaBox"><div class="n-sec"><h3>Para onde foi</h3></div><div id="gRosca"></div></section>
+      <section class="n-vidro"><div class="n-sec"><h3>Últimos 6 meses</h3><span>gasto × limite</span></div><div id="gSeis"></div><p class="hint" id="gSeisNota"></p></section>
+      <section class="n-vidro" id="gDiasBox"><div class="n-sec"><h3>Dias do mês</h3></div><div id="gDias"></div><p class="hint">Quanto mais forte o dia, maior o gasto. Toque num dia para ver os lançamentos.</p></section>
+      <section class="n-vidro" id="gFormasBox"><div class="n-sec"><h3>Por forma de pagamento</h3></div><div id="gFormas"></div></section>
+      <section class="n-vidro n-larga" id="gCompBox"></section>
+    </div>
   </section>
 
   <section class="view" id="v-cartao" hidden>
@@ -1068,6 +1120,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
         <div><h4>SAC <small>parcela começa maior e cai</small></h4><div class="out" id="finSac"></div></div>
         <div><h4>PRICE <small>parcela igual do começo ao fim</small></h4><div class="out" id="finPrice"></div></div>
       </div>
+      <div class="flat"><h4 style="margin:0;font-size:.95rem">Saldo devedor ao longo do prazo</h4><div id="finSaldo"></div></div>
       <p class="hint">É uma estimativa para comparar os dois sistemas. O banco ainda soma seguros e taxas à parcela, e a correção real muda mês a mês.</p>
     </form>
     <div class="panel" id="c-sim" hidden>
@@ -1266,6 +1319,7 @@ kbd{font:600 .78em var(--body);padding:1px 6px;border-radius:6px;border:1px soli
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="n-dica" id="grafDica" aria-hidden="true" hidden></div><!-- etiqueta única dos gráficos (o leitor de tela ouve o texto do próprio ponto) -->
 
 <script>
 (function(){
@@ -1293,7 +1347,7 @@ const AJUDAS = {
   selic: 'A taxa de referência é usada como rendimento padrão nas metas e nos simuladores. Atualize quando a Selic ou o CDI mudar.',
   temas: 'Troque o visual do app. Você pode criar o seu e compartilhar com o Orolon Player pelo arquivo .json.',
   filtros: 'Procure por descrição, caixinha, forma de pagamento ou valor (por exemplo “uber” ou “50”). Marque “todos os meses” para procurar no histórico inteiro. A lista filtrada pode ser exportada para planilha.',
-  graf: 'Compara o que você gastou em cada caixinha com o mês anterior. No mês atual, a comparação é até o mesmo dia do mês, para ser justa. Embaixo, o total gasto nos últimos 6 meses.',
+  graf: 'Compara o que você gastou em cada caixinha com o mês anterior. No mês atual, a comparação é até o mesmo dia do mês, para ser justa.',
   pin: 'Pede um PIN para abrir o app neste aparelho. Os dados não são criptografados: o PIN só impede que outra pessoa abra o app. Se esquecer o PIN, só dá para entrar apagando os dados, então mantenha um backup.',
   backup: 'Seus dados ficam só neste aparelho. O app guarda sozinho uma cópia por dia aqui dentro, para desfazer um erro, mas essas cópias somem se o navegador for limpo ou o aparelho se perder. Para ficar seguro de verdade, escolha uma pasta para o backup automático (onde o navegador deixa) ou exporte um backup de vez em quando e guarde fora do aparelho. Importar um backup substitui tudo o que está aqui.'
 };
@@ -1794,11 +1848,19 @@ function renderMes(){
   }
   const m = S.meses[k];
   if (!$('fSaldo').contains(document.activeElement)) $('sInicial').value = m && Number.isFinite(m.saldoInicial) ? numStr(m.saldoInicial) : '';
-  renderEntradas(k); renderFixos(); renderGraf(k);
+  renderEntradas(k); renderFixos();
+  if (!$('v-graficos').hidden) renderGraf(k); // os Gráficos seguem o mesmo mês
   renderSaldo();
 }
 function normTxt(t){ return String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
-function filtroAtivo(){ return !!($('fBusca').value.trim() || $('fCx').value || $('fForma').value || $('fTodos').checked); }
+function filtroAtivo(){ return !!($('fBusca').value.trim() || $('fCx').value || $('fForma').value || $('fTodos').checked || UI.filtroDia); }
+/* Tocar num dia do calendário dos Gráficos: a lista do Mês mostra só os gastos daquele dia (com o total), sem os outros filtros */
+function abrirDia(k, dia){
+  UI.mes = k; UI.filtroDia = k + '-' + pad(dia); UI.listaToda = false;
+  $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false;
+  renderMes(); go('mes');
+  setTimeout(() => { const f = document.querySelector('#v-mes .filtros'); if (f && !$('v-mes').hidden) f.scrollIntoView({ block: 'start' }); }, 120);
+}
 function renderLista(k){
   const cxV = $('fCx').value, fV = $('fForma').value;
   $('fCx').innerHTML = '<option value="">Todas</option>' + S.caixinhas.map(c => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('');
@@ -1806,9 +1868,13 @@ function renderLista(k){
   const formas = [...new Set(S.formas.concat(Object.values(S.meses).flatMap(m => (m.gastos || []).map(g => g.forma)).filter(Boolean)))];
   $('fForma').innerHTML = '<option value="">Todas</option>' + formas.map(f => `<option>${esc(f)}</option>`).join('');
   $('fForma').value = formas.includes(fV) ? fV : '';
-  const todos = $('fTodos').checked, filtrando = filtroAtivo(), q = normTxt($('fBusca').value.trim());
+  const todos = $('fTodos').checked;
+  if (UI.filtroDia && !todos && monthOf(UI.filtroDia) !== k) UI.filtroDia = null; // o filtro do dia não passa para outro mês
+  const dia = UI.filtroDia, filtrando = filtroAtivo(), q = normTxt($('fBusca').value.trim());
+  $('fDia').hidden = !dia;
+  $('fDia').innerHTML = dia ? `Só o dia ${esc(dayLabel(dia, todos))}<button type="button" data-act="filtro-dia-tirar" aria-label="Tirar o filtro do dia">×</button>` : '';
   const base = todos ? Object.keys(S.meses).flatMap(m => gastos(m)) : gastos(k).slice();
-  const gs = base.filter(g => (!$('fCx').value || g.caixinha === $('fCx').value) && (!$('fForma').value || g.forma === $('fForma').value) &&
+  const gs = base.filter(g => (!dia || g.data === dia) && (!$('fCx').value || g.caixinha === $('fCx').value) && (!$('fForma').value || g.forma === $('fForma').value) &&
       (!q || normTxt([g.descricao, cx(g.caixinha).nome, g.forma, numStr(g.valor), fmt(g.valor)].join(' ')).includes(q)))
     .sort((a,b) => (b.data || '').localeCompare(a.data || '') || (b.criado || 0) - (a.criado || 0));
   UI.listaAtual = gs;
@@ -1831,8 +1897,42 @@ function renderLista(k){
     </div>`;
   }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
+/* ---------- Render: Gráficos (tela própria, sempre do mês escolhido em UI.mes) ---------- */
 function renderGraf(k){
-  if (!$('dGraf').open) return;
+  const cur = thisMonth(), R = resumoMes(k), semGasto = !gastos(k).length;
+  $('gMesLabel').textContent = monthLabel(k);
+  // mês sem lançamento: um convite a lançar no lugar das leituras que dependem de gastos
+  $('gConvite').hidden = !semGasto;
+  $('gConvite').innerHTML = semGasto ? `<p>${k > cur ? `${esc(monthLabel(k))} ainda não começou. Os gastos com data neste mês aparecem aqui.` : `Nenhum gasto em ${esc(monthLabel(k))}. Lance o primeiro e os gráficos se desenham.`}</p><button class="primary" type="button" data-act="gasto-novo">Lançar gasto</button>` : '';
+  ['gRoscaBox', 'gDiasBox', 'gFormasBox', 'gCompBox'].forEach(id => { $(id).hidden = semGasto; });
+  // ritmo do mês, maior que o do Início, com os dias embaixo
+  const rt = ritmoMes(k), ate = rt.acumulado.length, fechado = k < cur, chip = $('gRitmoChip');
+  chip.hidden = !(rt.limite > 0 && ate > 0);
+  chip.className = 'n-chip' + (rt.diff > 0.5 ? ' ok' : rt.diff < -0.5 ? ' over' : '');
+  chip.textContent = rt.diff > 0.5 ? fmt0(rt.diff) + (fechado ? ' abaixo do limite' : ' abaixo do ritmo') : rt.diff < -0.5 ? fmt0(-rt.diff) + (fechado ? ' acima do limite' : ' acima do ritmo') : (fechado ? 'no limite' : 'no ritmo');
+  Graf.linha($('gRitmo'), { serie: rt.acumulado, ideal: rt.ideal, total: rt.limite, alto: 170, rotulos: rt.ideal.map((_, i) => String(i + 1)),
+    marca: ate ? (k === cur ? 'hoje · ' : 'total · ') + fmt0(rt.acumulado[ate - 1]) : '', vazio: 'Defina os limites das caixinhas para ver o ritmo ideal do mês.',
+    dica: i => i < ate ? `dia ${i + 1}\n${fmt(rt.acumulado[i])} até aqui${rt.limite > 0 ? ' · ritmo ' + fmt(rt.ideal[i]) : ''}` : `dia ${i + 1}\nritmo ideal ${fmt(rt.ideal[i])}` });
+  // últimos 6 meses
+  const h = historico(k), ant5 = h.slice(0, 5).map(m => m.gasto).filter(v => v > 0), media = ant5.length ? r2(ant5.reduce((a, v) => a + v, 0) / ant5.length) : 0;
+  Graf.barras($('gSeis'), opSeis(k));
+  $('gSeisNota').innerHTML = (media ? `Média dos meses anteriores com gastos: <b class="num">${fmt(media)}</b>.` : '') + (k === cur && h[5].gasto > 0 ? ' O mês atual ainda não terminou.' : '');
+  if (semGasto) return;
+  // para onde foi: uma fatia por caixinha com gasto, na cor dela; gastos de caixinhas apagadas juntos
+  const partes = S.caixinhas.filter(c => R.por[c.id] && R.por[c.id].gasto > 0).map(c => ({ nome: c.nome, valor: R.por[c.id].gasto, cor: corOk(c.cor) }));
+  const orf = r2(R.gasto - partes.reduce((a, p) => a + p.valor, 0));
+  if (orf > 0.004) partes.push({ nome: 'Caixinhas apagadas', valor: orf, cor: 'var(--faint)' });
+  Graf.rosca($('gRosca'), { partes });
+  // dias do mês: tocar num dia com gasto leva à lista daquele dia
+  const [ano, mes] = k.split('-').map(Number);
+  Graf.calendario($('gDias'), { ano, mes, porDia: gastoPorDia(k), aoTocar: dia => abrirDia(k, dia) });
+  // por forma de pagamento
+  const fs = porForma(k), totF = fs.reduce((a, f) => a + f.valor, 0);
+  Graf.barras($('gFormas'), { deitado: true, itens: fs.map(f => ({ rotulo: f.nome, valor: f.valor })), dica: i => `${fs[i].nome}\n${fmt(fs[i].valor)} · ${Math.round(fs[i].valor / totF * 100)}% do mês` });
+  renderComparacao(k);
+}
+/* Comparação com o mês anterior (era a sanfona do Mês): cada caixinha neste mês e no anterior, até o mesmo dia no mês atual */
+function renderComparacao(k){
   const ant = addMonths(k, -1), atual = k === thisMonth(), dia = new Date().getDate(), corte = atual ? dia : 31;
   const somaPor = (m, ate) => { const o = {}; gastos(m).forEach(g => { if (+String(g.data).slice(8, 10) <= ate) o[g.caixinha] = r2((o[g.caixinha] || 0) + g.valor); }); return o; };
   const A = somaPor(k, corte), P = somaPor(ant, corte), soma = o => r2(Object.values(o).reduce((a,v) => a + v, 0));
@@ -1854,14 +1954,9 @@ function renderGraf(k){
       <div class="cmp-b" title="${esc(nA)}: ${fmt(a)}"><span class="trk"><i style="width:${w(a)}%"></i></span><span class="num">${fmt(a)}</span></div>
       <div class="cmp-b ant" title="${esc(nP)}: ${fmt(p)}"><span class="trk"><i style="width:${w(p)}%"></i></span><span class="num">${fmt(p)}</span></div></div>`;
   }).join('');
-  const meses6 = Array.from({ length: 6 }, (_, i) => addMonths(k, i - 5)), tot6 = meses6.map(m => r2(gastos(m).reduce((a,g) => a + g.valor, 0)));
-  const ant5 = tot6.slice(0, 5).filter(v => v > 0), media = ant5.length ? r2(ant5.reduce((a,v) => a + v, 0) / ant5.length) : 0;
-  $('grafBox').innerHTML = `<div class="vhead qh"><h3>${esc(nA)} × ${esc(nP)}</h3>${qm('graf')}</div>
+  $('gCompBox').innerHTML = `<div class="vhead qh"><h3>${esc(nA)} × ${esc(nP)}</h3>${qm('graf')}</div>
     <p style="margin:0">${frase}</p>
-    ${linhas ? `<div class="legend"><span><i class="dot" style="background:var(--accent)"></i>${esc(nA)}</span><span><i class="dot" style="background:color-mix(in srgb,var(--muted) 60%,transparent)"></i>${esc(nP)}${atual ? ` (até dia ${dia})` : ''}</span></div><div class="flat" style="gap:0">${linhas}</div>` : ''}
-    <h3 style="margin-top:8px">Últimos 6 meses</h3>
-    ${barChart(meses6.map(m => monthLabel(m, true)), tot6.map(v => [v, 0]), 'Total gasto nos últimos 6 meses')}
-    <p class="hint">${media ? `Média dos meses anteriores com gastos: <b class="num">${fmt(media)}</b>.` : ''}${atual ? ' O mês atual ainda não terminou.' : ''}</p>`;
+    ${linhas ? `<div class="legend"><span><i class="dot" style="background:var(--accent)"></i>${esc(nA)}</span><span><i class="dot" style="background:color-mix(in srgb,var(--muted) 60%,transparent)"></i>${esc(nP)}${atual ? ` (até dia ${dia})` : ''}</span></div><div class="flat" style="gap:0">${linhas}</div>` : ''}`;
 }
 function renderEntradas(k){
   const es = entradas(k).slice().sort((a,b) => (b.data || '').localeCompare(a.data || '') || (b.criado || 0) - (a.criado || 0));
@@ -2000,8 +2095,11 @@ function renderCartao(){
   // projeção
   const meses = Array.from({length:6}, (_,i) => addMonths(k, i));
   const vals = meses.map(m => fatura(m));
-  $('cartProj').innerHTML = barChart(meses.map(m => monthLabel(m, true)), vals.map(v => [v.eu, v.terc])) +
-    `<div class="legend"><span><i class="dot" style="background:var(--accent)"></i>Sua parte</span><span><i class="dot" style="background:var(--gold)"></i>Terceiros</span></div>`;
+  Graf.barras($('cartProj'), { itens: meses.map((m, i) => ({ rotulo: monthLabel(m, true), valor: vals[i].eu, extra: vals[i].terc })),
+    legenda: [{ nome: 'Sua parte', cor: 'var(--accent)' }, { nome: 'Terceiros', cor: 'var(--gold)' }],
+    dica: i => `Fatura de ${monthLabel(meses[i]).toLowerCase()}\n${fmt(vals[i].total)}${vals[i].terc ? ' · sua parte ' + fmt(vals[i].eu) : ''}`,
+    resumo: 'Faturas dos próximos meses: ' + meses.map((m, i) => `${monthLabel(m).toLowerCase()} ${fmt(vals[i].total)}`).join('; ') + '.',
+    vazio: 'Nenhuma parcela ou assinatura nas próximas faturas.' });
   // selects e listas
   const cSel = $('cCartao').value;
   $('cCartao').innerHTML = S.cartoes.length ? S.cartoes.map(c => `<option value="${esc(c.id)}" ${c.id === cSel ? 'selected' : ''}>${esc(c.nome)}</option>`).join('') : '<option value="">Cadastre um cartão</option>';
@@ -2044,44 +2142,277 @@ function previewCompra(){
     `${n}× de ${fmt(parc)} (total ${fmt(parc*n)}), de ${monthLabel(ini)} até ${monthLabel(addMonths(ini, n-1))}.`;
 }
 
-/* ---------- Gráficos (SVG feito à mão, sem bibliotecas) ---------- */
-function niceMax(v){ if (v <= 0) return 100; const e = Math.pow(10, Math.floor(Math.log10(v))); const f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; }
-function kfmt(v){ return v >= 1000 ? (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' mil' : Math.round(v).toLocaleString('pt-BR'); }
-function barChart(labels, stacks, aria){
-  const W = 360, H = 190, L = 40, B = 24, T = 20, R = 6;
-  const max = niceMax(Math.max(...stacks.map(s => s[0] + s[1]), 1));
-  const y = v => T + (H - T - B) * (1 - v / max);
-  const bw = (W - L - R) / labels.length;
-  let g = '';
-  [0, .5, 1].forEach(f => { const v = max * f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-dasharray="${f ? '3 4' : ''}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`; });
-  stacks.forEach((s, i) => {
-    const x = L + i * bw + bw * .2, w = bw * .6, tot = s[0] + s[1];
-    g += `<g class="gb" data-i="${i}">`;
-    if (s[0] > 0) g += `<rect x="${x}" y="${y(s[0])}" width="${w}" height="${y(0)-y(s[0])}" rx="3" style="fill:var(--accent)"/>`;
-    if (s[1] > 0) g += `<rect x="${x}" y="${y(tot)}" width="${w}" height="${y(s[0])-y(tot)}" rx="3" style="fill:var(--gold)"/>`;
-    g += '</g>';
-    g += `<text x="${x + w/2}" y="${H-8}" text-anchor="middle" style="text-transform:capitalize">${esc(labels[i])}</text>`;
-    if (tot > 0) g += `<text class="gbt" data-i="${i}" x="${x + w/2}" y="${y(tot)-6}" text-anchor="middle" style="fill:var(--fg);font-weight:600">${kfmt(tot)}</text>`;
-  });
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria || 'Faturas dos próximos meses')}">${g}</svg>`;
+/* ---------- Gráficos: uma base de desenho só (Graf; SVG feito à mão, sem bibliotecas) ----------
+   Cada gráfico é desenhado na largura real do contêiner, para os textos não crescerem junto com a tela, e lembra o que
+   desenhou: Graf.refazer() redesenha quando a largura muda (troca de aba, girar o celular, janela do PC).
+   Duas camadas: o desenho (role="img", com um resumo em texto) e, por cima, os pontos que se tocam ou recebem foco,
+   cada um com o seu valor em texto (o Tab para num ponto por gráfico; as setas andam entre eles).
+   Uma etiqueta só (#grafDica) mostra o valor do ponto. Cores só por variáveis do tema; as das caixinhas são as delas.
+   Nada se move aqui: a entrada na tela é do animarGraficos(), que respeita "reduzir movimento". */
+function passoRedondo(v){ if (!(v > 0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); const f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; }
+function kfmt(v){
+  const a = Math.abs(v), s = v < 0 ? '−' : '', um = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  return s + (a >= 999950 ? um(a / 1e6) + ' mi' : a >= 999.5 ? um(a / 1000) + ' mil' : Math.round(a).toLocaleString('pt-BR'));
 }
-function areaChart(points){ // points: [{x:ano, total, aportado}]
-  const W = 360, H = 200, L = 54, B = 24, T = 12, R = 10;
-  const max = niceMax(Math.max(...points.map(p => p.total), 1));
-  const xMax = points[points.length-1].x || 1;
-  const x = v => L + (W - L - R) * (v / xMax), y = v => T + (H - T - B) * (1 - v / max);
-  const line = key => points.map((p,i) => `${i ? 'L' : 'M'}${x(p.x).toFixed(1)},${y(p[key]).toFixed(1)}`).join('');
-  let g = '';
-  [0, .25, .5, .75, 1].forEach(f => { const v = max * f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-dasharray="${f ? '3 4' : ''}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`; });
-  const step = Math.max(1, Math.ceil(xMax / 6));
-  for (let a = 0; a <= xMax; a += step) g += `<text x="${a + step > xMax && a > 0 ? Math.min(W - 2, x(a) + 12) : x(a)}" y="${H-8}" text-anchor="${a + step > xMax && a > 0 ? 'end' : 'middle'}">${a === 0 ? 'hoje' : a + (a === 1 ? ' ano' : ' anos')}</text>`;
-  g += `<path class="ga-area" d="${line('total')}L${x(xMax)},${y(0)}L${x(0)},${y(0)}Z" style="fill:color-mix(in srgb,var(--accent) 22%,transparent)"/>`;
-  g += `<path class="ga-tot" pathLength="1" d="${line('total')}" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>`;
-  g += `<path class="ga-ap" d="${line('aportado')}" style="fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:5 4"/>`;
-  const last = points[points.length-1];
-  g += `<circle class="ga-bola" cx="${x(last.x)}" cy="${y(last.total)}" r="4.5" style="fill:var(--accent);stroke:var(--bg);stroke-width:2"/>`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Crescimento do investimento">${g}</svg>
-    <div class="legend"><span><i class="dot" style="background:var(--accent)"></i>Total com rendimento</span><span><i class="dot" style="background:var(--gold)"></i>Só o que você colocou</span></div>`;
+const Graf = (() => {
+  const num = v => (Number.isFinite(+v) ? +v : 0);
+  const LETRA = 6.3, LETRA_G = 7.4; // largura média de uma letra a 10,5 px e a 12 px, com folga para fontes mais largas
+  const larg = (t, l = LETRA) => String(t).length * l;
+  // largura útil do contêiner; 0 se ele está escondido (desenha em 320 e refaz quando aparecer)
+  const medir = el => { const w = el.clientWidth; return w > 0 ? Math.min(1000, Math.max(220, Math.round(w))) : 0; };
+  const txt = (x, y, t, extra = '') => `<text x="${n2(x)}" y="${n2(y)}"${extra}>${esc(t)}</text>`;
+  const legenda = itens => itens.length ? `<div class="legend">${itens.map(it => `<span><i class="${it.tracejado ? 'tracejado' : 'dot'}" style="${it.tracejado ? 'border-top-color:' : 'background:'}${esc(it.cor)}"></i>${esc(it.nome)}</span>`).join('')}</div>` : '';
+  function guardar(el, f, op, w){ el._graf = { f, op }; el.dataset.gw = String(w); }
+  function vazio(el, f, op, texto){ guardar(el, f, op, 'v'); el.innerHTML = `<p class="n-vazio">${esc(texto)}</p>`; }
+  /* as duas camadas; pontos: [{ forma, dica, extra }]. O texto da dica vira o rótulo do ponto (a quebra de linha vira vírgula). */
+  function camadas(W, H, desenho, resumo, pontos, ativo){
+    const pts = pontos.length ? `<svg class="n-graf-p" viewBox="0 0 ${W} ${H}">${pontos.map((p, i) =>
+      `<g class="g-pt" tabindex="${i === ativo ? 0 : -1}" role="img" aria-label="${esc(String(p.dica).replace(/\n/g, ', '))}" data-dica="${esc(p.dica)}" data-i="${i}"${p.extra || ''}>${p.forma}</g>`).join('')}</svg>` : '';
+    return `<div class="n-graf"><svg class="n-graf-d" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(resumo)}">${desenho}</svg>${pts}</div>`;
+  }
+  /* rótulos que não se cobrem: cada texto só entra se couber na largura e não encostar num que já entrou */
+  function rotulador(W, l = LETRA){
+    const caixas = [];
+    return (x, y, t, anc, extra = '') => {
+      const w = larg(t, l); let x1 = anc === 'end' ? x - w : anc === 'middle' ? x - w / 2 : x;
+      if (anc === 'middle' && x1 < 0) { x = 0; anc = 'start'; x1 = 0; } else if (anc === 'middle' && x1 + w > W) { x = W; anc = 'end'; x1 = W - w; }
+      const b = [x1, y - 10, x1 + w, y + 3];
+      if (b[0] < -.5 || b[2] > W + .5 || caixas.some(c => b[0] < c[2] + 4 && b[2] > c[0] - 4 && b[1] < c[3] + 2 && b[3] > c[1] - 2)) return '';
+      caixas.push(b); return txt(x, y, t, ` text-anchor="${anc}"${extra}`);
+    };
+  }
+
+  /* Linha do ritmo: serie é o acumulado dia a dia, ideal o ritmo ideal, total o limite do mês. Sem dica, sem pontos (o Início usa assim, dentro de um link). */
+  function linha(el, op){
+    const serie = (op.serie || []).map(num), ideal = (op.ideal || []).map(num), total = Math.max(0, num(op.total));
+    if (!serie.some(v => v > 0) && !(total > 0)) return vazio(el, 'linha', op, op.vazio || 'Ainda sem gastos neste mês.');
+    const w = medir(el), W = w || 320, H = op.alto || 120, n = Math.max(serie.length, ideal.length, 1), ate = serie.length;
+    const topo = 24, base = H - (op.rotulos ? 22 : 4), esq = 5, dir = 6, fim = ate ? serie[ate - 1] : 0;
+    const max = Math.max(total, 1, ...serie, ...ideal);
+    const x = d => n2(esq + d / n * (W - esq - dir)), y = v => n2(base - Math.max(0, v) / max * (base - topo));
+    const passou = ate > 0 && ideal.length >= ate && fim > ideal[ate - 1] + 0.5, cor = passou ? 'var(--over)' : 'var(--accent)';
+    const rot = rotulador(W);
+    let g = `<line class="g-base" x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--glass-line)" stroke-width="1"/>`;
+    if (ideal.length) g += `<path d="M${x(0)} ${y(0)}${ideal.map((v, i) => `L${x(i + 1)} ${y(v)}`).join('')}" fill="none" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 5"/>`;
+    let textos = '';
+    if (ate) {
+      const d = 'M' + [[0, 0]].concat(serie.map((v, i) => [i + 1, v])).map(([a, v]) => x(a) + ' ' + y(v)).join('L'), xF = x(ate), yF = y(fim);
+      g += `<path class="ga-area" d="${d}L${xF} ${base}L${x(0)} ${base}Z" fill="${cor}" fill-opacity=".16"/>`;
+      g += `<path class="ga-tot" pathLength="1" d="${d}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+      g += `<circle class="ga-bola" cx="${xF}" cy="${yF}" r="4.5" fill="${cor}" stroke="var(--bg)" stroke-width="2"/>`;
+      if (op.marca) { // perto do ponto final, acima; se não couber, abaixo
+        const anc = xF > W * .6 ? 'end' : 'start', xm = anc === 'end' ? xF - 9 : xF + 9;
+        textos += rot(xm, Math.max(12, yF - 9), op.marca, anc, ' class="g-forte"') || (yF + 18 < base ? rot(xm, yF + 18, op.marca, anc, ' class="g-forte"') : '');
+      }
+    }
+    if (total > 0) { const t = 'limite ' + fmt0(total), yl = y(total); textos += rot(W, Math.max(11, yl - 7), t, 'end') || rot(W, yl + 15, t, 'end'); }
+    if (op.rotulos) for (let i = 0; i < n; i = i === 0 ? 6 : i + 7) { // dia 1, 7, 14, 21, 28 e o último
+      textos += rot(x(i + 1), H - 5, op.rotulos[i] || '', 'middle');
+      if (i + 7 >= n && i !== n - 1) textos += rot(x(n), H - 5, op.rotulos[n - 1] || '', 'middle');
+    }
+    const resumo = op.resumo || (ate ? `Gasto acumulado de ${fmt(fim)} até o dia ${ate}` + (ideal.length >= ate && total > 0 ? `; no ritmo ideal seriam ${fmt(ideal[ate - 1])}` : '') + (total > 0 ? `; limite do mês de ${fmt(total)}.` : '.')
+      : `Ritmo ideal do mês até o limite de ${fmt(total)}; ainda sem dias com gasto.`);
+    const pontos = op.dica ? Array.from({ length: n }, (_, i) => {
+      const xi = x(i + 1), meio = (W - esq - dir) / n / 2, v = i < ate ? serie[i] : (ideal[i] || 0);
+      return { dica: op.dica(i), forma: `<rect x="${n2(xi - meio)}" y="0" width="${n2(meio * 2)}" height="${H}" fill="transparent"/><line class="g-mira" x1="${xi}" y1="${topo - 8}" x2="${xi}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/><circle class="g-mira g-ancora" cx="${xi}" cy="${y(v)}" r="5" fill="var(--bg)" stroke="${i < ate ? cor : 'var(--faint)'}" stroke-width="2"/>` };
+    }) : [];
+    guardar(el, 'linha', op, w);
+    el.innerHTML = camadas(W, H, g + textos, resumo, pontos, ate ? ate - 1 : 0);
+  }
+
+  /* Curvas (simulador, saldo devedor): séries com o mesmo eixo; tracejado = referência; area/bola = a curva principal. */
+  function curvas(el, op){
+    const series = (op.series || []).filter(s => s.valores && s.valores.length), todos = series.flatMap(s => s.valores.map(num));
+    if (!todos.some(v => v > 0)) return vazio(el, 'curvas', op, op.vazio || 'Sem valores para mostrar.');
+    const w = medir(el), W = w || 320, H = op.alto || 200, n = Math.max(1, ...series.map(s => s.valores.length - 1));
+    const passoY = passoRedondo(Math.max(...todos) / 4), max = Math.ceil(Math.max(...todos) / passoY - 1e-9) * passoY; // marcas redondas: 0, 100 mil, 200 mil...
+    const marcas = Array.from({ length: Math.round(max / passoY) + 1 }, (_, i) => i * passoY), esq = Math.ceil(Math.max(...marcas.map(v => larg(kfmt(v))))) + 10, dir = 10, topo = 10, base = H - 28;
+    const x = i => n2(esq + i / n * (W - esq - dir)), y = v => n2(base - Math.max(0, num(v)) / max * (base - topo));
+    let g = '', textos = '';
+    marcas.forEach((v, i) => { g += `<line${i ? '' : ' class="g-base"'} x1="${esq}" x2="${W - dir}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"${i ? ' stroke-dasharray="3 4"' : ''}/>`; textos += txt(esq - 6, y(v) + 4, kfmt(v), ' text-anchor="end"'); });
+    const rot = rotulador(W), passo = op.passoX || Math.max(1, Math.ceil(n / 6));
+    for (let i = 0; i <= n; i += passo) textos += rot(x(i), H - 6, op.rotuloX ? op.rotuloX(i) : String(i), i === 0 ? 'start' : 'middle');
+    series.forEach(s => {
+      const v = s.valores.map(num), d = 'M' + v.map((a, i) => x(i) + ' ' + y(a)).join('L');
+      if (s.area) g += `<path class="ga-area" d="${d}L${x(v.length - 1)} ${base}L${x(0)} ${base}Z" style="fill:color-mix(in srgb,${s.cor} 20%,transparent)"/>`;
+      g += `<path class="${s.tracejado ? 'ga-ap' : 'ga-tot'}" data-serie="${esc(s.nome)}"${s.tracejado ? '' : ' pathLength="1"'} d="${d}" fill="none" stroke="${s.cor}" stroke-width="${s.tracejado ? 1.6 : 2.5}"${s.tracejado ? ' stroke-dasharray="5 4" stroke-opacity=".8"' : ''} stroke-linecap="round" stroke-linejoin="round"/>`;
+      if (s.bola) g += `<circle class="ga-bola" cx="${x(v.length - 1)}" cy="${y(v[v.length - 1])}" r="4.5" fill="${s.cor}" stroke="var(--bg)" stroke-width="2"/>`;
+    });
+    const pp = op.passoPonto || 1, idx = []; for (let i = 0; i <= n; i += pp) idx.push(i); if (idx[idx.length - 1] !== n) idx.push(n);
+    const pontos = op.dica ? idx.map((i, j) => {
+      const a = j ? (x(idx[j - 1]) + x(i)) / 2 : esq, b = j < idx.length - 1 ? (x(i) + x(idx[j + 1])) / 2 : W - dir;
+      const miras = series.filter(s => !s.tracejado && i < s.valores.length).map((s, k) => `<circle class="g-mira${k ? '' : ' g-ancora'}" cx="${x(i)}" cy="${y(s.valores[i])}" r="4.5" fill="var(--bg)" stroke="${s.cor}" stroke-width="2"/>`).join('');
+      return { dica: op.dica(i), forma: `<rect x="${n2(a)}" y="0" width="${n2(Math.max(2, b - a))}" height="${H}" fill="transparent"/><line class="g-mira" x1="${x(i)}" y1="${topo}" x2="${x(i)}" y2="${base}" stroke="var(--muted)" stroke-opacity=".45" stroke-width="1"/>${miras}` };
+    }) : [];
+    guardar(el, 'curvas', op, w);
+    el.innerHTML = camadas(W, H, g + textos, op.resumo || series.map(s => s.nome).join(', '), pontos, pontos.length - 1)
+      + legenda(op.legenda || series.map(s => ({ nome: s.nome, cor: s.cor, tracejado: s.tracejado })));
+  }
+
+  /* Rosca: uma fatia por parte, legenda com valor e porcentagem (inteiras, somando 100). Tamanho fixo. */
+  function rosca(el, op){
+    const partes = (op.partes || []).map(p => ({ nome: String(p.nome ?? ''), valor: Math.max(0, num(p.valor)), cor: p.cor || 'var(--accent)' })).filter(p => p.valor > 0);
+    const total = partes.reduce((a, p) => a + p.valor, 0);
+    if (!(total > 0)) return vazio(el, 'rosca', op, op.vazio || 'Sem gastos para dividir.');
+    const brutos = partes.map(p => p.valor / total * 100), pcs = brutos.map(Math.floor); // maiores restos: as inteiras somam 100
+    let falta = 100 - pcs.reduce((a, v) => a + v, 0);
+    brutos.map((v, i) => [v - pcs[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (falta > 0) { pcs[i]++; falta--; } });
+    const pcTxt = i => (pcs[i] < 1 ? '<1' : pcs[i]) + '%';
+    const D = 176, c = D / 2, esp = 24, r = c - esp / 2 - 6, VOLTA = 2 * Math.PI, folga = partes.length > 1 ? .035 : 0;
+    const pt = (a, rr) => n2(c + rr * Math.cos(a)) + ' ' + n2(c + rr * Math.sin(a));
+    const arco = (a0, a1, rr) => a1 - a0 >= VOLTA - 1e-6 ? `M${pt(a0, rr)}A${rr} ${rr} 0 1 1 ${pt(a0 + Math.PI, rr)}A${rr} ${rr} 0 1 1 ${pt(a0, rr)}` : `M${pt(a0, rr)}A${rr} ${rr} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${pt(a1, rr)}`;
+    let g = `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke-width="${esp}" style="stroke:color-mix(in srgb,var(--fg) 7%,transparent)"/>`, a = -Math.PI / 2;
+    const pontos = partes.map((p, i) => {
+      const ang = p.valor / total * VOLTA, f = ang > folga * 2 ? folga / 2 : 0, a0 = a + f, a1 = a + ang - f; a += ang;
+      g += `<path class="gr-fatia g-cor" data-i="${i}" pathLength="1" d="${arco(a0, a1, r)}" fill="none" stroke="${esc(p.cor)}" stroke-width="${esp}"/>`;
+      return { dica: `${p.nome}\n${fmt(p.valor)} · ${pcTxt(i)}`, forma: `<path d="${arco(a0, a1, r)}" fill="none" stroke="transparent" stroke-width="${esp + 8}" style="pointer-events:stroke"/><path class="g-mira g-ancora" d="${arco(a0, a1, r + esp / 2 + 4)}" fill="none" stroke="var(--fg)" stroke-width="2.5" stroke-linecap="round"/>` };
+    });
+    const tt = fmt0(total), tam = tt.length <= 8 ? 20 : tt.length <= 11 ? 16 : 13;
+    g += txt(c, c + 3, tt, ` text-anchor="middle" class="g-forte" style="font-size:${tam}px"`) + txt(c, c + 20, 'gasto no mês', ' text-anchor="middle"');
+    const resumo = op.resumo || `Total de ${fmt(total)}: ` + partes.map((p, i) => `${p.nome} ${fmt(p.valor)} (${pcTxt(i)})`).join(', ') + '.';
+    guardar(el, 'rosca', op, 'v');
+    el.innerHTML = `<div class="n-rosca">${camadas(D, D, g, resumo, pontos, 0)}<ul class="n-legenda">${partes.map((p, i) =>
+      `<li><i style="background:${esc(p.cor)}"></i><span>${esc(p.nome)}</span><span class="num">${fmt(p.valor)}</span><b>${pcTxt(i)}</b></li>`).join('')}</ul></div>`;
+  }
+
+  /* Barras: em pé (meses) ou deitadas (formas de pagamento). linha = limite (tracejado); alerta = cor de alerta;
+     extra = valor empilhado em dourado (parte de terceiros na fatura). */
+  function barras(el, op){
+    const itens = (op.itens || []).map(it => ({ rotulo: String(it.rotulo ?? ''), valor: Math.max(0, num(it.valor)), extra: Math.max(0, num(it.extra)), alerta: !!it.alerta }));
+    const lim = Math.max(0, num(op.linha)), tot = itens.map(it => it.valor + it.extra);
+    if (!tot.some(v => v > 0)) return vazio(el, 'barras', op, op.vazio || 'Sem valores para mostrar.');
+    const w = medir(el), W = w || 320, n = itens.length, dica = op.dica || (i => `${itens[i].rotulo}\n${fmt(tot[i])}`);
+    const cor = it => it.alerta ? 'var(--over)' : 'var(--accent)';
+    const extraLeg = (itens.some(it => it.alerta) ? [{ nome: 'passou do limite', cor: 'var(--over)' }] : []).concat(lim > 0 ? [{ nome: 'limite ' + fmt0(lim), cor: 'var(--faint)', tracejado: true }] : []);
+    const resumo = op.resumo || itens.map((it, i) => `${it.rotulo}: ${fmt(tot[i])}`).join('; ') + (lim > 0 ? `; limite de ${fmt(lim)}` : '') + '.';
+    let g = '', textos = '', H, pontos;
+    if (op.deitado) {
+      const alto = 44, maxV = Math.max(...tot, 1); H = n * alto;
+      pontos = itens.map((it, i) => {
+        const y0 = i * alto, vt = fmt(tot[i]), cabe = Math.max(4, Math.floor((W - larg(vt, LETRA_G) - 14) / LETRA_G));
+        const nome = it.rotulo.length > cabe ? it.rotulo.slice(0, cabe - 1).trimEnd() + '…' : it.rotulo, bw = n2(Math.max(4, tot[i] / maxV * W));
+        textos += txt(0, y0 + 15, nome, ' class="g-nome"') + txt(W, y0 + 15, vt, ' text-anchor="end" class="g-val"');
+        g += `<rect x="0" y="${y0 + 23}" width="${W}" height="9" rx="4.5" style="fill:color-mix(in srgb,var(--fg) 8%,transparent)"/><g class="gbd" data-i="${i}"><rect x="0" y="${y0 + 23}" width="${bw}" height="9" rx="4.5" fill="${cor(it)}"/></g>`;
+        return { dica: dica(i), forma: `<rect x="0" y="${y0}" width="${W}" height="${alto}" fill="transparent"/><rect class="g-mira" x="-5" y="${y0 + 1}" width="${W + 10}" height="${alto - 4}" rx="9" fill="none" stroke="var(--fg)" stroke-opacity=".35" stroke-width="1.5"/><rect class="g-ancora" x="${n2(bw - 1)}" y="${y0 + 23}" width="2" height="9" fill="transparent"/>` };
+      });
+    } else {
+      H = op.alto || 168;
+      const topo = 20, base = H - 22, passo = W / n, bw = Math.min(passo * .62, 46), max = Math.max(lim, 1, ...tot), y = v => n2(base - v / max * (base - topo));
+      const vals = tot.map(kfmt), rot = rotulador(W); // valor em cima da barra só quando não encosta no da vizinha (o toque mostra todos)
+      g = `<line class="g-base" x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--line)"/>`;
+      pontos = itens.map((it, i) => {
+        const cx = passo * (i + .5), x0 = n2(cx - bw / 2);
+        g += `<g class="gb" data-i="${i}">` + (it.valor > 0 ? `<rect x="${x0}" y="${y(it.valor)}" width="${n2(bw)}" height="${n2(base - y(it.valor))}" rx="4" fill="${cor(it)}"/>` : '')
+          + (it.extra > 0 ? `<rect x="${x0}" y="${y(tot[i])}" width="${n2(bw)}" height="${n2(y(it.valor) - y(tot[i]))}" rx="4" fill="var(--gold)"/>` : '') + '</g>';
+        textos += txt(cx, H - 6, it.rotulo, ' text-anchor="middle" style="text-transform:capitalize"');
+        if (tot[i] > 0) textos += rot(cx, y(tot[i]) - 6, vals[i], 'middle', ` class="gbt g-forte" data-i="${i}"`);
+        return { dica: dica(i), forma: `<rect x="${n2(passo * i)}" y="0" width="${n2(passo)}" height="${H}" fill="transparent"/><rect class="g-mira g-ancora" x="${n2(x0 - 3)}" y="${n2(y(tot[i]) - 3)}" width="${n2(bw + 6)}" height="${n2(base - y(tot[i]) + 3)}" rx="6" fill="none" stroke="var(--fg)" stroke-opacity=".55" stroke-width="1.5"/>` };
+      });
+      if (lim > 0) g += `<line x1="0" x2="${W}" y1="${y(lim)}" y2="${y(lim)}" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+    }
+    guardar(el, 'barras', op, w);
+    el.innerHTML = camadas(W, H, g + textos, resumo, pontos, op.deitado ? 0 : n - 1) + legenda((op.legenda || []).concat(extraLeg));
+  }
+
+  /* Calendário: cada dia mais forte quanto maior o gasto; tocar num dia com gasto chama aoTocar(dia). mes vai de 1 a 12. */
+  const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'], DIAS_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  function calendario(el, op){
+    const ano = num(op.ano), mes = num(op.mes), dias = new Date(ano, mes, 0).getDate();
+    const porDia = Array.from({ length: dias }, (_, i) => Math.max(0, num((op.porDia || [])[i]))), max = Math.max(...porDia), soma = porDia.reduce((a, v) => a + v, 0);
+    if (!(soma > 0)) return vazio(el, 'calendario', op, op.vazio || 'Nenhum gasto neste mês.');
+    const w = medir(el), W = w || 320, vao = 4, cw = (W - vao * 6) / 7, ch = Math.min(46, Math.max(30, cw * .8)), cab = 20;
+    const prim = new Date(ano, mes - 1, 1).getDay(), H = n2(cab + Math.ceil((prim + dias) / 7) * (ch + vao) - vao);
+    const agora = new Date(), ja = ano * 12 + mes - (agora.getFullYear() * 12 + agora.getMonth() + 1), hoje = ja === 0 ? agora.getDate() : 0;
+    let g = SEMANA.map((s, i) => txt(i * (cw + vao) + cw / 2, 13, s, ' text-anchor="middle"')).join('');
+    const pontos = porDia.map((v, i) => {
+      const d = i + 1, pos = prim + i, x0 = n2((pos % 7) * (cw + vao)), y0 = n2(cab + Math.floor(pos / 7) * (ch + vao));
+      const forca = v > 0 ? Math.round(22 + 78 * Math.sqrt(v / max)) : 0, futuro = ja > 0 || (hoje && d > hoje);
+      const fundo = v > 0 ? `color-mix(in srgb,var(--accent) ${forca}%,transparent)` : 'color-mix(in srgb,var(--fg) 5%,transparent)';
+      const tinta = forca >= 62 ? 'var(--accent-ink)' : futuro ? 'var(--faint)' : 'var(--fg)', grande = ch >= 40 && cw >= 54 && v > 0;
+      g += `<g class="g-dia" data-i="${i}"><rect class="g-cel" data-dia="${d}" x="${x0}" y="${y0}" width="${n2(cw)}" height="${n2(ch)}" rx="8" style="fill:${fundo}"${d === hoje ? ' stroke="var(--gold)" stroke-width="2"' : ''}/>`
+        + txt(x0 + cw / 2, y0 + (grande ? ch / 2 - 2 : ch / 2 + 4), String(d), ` text-anchor="middle" style="fill:${tinta};font-size:12px;font-weight:${v > 0 ? 700 : 500}"`)
+        + (grande ? txt(x0 + cw / 2, y0 + ch / 2 + 12, kfmt(v), ` text-anchor="middle" style="fill:${tinta};font-size:9.5px"`) : '') + '</g>';
+      return { dica: `${DIAS_SEM[pos % 7]}, ${d}${d === hoje ? ' (hoje)' : ''}\n${v > 0 ? fmt(v) : 'nenhum gasto'}`, extra: ` data-dia="${d}"${v > 0 ? ' data-tem=""' : ''}`,
+        forma: `<rect x="${x0}" y="${y0}" width="${n2(cw)}" height="${n2(ch)}" rx="8" fill="transparent"/><rect class="g-mira g-ancora" x="${n2(x0 - 1.5)}" y="${n2(y0 - 1.5)}" width="${n2(cw + 3)}" height="${n2(ch + 3)}" rx="9" fill="none" stroke="var(--fg)" stroke-width="2"/>` };
+    });
+    const maior = porDia.indexOf(max) + 1, comGasto = porDia.filter(v => v > 0).length;
+    const resumo = op.resumo || `Gasto em ${comGasto} ${comGasto === 1 ? 'dia' : 'dias'} do mês; o dia de maior gasto foi ${maior}, com ${fmt(max)}.`;
+    guardar(el, 'calendario', op, w);
+    el.innerHTML = camadas(W, H, g, resumo, pontos, hoje ? hoje - 1 : maior - 1);
+  }
+
+  /* Etiqueta única: aparece no ponto ao passar o mouse, ao tocar ou com o foco do teclado */
+  let atual = null;
+  function dica(alvo, texto){
+    const d = $('grafDica'); if (!d || !alvo || !alvo.isConnected) return;
+    if (atual && atual !== alvo) atual.classList.remove('on');
+    atual = alvo; alvo.classList.add('on');
+    const [a, ...b] = String(texto).split('\n');
+    d.innerHTML = b.length ? `<small>${esc(a)}</small><b>${esc(b.join(' '))}</b>` : `<b>${esc(a)}</b>`;
+    d.hidden = false;
+    const r = (alvo.querySelector('.g-ancora') || alvo).getBoundingClientRect(), dw = d.offsetWidth, dh = d.offsetHeight;
+    let top = r.top - dh - 10; if (top < 8) top = r.bottom + 10;
+    const left = Math.max(8, Math.min(innerWidth - dw - 8, r.left + r.width / 2 - dw / 2));
+    d.style.transform = `translate(${Math.round(left)}px,${Math.round(top)}px)`;
+  }
+  function semDica(){ const d = $('grafDica'); if (d) d.hidden = true; if (atual) atual.classList.remove('on'); atual = null; }
+  const ponto = e => (e.target instanceof Element && e.target.classList.contains('g-pt')) ? e.target : null;
+  // pointerenter e focus não sobem: a captura no documento recebe os de todos os pontos
+  document.addEventListener('pointerenter', e => { const p = ponto(e); if (p) dica(p, p.dataset.dica); }, true);
+  document.addEventListener('pointerleave', e => { const p = ponto(e); if (p && p === atual && e.pointerType !== 'touch') semDica(); }, true);
+  document.addEventListener('focus', e => { const p = ponto(e); if (p) dica(p, p.dataset.dica); }, true);
+  document.addEventListener('blur', e => { const p = ponto(e); if (p && p === atual) semDica(); }, true);
+  document.addEventListener('pointerdown', e => { if (atual && !(e.target instanceof Element && e.target.closest('.g-pt'))) semDica(); }, true);
+  window.addEventListener('scroll', () => { if (atual) dica(atual, atual.dataset.dica); }, { passive: true, capture: true });
+  document.addEventListener('click', e => {
+    const p = e.target instanceof Element ? e.target.closest('.g-pt') : null; if (!p) return;
+    dica(p, p.dataset.dica);
+    const dono = p.closest('[data-gw]'), op = dono && dono._graf && dono._graf.op;
+    if (p.hasAttribute('data-tem') && op && op.aoTocar) { semDica(); op.aoTocar(Number(p.dataset.dia)); }
+  });
+  // teclado: Enter ou espaço tocam; as setas andam entre os pontos do mesmo gráfico (no calendário, para cima e para baixo é uma semana)
+  document.addEventListener('keydown', e => {
+    const p = ponto(e); if (!p || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
+    const sem = p.hasAttribute('data-dia') ? 7 : 1, passo = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: sem, ArrowUp: -sem, Home: -1e4, End: 1e4 }[e.key];
+    if (passo === undefined) return;
+    e.preventDefault();
+    const todos = [...p.parentNode.querySelectorAll('.g-pt')], novo = todos[Math.max(0, Math.min(todos.length - 1, todos.indexOf(p) + passo))];
+    todos.forEach(x => x.setAttribute('tabindex', x === novo ? '0' : '-1'));
+    novo.focus();
+  });
+  const desenhos = { linha, curvas, rosca, barras, calendario };
+  /* redesenha os gráficos de dentro de raiz cuja largura mudou desde o último desenho */
+  function refazer(raiz){
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-gw]').forEach(el => {
+      if (!el._graf || el.dataset.gw === 'v') return;
+      const w = medir(el); if (w && w !== Number(el.dataset.gw)) desenhos[el._graf.f](el, el._graf.op);
+    });
+  }
+  return { linha, curvas, rosca, barras, calendario, dica, semDica, refazer };
+})();
+/* Leituras do mês para os gráficos */
+function gastoPorDia(k){
+  const dias = daysInMonth(k), o = new Array(dias).fill(0);
+  gastos(k).forEach(g => { const d = Number(String(g.data || '').slice(8, 10)) || 1; o[Math.min(Math.max(d, 1), dias) - 1] += g.valor; });
+  return o.map(r2);
+}
+function porForma(k){
+  const o = {};
+  gastos(k).forEach(g => { const f = String(g.forma || '').trim() || 'Sem forma'; o[f] = r2((o[f] || 0) + g.valor); });
+  return Object.keys(o).map(nome => ({ nome, valor: o[nome] })).filter(x => x.valor > 0).sort((a, b) => b.valor - a.valor);
+}
+function historico(k, n = 6){
+  return Array.from({ length: n }, (_, i) => { const m = addMonths(k, i - n + 1), R = resumoMes(m); return { k: m, rotulo: monthLabel(m, true), gasto: R.gasto, limite: R.limite }; });
+}
+/* "Últimos 6 meses" (Gráficos e Início no PC): mês que estourou o próprio limite em cor de alerta; a linha é o limite do mês escolhido */
+function opSeis(k){
+  const h = historico(k);
+  return { itens: h.map(m => ({ rotulo: m.rotulo, valor: m.gasto, alerta: m.limite > 0 && m.gasto > m.limite + 0.004 })), linha: h[h.length - 1].limite,
+    dica: i => `${monthLabel(h[i].k)}\n${fmt(h[i].gasto)}${h[i].limite > 0 ? ' de ' + fmt(h[i].limite) : ''}`,
+    resumo: 'Gasto nos últimos 6 meses: ' + h.map(m => `${monthLabel(m.k).toLowerCase()} ${fmt(m.gasto)}${m.limite > 0 && m.gasto > m.limite + 0.004 ? ' (passou do limite)' : ''}`).join('; ') + '.',
+    vazio: 'Sem gastos nos últimos 6 meses.' };
 }
 
 /* ---------- Investimentos ---------- */
@@ -2143,7 +2474,10 @@ function renderSim(){
   for (let m = 1; m <= anos * 12; m++) { v = v * (1 + i) + ap; aport += ap; if (m % 12 === 0) pts.push({ x: m / 12, total: v, aportado: aport }); }
   const juros = v - aport, aliq = ir ? aliqIR(anos * 365) : 0, imposto = Math.max(0, juros) * aliq / 100;
   const liq = v - imposto, real = liq / Math.pow(1 + inf / 100, anos);
-  $('simChart').innerHTML = areaChart(pts);
+  const quandoAno = a => a === 0 ? 'hoje' : a + (a === 1 ? ' ano' : ' anos');
+  Graf.curvas($('simChart'), { series: [{ nome: 'Total com rendimento', valores: pts.map(p => p.total), cor: 'var(--accent)', area: true, bola: true }, { nome: 'Só o que você colocou', valores: pts.map(p => p.aportado), cor: 'var(--gold)', tracejado: true }],
+    rotuloX: quandoAno, dica: i => `${i ? 'em ' : ''}${quandoAno(i)}\n${fmt(pts[i].total)} · você colocou ${fmt(pts[i].aportado)}`,
+    resumo: `Crescimento do investimento: ${fmt(v)} em ${quandoAno(anos)}, dos quais ${fmt(aport)} colocados por você.`, vazio: 'Informe um valor inicial ou um aporte para simular.' });
   $('simOut').innerHTML = `
     <div class="r"><span>Você colocou</span><span class="num">${fmt(aport)}</span></div>
     <div class="r"><span>Rendimento</span><span class="num">${fmt(juros)}</span></div>
@@ -2257,11 +2591,12 @@ function calcFgts(){
   ]);
 }
 /* Financiamento: SAC (amortização fixa) e PRICE (parcela fixa). A correção reajusta saldo, amortização e parcela todo mês;
-   a amortização extra abate o saldo e encurta o prazo. Devolve os números de um sistema. */
+   a amortização extra abate o saldo e encurta o prazo. Devolve os números de um sistema e o saldo devedor de cada mês (saldos[0] = P). */
 function financiar(sistema, P, aa, meses, corr, extra){
   const i = taxaMes(aa), c = taxaMes(corr);
   let saldo = P, am = P / meses, parc = i > 0 ? P * i / (1 - Math.pow(1 + i, -meses)) : P / meses;
   let total = 0, juros = 0, primeira = 0, ultima = 0, m = 0;
+  const saldos = [P];
   while (saldo > 0.005 && m < 1200) {
     m++; saldo *= 1 + c; am *= 1 + c; parc *= 1 + c;
     const j = saldo * i; let a = sistema === 'sac' ? am : parc - j;
@@ -2270,17 +2605,21 @@ function financiar(sistema, P, aa, meses, corr, extra){
     const paga = a + j; saldo -= a; juros += j;
     const e = Math.min(Math.max(0, extra), saldo); saldo -= e;
     total += paga + e; if (m === 1) primeira = paga; ultima = paga;
+    saldos.push(saldo > 0.005 ? saldo : 0);
   }
-  return { primeira, ultima, total, custo: total - P, meses: m };
+  return { primeira, ultima, total, custo: total - P, meses: m, saldos };
 }
 function prazoTxt(m){ const a = Math.floor(m / 12), r = m % 12; return [a ? a + (a === 1 ? ' ano' : ' anos') : '', r ? r + (r === 1 ? ' mês' : ' meses') : ''].filter(Boolean).join(' e ') || '0 meses'; }
 function calcFin(){
   const valor = Math.max(0, numOr($('iValor').value)), P = Math.max(0, valor - Math.max(0, numOr($('iEntrada').value)));
   const aa = Math.min(200, Math.max(0, numOr($('iJuros').value))), meses = Math.min(50, Math.max(1, Math.round(numOr($('iAnos').value, 1)))) * 12;
   const corr = Math.min(100, Math.max(0, numOr($('iCorr').value))), renda = Math.max(0, numOr($('iRenda').value)), extra = Math.max(0, numOr($('iExtra').value));
+  // F: com a amortização extra (se houver); B: no prazo contratado, sem extra
+  const conta = ex => ({ sac: P > 0 ? financiar('sac', P, aa, meses, corr, ex) : null, price: P > 0 ? financiar('price', P, aa, meses, corr, ex) : null });
+  const F = conta(extra), B = extra > 0 ? conta(0) : F;
   const lado = sis => {
     if (P <= 0) return '<p class="hint">Informe o valor do imóvel e a entrada.</p>';
-    const f = financiar(sis, P, aa, meses, corr, extra), base = extra > 0 ? financiar(sis, P, aa, meses, corr, 0) : null;
+    const f = F[sis], base = extra > 0 ? B[sis] : null;
     if (!f) return '<p class="hint">Com esses números a parcela não cobre os juros.</p>';
     return `<div class="r key"><span>Primeira parcela</span><span class="num">${fmt(f.primeira)}</span></div>
       <div class="r"><span>Última parcela</span><span class="num">${fmt(f.ultima)}</span></div>
@@ -2290,7 +2629,19 @@ function calcFin(){
       ${base ? `<div class="r sub"><span>A amortização extra economiza</span><span class="num">${fmt(Math.max(0, base.total - f.total))} e ${prazoTxt(Math.max(0, base.meses - f.meses))}</span></div>` : ''}`;
   };
   $('finSac').innerHTML = lado('sac'); $('finPrice').innerHTML = lado('price');
-  const s1 = P > 0 ? financiar('sac', P, aa, meses, corr, 0) : null, p1 = P > 0 ? financiar('price', P, aa, meses, corr, 0) : null;
+  const s1 = B.sac, p1 = B.price;
+  // saldo devedor: SAC e PRICE na mesma área; com amortização extra, as curvas encurtadas e, tracejadas, as do prazo contratado
+  const series = [];
+  if (extra > 0) [['sac', 'SAC sem extra', 'var(--accent)'], ['price', 'PRICE sem extra', 'var(--gold)']].forEach(([s, nome, cor]) => { if (B[s]) series.push({ nome, valores: B[s].saldos, cor, tracejado: true }); });
+  [['sac', 'SAC', 'var(--accent)'], ['price', 'PRICE', 'var(--gold)']].forEach(([s, nome, cor]) => { if (F[s]) series.push({ nome, valores: F[s].saldos, cor }); });
+  const ultMes = Math.max(1, ...series.map(s => s.valores.length - 1)), anoTxt = a => a + (a === 1 ? ' ano' : ' anos');
+  const saldoEm = (f, i) => !f ? '—' : i < f.saldos.length ? fmt(f.saldos[i]) : 'quitado';
+  Graf.curvas($('finSaldo'), { series, alto: 190, passoPonto: 12, passoX: 12 * Math.max(1, Math.ceil(ultMes / 12 / 6)),
+    rotuloX: i => i === 0 ? 'hoje' : anoTxt(i / 12),
+    dica: i => `${i === 0 ? 'no começo' : i % 12 ? 'mês ' + i : 'depois de ' + anoTxt(i / 12)}\nSAC ${saldoEm(F.sac, i)} · PRICE ${saldoEm(F.price, i)}`,
+    legenda: [{ nome: 'SAC', cor: 'var(--accent)' }, { nome: 'PRICE', cor: 'var(--gold)' }].concat(extra > 0 ? [{ nome: 'sem a amortização extra', cor: 'var(--faint)', tracejado: true }] : []),
+    resumo: 'Saldo devedor ao longo do prazo: ' + [['SAC', F.sac], ['PRICE', F.price]].filter(x => x[1]).map(([n, f]) => `${n} quita em ${prazoTxt(f.meses)}`).join(', ') + (extra > 0 ? ', com a amortização extra.' : '.'),
+    vazio: P > 0 ? 'Com esses números a parcela não cobre os juros.' : 'Informe o valor do imóvel e a entrada para ver o saldo devedor.' });
   const acima = renda > 0 ? [['SAC', s1], ['PRICE', p1]].filter(x => x[1] && x[1].primeira > renda * 0.3) : [];
   $('finAviso').textContent = acima.length ? 'A primeira parcela passa de 30% da sua renda: ' + acima.map(x => Math.round(x[1].primeira / renda * 100) + '% no ' + x[0]).join(' e ') + '. Bancos costumam recusar acima disso.' : '';
 }
@@ -2527,7 +2878,7 @@ document.addEventListener('click', e => {
       baixarArquivo('caixinhas-lista-' + today() + '.csv', gerarCSV(gs.map(linhaGasto)), 'text/csv;charset=utf-8', 'csvBoxLista'); break;
     }
     case 'lista-toda': UI.listaToda = !UI.listaToda; renderLista(UI.mes); break;
-    case 'filtro-limpar': $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false; renderLista(UI.mes); break;
+    case 'filtro-limpar': $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false; UI.filtroDia = null; renderLista(UI.mes); break;
     case 'qm': {
       const host = b.closest('.vhead, .total, .n-arco, .folha-topo') || b.parentElement, nx = host.nextElementSibling;
       if (nx && nx.classList.contains('qmtxt') && nx.dataset.for === id) { nx.remove(); b.setAttribute('aria-expanded', 'false'); break; }
@@ -2578,9 +2929,11 @@ document.addEventListener('click', e => {
     case 'onb-fim': UI.onbReplay = false; UI.onbCx = null; S.onboarded = true; persist({ estado: true }); UI.onb = 0; renderAll(); go('inicio'); toast('Pronto! Toque em “Lançar” para o primeiro gasto.'); break;
     case 'onb-exemplo': S.onboarded = true; carregarExemplo(); break;
     case 'onb-tema': usarTema(id); renderInicio(); break;
-    case 'mes-prev': UI.mes = addMonths(UI.mes, -1); renderMes(); break;
-    case 'mes-next': UI.mes = addMonths(UI.mes, 1); renderMes(); break;
-    case 'mes-hoje': UI.mes = thisMonth(); renderMes(); break;
+    case 'mes-prev': case 'mes-next': case 'mes-hoje':
+      UI.mes = act === 'mes-hoje' ? thisMonth() : addMonths(UI.mes, act === 'mes-prev' ? -1 : 1); renderMes();
+      if (!$('v-graficos').hidden) animarGraficos($('v-graficos')); // nos Gráficos, o mês novo se desenha
+      break;
+    case 'filtro-dia-tirar': UI.filtroDia = null; renderLista(UI.mes); break;
     case 'cart-prev': UI.cart = addMonths(UI.cart, -1); renderCartao(); break;
     case 'cart-next': UI.cart = addMonths(UI.cart, 1); renderCartao(); break;
     case 'cart-hoje': UI.cart = thisMonth(); renderCartao(); break;
@@ -2808,7 +3161,6 @@ $('inOnb').addEventListener('input', e => {
 ['gValor','gData'].forEach(id => $(id).addEventListener('input', previewGasto));
 ['fBusca','fCx','fForma','fTodos'].forEach(id => $(id).addEventListener(id === 'fBusca' ? 'input' : 'change', () => renderLista(UI.mes)));
 $('fBusca').addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
-$('dGraf').addEventListener('toggle', () => { renderGraf(UI.mes); if ($('dGraf').open) animarGraficos($('grafBox')); });
 $('gCats').addEventListener('change', previewGasto);
 
 $('fRem').addEventListener('submit', e => {
@@ -3049,18 +3401,26 @@ function route(){
     renderInicio();
     if (trocou && Vis.abriu && !Mov.fila.size && Date.now() - Vis.ultima > 2000) { const a = JSON.parse(Vis.alvo || '{}'), d = Vis.dia; abertura(false, a, d); }
   }
-  if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'mes' && $('dGraf').open ? $('grafBox') : null);
+  Graf.semDica();
+  if (t === 'graficos') { if (trocou) renderGraf(UI.mes); } // à vista, ele se refaz pelo renderMes; refazer aqui cortaria a entrada (o endereço novo chama route duas vezes)
+  else if (t !== 'inicio') Graf.refazer($('v-' + t)); // gráfico desenhado com a aba escondida ganha a largura de verdade
   if (t === 'calc') renderCalc();
+  if (trocou) animarGraficos(t === 'cartao' ? $('cartProj') : t === 'calc' && UI.calc === 'sim' ? $('simChart') : t === 'graficos' ? $('v-graficos') : null);
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { if (trocou) UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); } // dentro dos Ajustes, a edição das caixinhas não se perde
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { TAB = null; route(); });
+// janela do PC mudando de tamanho, celular girando: os gráficos da aba à vista se refazem na largura nova
+let grafT = 0;
+window.addEventListener('resize', () => { Graf.semDica(); clearTimeout(grafT); grafT = setTimeout(() => Graf.refazer(document.querySelector('.view:not([hidden])')), 150); });
 window.addEventListener('popstate', () => { if (Folha.pular) { Folha.pular = false; return; } if (folhaAberta()) { fecharFolha(true); return; } TAB = null; route(); });
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
   const t = a.getAttribute('href').slice(1); if (!TABS.includes(t.split('/')[0])) return;
-  e.preventDefault(); go(t);
+  e.preventDefault();
+  if (a.hasAttribute('data-mes-atual') && UI.mes !== thisMonth()) { UI.mes = thisMonth(); renderMes(); } // o Início é sempre do mês atual: os Gráficos abrem nele
+  go(t);
 });
 
 function renderAll(){ aplicarFixos(); renderInicio(); renderMes(); renderCartao(); renderMetas(); renderCalc(); renderAjustes(); }
@@ -3168,26 +3528,6 @@ function ritmoMes(k){
   const ideal = Array.from({ length: dias }, (_, i) => r2(limite * (i + 1) / dias));
   const diff = hoje > 0 ? r2(ideal[hoje - 1] - acumulado[hoje - 1]) : 0; // positivo: abaixo do ritmo
   return { dias, hoje, limite, acumulado, ideal, diff };
-}
-/* Linha do ritmo no Início, desenhada à mão (a etapa dos Gráficos troca pela base de desenho comum).
-   W é a largura do cartão em pixels, para os textos não crescerem junto com a tela. */
-function svgRitmo(rt, W){
-  const H = 96, topo = 18, base = H - 4, ate = rt.acumulado.length;
-  const max = Math.max(rt.limite, ate ? rt.acumulado[ate - 1] : 0, 1);
-  const x = d => n2(d / rt.dias * W), y = v => n2(base - v / max * (base - topo));
-  const pts = [[0, 0]].concat(rt.acumulado.map((v, i) => [i + 1, v]));
-  const linha = 'M' + pts.map(([d, v]) => x(d) + ' ' + y(v)).join('L');
-  const [dF, vF] = pts[pts.length - 1], xF = x(dF), yF = y(vF), cor = rt.diff < -0.5 ? 'var(--over)' : 'var(--accent)';
-  const rotHoje = ate ? `<text x="${xF > W * .62 ? n2(xF - 9) : n2(xF + 9)}" y="${n2(Math.max(topo + 10, yF - 8))}" text-anchor="${xF > W * .62 ? 'end' : 'start'}" style="fill:var(--fg);font-weight:700">hoje · ${fmt0(vF)}</text>` : '';
-  const rotulo = ate ? `Gasto acumulado de ${fmt(vF)} até o dia ${dF}; no ritmo ideal seriam ${fmt(rt.ideal[ate - 1])}.` : 'Ritmo do mês ainda sem dias.';
-  return `<svg id="ritmoIni" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(rotulo)}">
-      <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--glass-line)" stroke-width="1"/>
-      <line x1="0" y1="${y(0)}" x2="${W}" y2="${y(rt.limite)}" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 5"/>
-      ${rt.limite > 0 ? `<text x="${W}" y="${n2(Math.max(10, y(rt.limite) - 6))}" text-anchor="end">limite ${fmt0(rt.limite)}</text>` : ''}
-      ${ate ? `<path d="${linha}L${xF} ${base}L0 ${base}Z" fill="${cor}" fill-opacity=".16"/>
-      <path d="${linha}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${xF}" cy="${yF}" r="4.5" fill="${cor}" stroke="var(--bg)" stroke-width="2"/>${rotHoje}` : ''}
-    </svg>`;
 }
 /* Monta o arco e os blocos. Cada pedaço aceso do arco é uma caixinha com gasto, na cor dela, do tamanho do gasto sobre o limite total;
    o que passou do limite da caixinha fica em --over. O marcador dourado mostra em que ponto do mês estamos. */
@@ -3343,10 +3683,14 @@ function celebrarMeta(id, pAntes){
     }
   }, 900);
 }
-/* Gráficos: as barras sobem em sequência com leve passada do ponto; a curva do simulador se desenha e a bolinha "pinga". */
+/* Gráficos ao entrar na tela: as barras sobem (ou crescem de lado) em sequência com leve passada do ponto; as linhas se desenham
+   e a bolinha "pinga"; as fatias da rosca correm; os dias do calendário acendem. Tudo termina sozinho e o desenho final é o real. */
 function animarGraficos(raiz){
   if (!raiz || !movLigado()) return;
   raiz.querySelectorAll('.gb').forEach(g => anima(g, [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 700, delay: (+g.dataset.i || 0) * 75, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'backwards' }));
+  raiz.querySelectorAll('.gbd').forEach(g => anima(g, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 650, delay: (+g.dataset.i || 0) * 70, easing: 'cubic-bezier(.25,1,.5,1)', fill: 'backwards' }));
+  raiz.querySelectorAll('.gr-fatia').forEach(x => anima(x, [{ strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDasharray: 1, strokeDashoffset: 0 }], { duration: 650, delay: (+x.dataset.i || 0) * 120, easing: 'cubic-bezier(.3,.6,.2,1)', fill: 'backwards' }));
+  raiz.querySelectorAll('.g-dia').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: (+x.dataset.i || 0) * 14, fill: 'backwards' }));
   raiz.querySelectorAll('.gbt').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, delay: (+x.dataset.i || 0) * 75 + 450, fill: 'backwards' }));
   raiz.querySelectorAll('.ga-tot').forEach(x => anima(x, [{ strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDasharray: 1, strokeDashoffset: 0 }], { duration: 1300, easing: 'cubic-bezier(.3,.6,.2,1)' }));
   raiz.querySelectorAll('.ga-area').forEach(x => anima(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 600, fill: 'backwards' }));
@@ -3398,9 +3742,14 @@ function renderInicio(){
   chip.hidden = !(rt.limite > 0 && rt.hoje > 0);
   chip.className = 'n-chip' + (rt.diff > 0.5 ? ' ok' : rt.diff < -0.5 ? ' over' : '');
   chip.textContent = rt.diff > 0.5 ? fmt0(rt.diff) + ' abaixo do ritmo' : rt.diff < -0.5 ? fmt0(-rt.diff) + ' acima do ritmo' : 'no ritmo';
-  const larg = $('inRitmo').clientWidth; // 0 com o Início escondido: desenha em 300 e refaz ao voltar para ele
-  $('inRitmo').innerHTML = `<div class="n-sec"><h3>Ritmo do mês</h3><span>ver gráficos ›</span></div>${svgRitmo(rt, larg > 0 ? Math.min(1000, Math.max(220, larg - 34)) : 300)}`
+  // ritmo do mês (o cartão inteiro é um link para os Gráficos: sem pontos de tocar aqui) e, no PC, os últimos 6 meses
+  const ate = rt.acumulado.length;
+  $('inRitmo').innerHTML = `<div class="n-sec"><h3>Ritmo do mês</h3><span>ver gráficos ›</span></div><div id="ritmoIni"></div>`
     + (rt.limite > 0 ? '' : '<p class="hint">Defina os limites das caixinhas para ver o ritmo ideal.</p>');
+  Graf.linha($('ritmoIni'), { serie: rt.acumulado, ideal: rt.ideal, total: rt.limite, alto: 96, marca: ate ? 'hoje · ' + fmt0(rt.acumulado[ate - 1]) : '', vazio: 'Ainda sem gastos neste mês.',
+    resumo: ate ? `Gasto acumulado de ${fmt(rt.acumulado[ate - 1])} até o dia ${ate}; no ritmo ideal seriam ${fmt(rt.ideal[ate - 1])}.` : 'Ritmo do mês ainda sem dias.' });
+  $('seisIni').innerHTML = `<div class="n-sec"><h3>Últimos 6 meses</h3><a class="link" href="#graficos" data-mes-atual>ver gráficos</a></div><div id="seisIniG"></div>`;
+  Graf.barras($('seisIniG'), Object.assign(opSeis(k), { alto: 132 }));
   const venc = aVencer(7);
   $('inVencer').hidden = !venc.length;
   $('inVencer').innerHTML = venc.length ? `<div class="vhead"><h3>A vencer</h3>${qm('vencer')}</div><div class="out">${venc.map(v =>

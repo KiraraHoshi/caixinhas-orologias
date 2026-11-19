@@ -600,11 +600,246 @@ const TESTES = {
     await p.digitar("#simAnos", "8"); await p.espera(100);
     igual(await naCurva(), 0, "mudar um campo não devia animar de novo");
   } },
-  "Gráfico do mês anima ao abrir a seção": { movimento: true, fn: async (p) => {
+  "Gráfico dos 6 meses anima ao abrir os Gráficos, e o Mês leva até eles": { movimento: true, fn: async (p) => {
     await comExemplo(p); await p.aba("mes");
-    await p.clicar("#dGraf summary"); await p.espera(60);
-    certo((await p.avaliar(() => [...document.querySelectorAll("#grafBox .gb")].reduce((a, g) => a + g.getAnimations().length, 0))) > 0, "as barras dos 6 meses não se moveram");
+    igual(await p.avaliar(() => !!document.querySelector("#dGraf, #grafBox")), false, "a sanfona antiga dos gráficos devia sair do Mês");
+    await p.clicar("#mesGraf"); await p.espera(60);
+    igual(await p.abaAtual(), "graficos", "o cartão do Mês leva aos Gráficos");
+    certo((await p.avaliar(() => [...document.querySelectorAll("#gSeis .gb")].reduce((a, g) => a + g.getAnimations().length, 0))) > 0, "as barras dos 6 meses não se moveram");
   } },
+  "Gráficos têm tela própria com cinco leituras": async (p) => {
+    await comExemplo(p); await p.aba("graficos");
+    // um id repetido faz $(id) achar o elemento errado (o gráfico das formas já tomou o lugar do campo Forma da folha)
+    igual(await p.avaliar(() => { const v = {}; document.querySelectorAll("[id]").forEach((e) => { v[e.id] = (v[e.id] || 0) + 1; }); return Object.keys(v).filter((k) => v[k] > 1).join(","); }), "", "ids repetidos na página");
+    for (const id of ["gRitmo", "gRosca", "gSeis", "gDias", "gFormas"]) {
+      const r = await p.avaliar((id) => { const s = document.querySelector("#" + id + " svg[role='img']"); if (!s) return null; const b = s.getBoundingClientRect(); return { rot: s.getAttribute("aria-label") || "", w: b.width, h: b.height, foco: document.querySelectorAll("#" + id + " [tabindex='0']").length }; }, id);
+      certo(r, "#" + id + " não tem o gráfico (svg com role=img)");
+      certo(r.w > 100 && r.h > 40, "#" + id + " não aparece: " + JSON.stringify(r));
+      certo(r.rot.length > 12, "#" + id + " sem resumo em texto para leitor de tela: " + r.rot);
+      igual(r.foco, 1, "#" + id + ": um ponto alcançável pelo Tab (os outros pelas setas)");
+    }
+    // por forma de pagamento: do maior para o menor (Crédito 120, Pix 110,40, Débito 38,90)
+    igual(await p.avaliar(() => [...document.querySelectorAll("#gFormas .g-pt")].map((x) => x.getAttribute("aria-label").split(",")[0]).join(",")), "Crédito,Pix,Débito", "formas de pagamento");
+    // as setas de mês trocam o mesmo mês do Mês
+    const mesAtual = await p.texto("#gMesLabel");
+    await p.clicar('#v-graficos [data-act="mes-prev"]');
+    const anterior = await p.texto("#gMesLabel");
+    certo(anterior && anterior !== mesAtual, "a seta não trocou o mês dos Gráficos: " + anterior);
+    await p.aba("mes");
+    igual(await p.texto("#mesLabel"), anterior, "o Mês acompanha o mês escolhido nos Gráficos");
+    await p.aba("graficos"); await p.clicar('#v-graficos [data-act="mes-hoje"]');
+    igual(await p.texto("#gMesLabel"), mesAtual, "o botão do meio volta ao mês atual");
+    // no PC, os gráficos ficam em duas colunas
+    await p.tamanho(1280, 800); await p.recarregar(); await p.aba("graficos");
+    const c = await p.avaliar(() => { const r = (id) => { const b = document.getElementById(id).closest("section").getBoundingClientRect(); return { top: Math.round(b.top), left: Math.round(b.left) }; }; return { a: r("gRosca"), b: r("gSeis") }; });
+    certo(Math.abs(c.a.top - c.b.top) < 4 && c.b.left - c.a.left > 200, "no PC a rosca e os 6 meses deviam ficar lado a lado: " + JSON.stringify(c));
+  },
+  "Rosca soma 100% e segue as caixinhas": async (p) => {
+    await comExemplo(p); await p.aba("graficos");
+    const ler = () => p.avaliar(() => ({
+      fatias: [...document.querySelectorAll("#gRosca .gr-fatia")].map((f) => f.getAttribute("stroke")),
+      leg: [...document.querySelectorAll("#gRosca .n-legenda li")].map((li) => [...li.children].map((c) => c.textContent.trim()).join(" ").replace(/\s+/g, " ").trim()),
+    }));
+    let r = await ler();
+    igual(r.fatias.join(","), "#E3C98A,#9C9BF5", "uma fatia por caixinha com gasto, na cor dela (Lazer e Dia a dia)");
+    certo(r.leg[0].includes("Lazer") && r.leg[0].includes("R$ 179,90") && r.leg[1].includes("Dia a dia") && r.leg[1].includes("R$ 89,40"), "legenda: " + r.leg.join(" | "));
+    const soma = (leg) => leg.reduce((a, t) => a + Number((/(\d+)%/.exec(t) || [0, NaN])[1]), 0);
+    certo(soma(r.leg) >= 99 && soma(r.leg) <= 101, "as porcentagens da legenda deviam somar 100: " + r.leg.join(" | "));
+    // uma caixinha nova com gasto ganha a sua fatia
+    await p.clicar("#fab"); await p.clicar('input[name="gCx"][value="objetivos"]');
+    await p.digitar("#gValor", "33,33"); await p.digitar("#gDesc", "Presente"); await p.clicar("#gBtn");
+    igual(await p.abaAtual(), "graficos", "lançar pelos Gráficos não sai da tela");
+    r = await ler();
+    igual(r.fatias.length, 3, "três caixinhas com gasto, três fatias");
+    certo(soma(r.leg) >= 99 && soma(r.leg) <= 101, "depois de lançar, a soma devia seguir 100: " + r.leg.join(" | "));
+  },
+  "Calendário: tocar no dia mostra o total e leva à lista do dia": async (p) => {
+    await comExemplo(p); await p.aba("graficos");
+    const dia = (n) => '#gDias .g-pt[data-dia="' + n + '"]';
+    // cada dia fica mais forte quanto maior o gasto: o dia 4 (R$ 120) mais forte que o dia 3 (R$ 18,50) e que um dia sem gasto
+    const forca = (n) => p.avaliar((n) => { const c = document.querySelector('#gDias .g-cel[data-dia="' + n + '"]'); return c ? Number((/(\d+(?:\.\d+)?)%/.exec(c.getAttribute("style") || "") || [0, 0])[1]) : -1; }, n);
+    const tocar = (q) => p.avaliar((q) => document.querySelector(q).dispatchEvent(new MouseEvent("click", { bubbles: true })), q).then(() => p.espera(150));
+    const [f4, f3, f1] = [await forca(4), await forca(3), await forca(1)];
+    certo(f4 > f3 && f3 > 0, "intensidade dos dias 4 e 3: " + f4 + " e " + f3);
+    certo(f1 >= 0 && f1 < f3, "um dia sem gasto devia ser o mais fraco: " + f1);
+    await p.avaliar((q) => document.querySelector(q).dispatchEvent(new PointerEvent("pointerenter")), dia(4));
+    certo(await p.visivel("#grafDica"), "a etiqueta não apareceu ao tocar no dia");
+    certo((await p.texto("#grafDica")).includes("R$ 120,00"), "total do dia na etiqueta: " + await p.texto("#grafDica"));
+    await tocar(dia(4));
+    igual(await p.abaAtual(), "mes", "tocar no dia leva ao Mês");
+    const lista = await p.texto("#mesLista");
+    certo(lista.includes("Show com amigos") && !lista.includes("Uber") && !lista.includes("Livro"), "a lista devia ter só os gastos do dia 4: " + lista);
+    certo((await p.texto("#fResumo")).includes("R$ 120,00"), "o total do dia na lista: " + await p.texto("#fResumo"));
+    certo(await p.visivel("#fDia"), "a lista devia dizer que está filtrada pelo dia");
+    await p.clicar('[data-act="filtro-limpar"]');
+    const tudo = await p.texto("#mesLista");
+    certo(tudo.includes("Uber") && tudo.includes("Livro"), "limpar os filtros devia trazer o mês inteiro de volta: " + tudo);
+    igual(await p.visivel("#fDia"), false, "o filtro do dia some ao limpar");
+    // trocar de mês também tira o filtro do dia
+    await p.aba("graficos"); await tocar(dia(4));
+    certo(await p.visivel("#fDia"), "tocar no dia de novo filtra de novo");
+    await p.clicar('#v-mes [data-act="mes-prev"]');
+    igual(await p.visivel("#fDia"), false, "o filtro do dia não passa para outro mês");
+  },
+  "Tocar num ponto mostra o valor": async (p) => {
+    await comExemplo(p); await p.aba("graficos");
+    const fechar = () => p.avaliar(() => document.querySelector("#v-graficos h2").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+    for (const q of ['#gRitmo .g-pt[tabindex="0"]', "#gRosca .g-pt", "#gSeis .g-pt:last-child", '#gDias .g-pt[data-dia="4"]', "#gFormas .g-pt"]) {
+      await fechar();
+      igual(await p.visivel("#grafDica"), false, "a etiqueta devia sumir ao tocar fora (" + q + ")");
+      certo(await p.avaliar((q) => { const e = document.querySelector(q); if (!e) return false; e.dispatchEvent(new PointerEvent("pointerenter")); return true; }, q), "não achei o ponto " + q);
+      certo(await p.visivel("#grafDica"), "pointerenter não mostrou a etiqueta em " + q);
+      const t1 = await p.texto("#grafDica");
+      certo(t1.includes("R$"), "a etiqueta devia ter o valor em " + q + ": " + t1);
+      await fechar();
+      await p.avaliar((q) => document.querySelector(q).focus(), q);
+      certo(await p.visivel("#grafDica"), "o foco não mostrou a etiqueta em " + q);
+      igual(await p.texto("#grafDica"), t1, "a mesma etiqueta pelo foco em " + q);
+      const rot = await p.avaliar((q) => document.querySelector(q).getAttribute("aria-label"), q);
+      certo(rot && rot.includes("R$"), "o ponto devia ter o valor em texto para leitor de tela: " + rot);
+    }
+    // uma etiqueta só, reaproveitada
+    igual(await p.avaliar(() => document.querySelectorAll("#grafDica, .n-dica").length), 1, "etiquetas na página");
+    // teclado: as setas andam entre os pontos do mesmo gráfico
+    await p.avaliar(() => document.querySelector("#gSeis .g-pt").focus());
+    await tecla(p, "ArrowRight");
+    igual(await p.avaliar(() => document.activeElement.dataset.i + "/" + document.activeElement.getAttribute("tabindex")), "1/0", "a seta para a direita vai ao próximo mês");
+    igual(await p.avaliar(() => document.querySelectorAll('#gSeis [tabindex="0"]').length), 1, "só um ponto do gráfico fica no Tab");
+    await p.avaliar(() => document.querySelector('#gDias .g-pt[data-dia="4"]').focus());
+    await tecla(p, "ArrowDown");
+    igual(await p.avaliar(() => document.activeElement.dataset.dia), "11", "no calendário, a seta para baixo desce uma semana");
+  },
+  "Gráficos de mês vazio mostram convite, sem NaN": async (p) => {
+    const casos = [
+      ["mês sem lançamento", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Casa", cor: "#9C9BF5" }], limitesPadrao: { a: 1000 } }],
+      ["sem caixinhas", { onboarded: true, guiaVisto: true, caixinhas: [], limitesPadrao: {} }],
+      ["caixinha sem limite", { onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Avulsos", cor: "#9C9BF5" }], limitesPadrao: { a: 0 } }],
+      ["mês futuro", null],
+    ];
+    for (const [nome, estado] of casos) {
+      if (estado) { await p.avaliar((e) => localStorage.setItem("caixinhas-orologia-v1", JSON.stringify(e)), estado); await p.recarregar(); await p.aba("graficos"); }
+      else { await p.avaliar(() => localStorage.clear()); await p.recarregar(); await comExemplo(p); await p.aba("graficos"); await p.clicar('#v-graficos [data-act="mes-next"]'); }
+      const r = await p.avaliar(() => {
+        const v = document.querySelector("#v-graficos");
+        const attrs = [...v.querySelectorAll("*")].flatMap((e) => [...e.attributes].map((a) => a.value)).filter((x) => /NaN|Infinity|undefined/.test(x));
+        const cont = ["gRitmo", "gRosca", "gSeis", "gDias", "gFormas"].map((id) => { const e = document.getElementById(id); const vis = e && e.getClientRects().length > 0; return vis && !e.querySelector("svg, .n-vazio") ? id : ""; }).filter(Boolean);
+        return { txt: (v.textContent.match(/.{0,30}(NaN|Infinity|undefined).{0,30}/) || [""])[0], attrs: attrs.join(" | "), vazios: cont.join(",") };
+      });
+      igual(r.txt, "", "texto quebrado nos Gráficos (" + nome + ")");
+      igual(r.attrs, "", "atributos quebrados nos Gráficos (" + nome + ")");
+      igual(r.vazios, "", "gráfico à vista sem desenho nem estado vazio (" + nome + ")");
+      certo(await p.visivel("#gConvite.n-vazio"), "o convite a lançar devia aparecer (" + nome + ")");
+      certo(await p.visivel('#gConvite [data-act="gasto-novo"]'), "o convite devia ter o botão de lançar (" + nome + ")");
+    }
+    await p.clicar('#gConvite [data-act="gasto-novo"]');
+    certo(await p.visivel("#fGasto"), "o convite abre a folha de lançar");
+  },
+  "Financiamento mostra o saldo devedor de SAC e PRICE": async (p) => {
+    await comExemplo(p); await calc(p, "fin");
+    await p.digitar("#iValor", "250000"); await p.digitar("#iEntrada", "50000"); await p.digitar("#iJuros", "12,682503"); await p.digitar("#iAnos", "20");
+    await p.digitar("#iCorr", "0"); await p.digitar("#iRenda", ""); await p.digitar("#iExtra", "");
+    const curvas = () => p.avaliar(() => {
+      const b = document.querySelector("#finSaldo .g-base"), base = b ? Number(b.getAttribute("y1")) : NaN;
+      return [...document.querySelectorAll("#finSaldo path[data-serie]")].map((c) => { const n = c.getAttribute("d").match(/-?\d+(\.\d+)?/g).map(Number); return { nome: c.dataset.serie, x: n[n.length - 2], y: n[n.length - 1], base }; });
+    });
+    let c = await curvas();
+    certo(await p.avaliar(() => document.querySelectorAll("#finSaldo path").length) >= 2, "o gráfico do saldo devedor devia ter as duas curvas");
+    igual(c.map((x) => x.nome).sort().join(","), "PRICE,SAC", "curvas sem amortização extra");
+    for (const x of c) certo(Math.abs(x.y - x.base) < 0.5, "a curva " + x.nome + " devia terminar em zero: " + JSON.stringify(x));
+    certo(Math.abs(c[0].x - c[1].x) < 0.5, "sem extra, as duas terminam no fim do prazo: " + JSON.stringify(c));
+    await p.digitar("#iExtra", "500");
+    c = await curvas();
+    const por = Object.fromEntries(c.map((x) => [x.nome, x]));
+    certo(por["SAC"] && por["PRICE"] && por["SAC sem extra"] && por["PRICE sem extra"], "com extra: as curvas encurtadas e as do prazo contratado: " + c.map((x) => x.nome).join(","));
+    for (const x of c) certo(Math.abs(x.y - x.base) < 0.5, "a curva " + x.nome + " devia terminar em zero: " + JSON.stringify(x));
+    certo(por["SAC"].x < por["SAC sem extra"].x - 5 && por["PRICE"].x < por["PRICE sem extra"].x - 5, "com extra, a curva termina antes: " + JSON.stringify(c));
+    certo(await p.avaliar(() => { const e = document.querySelector("#finSaldo .g-pt"); if (!e) return false; e.dispatchEvent(new PointerEvent("pointerenter")); return true; }), "o saldo devedor devia ter pontos para tocar");
+    certo((await p.texto("#grafDica")).includes("R$"), "tocar no saldo devedor mostra o valor: " + await p.texto("#grafDica"));
+    await p.digitar("#iValor", "0");
+    certo(!/NaN|Infinity|undefined/.test(await p.avaliar(() => document.querySelector("#finSaldo").innerHTML)), "saldo devedor quebrado sem valor");
+  },
+  "Gráficos novos se desenham ao entrar e terminam iguais": { movimento: true, fn: async (p) => {
+    await comExemplo(p); await p.aba("graficos"); await p.espera(40);
+    const ids = ["gRitmo", "gRosca", "gSeis", "gDias", "gFormas"];
+    const vivas = await p.avaliar((ids) => ids.map((id) => id + ":" + document.getElementById(id).getAnimations({ subtree: true }).length), ids);
+    for (const v of vivas) certo(Number(v.split(":")[1]) > 0, "o gráfico não se desenhou ao entrar: " + vivas.join(" "));
+    const antes = await p.avaliar(() => document.querySelector("#v-graficos").innerHTML);
+    await p.espera(2600);
+    igual(await animando(p), 0, "animações que não terminaram (nada anima em laço)");
+    igual(await p.avaliar(() => document.querySelector("#v-graficos").innerHTML), antes, "o desenho no fim devia ser o mesmo do começo");
+    const fim = await p.avaliar(() => ({
+      fatias: [...document.querySelectorAll("#gRosca .gr-fatia")].map((f) => getComputedStyle(f).strokeDashoffset).join(","),
+      dias: [...document.querySelectorAll("#gDias .g-dia")].filter((c) => getComputedStyle(c).opacity !== "1").length,
+      barras: [...document.querySelectorAll("#v-graficos .gb, #v-graficos .gbd")].filter((g) => getComputedStyle(g).transform !== "none").length,
+    }));
+    certo(/^(0px,?)+$/.test(fim.fatias), "as fatias deviam terminar inteiras: " + fim.fatias);
+    igual(fim.dias, 0, "dias do calendário que não terminaram de aparecer");
+    igual(fim.barras, 0, "barras que não terminaram de crescer");
+    // sair e voltar desenha de novo; ficar parado não anima nada
+    await p.aba("mes"); await p.aba("graficos"); await p.espera(40);
+    certo((await p.avaliar(() => document.getElementById("gSeis").getAnimations({ subtree: true }).length)) > 0, "voltar aos Gráficos devia desenhar de novo");
+  } },
+  "Gráficos legíveis: textos sem sobrepor nem cortar, nos temas noite e dia (prints)": async (p) => {
+    // meses com dados, um estourado, nome comprido de caixinha e de forma de pagamento, valores grandes
+    await p.avaliar(() => {
+      const pad = (n) => String(n).padStart(2, "0"), d = new Date();
+      const mes = (i) => { const x = new Date(d.getFullYear(), d.getMonth() + i, 1); return x.getFullYear() + "-" + pad(x.getMonth() + 1); };
+      const caixinhas = [{ id: "lazer", nome: "Lazer", cor: "#E3C98A" }, { id: "dia", nome: "Dia a dia", cor: "#9C9BF5" }, { id: "mercado", nome: "Supermercado, padaria e feiras", cor: "#8FD3B4" }, { id: "obj", nome: "Objetivos", cor: "#C9A6F5" }];
+      const formas = ["Pix", "Crédito", "Débito", "Vale-refeição do trabalho", "Dinheiro"];
+      const meses = {}; let n = 0;
+      for (let i = -5; i <= 0; i++) {
+        const k = mes(i), fator = i === -2 ? 1.6 : i === 0 ? 1.25 : 0.7 + (i + 5) * 0.05, ate = i === 0 ? Math.max(1, d.getDate()) : 28;
+        const gastos = [];
+        for (let j = 0; j < 14; j++) gastos.push({ id: "g" + n++, valor: Math.round((20 + ((j * 37) % 140)) * fator * 100) / 100 * (j === 3 && (i === 0 || i === -2) ? 12 : 1), descricao: "Gasto " + j, caixinha: caixinhas[j % 4].id, forma: formas[j % 5], data: k + "-" + pad(1 + ((j * 5) % ate)) });
+        meses[k] = { gastos };
+      }
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas, limitesPadrao: { lazer: 700, dia: 500, mercado: 900, obj: 300 }, meses }));
+    });
+    const ruins = (sel) => p.avaliar((sel) => {
+      const saida = [];
+      document.querySelectorAll(sel + " svg.n-graf-d").forEach((s) => {
+        if (!s.getClientRects().length) return;
+        const caixa = s.getBoundingClientRect(), dono = s.closest("[id]").id;
+        const ts = [...s.querySelectorAll("text")].filter((t) => t.textContent.trim() && getComputedStyle(t).visibility !== "hidden").map((t) => ({ t: t.textContent, r: t.getBoundingClientRect() }));
+        ts.forEach((a, i) => {
+          if (a.r.left < caixa.left - 1 || a.r.right > caixa.right + 1 || a.r.top < caixa.top - 1 || a.r.bottom > caixa.bottom + 1) saida.push(dono + ": \"" + a.t + "\" sai da caixa");
+          ts.slice(i + 1).forEach((b) => { const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left), h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top); if (w > 1 && h > 1) saida.push(dono + ": \"" + a.t + "\" cobre \"" + b.t + "\""); });
+        });
+      });
+      document.querySelectorAll(sel + " .n-legenda li, " + sel + " .n-vazio").forEach((li) => { if (li.getClientRects().length && li.scrollWidth > li.clientWidth + 1) saida.push("legenda estoura: " + li.textContent.trim()); });
+      return saida;
+    }, sel);
+    const larga = () => p.avaliar(() => { const s = document.createElement("style"); s.id = "fonteLarga"; s.textContent = ".n-graf text,.n-legenda{letter-spacing:.06em}"; document.head.appendChild(s); });
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
+        await p.tamanho(w, h); await p.recarregar();
+        for (const [caso, ir] of [["estourado", null], ["anterior", "mes-prev"], ["vazio", "mes-next"]]) {
+          await p.aba("graficos"); await p.clicar('#v-graficos [data-act="mes-hoje"]');
+          if (ir) await p.clicar('#v-graficos [data-act="' + ir + '"]');
+          if (w === 320) await larga(); // a fonte do Linux é mais larga: os textos precisam de folga
+          const sobra = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth);
+          certo(sobra <= 0, `os Gráficos passam ${sobra}px da largura em ${w}px (${caso}, ${tema})`);
+          const r = await ruins("#v-graficos");
+          igual(r.join(" | "), "", `textos dos Gráficos em ${w}px (${caso}, ${tema})`);
+          await p.print(`22-graficos-${caso}-${tema}-${w}`, true);
+        }
+        await calc(p, "fin"); await p.digitar("#iExtra", "800");
+        if (w === 320) await larga();
+        igual((await ruins("#c-fin")).join(" | "), "", `textos do saldo devedor em ${w}px (${tema})`);
+        await p.avaliar(() => document.querySelector("#finSaldo").scrollIntoView({ block: "center" }));
+        await p.print(`22-financiamento-${tema}-${w}`);
+        await p.digitar("#iExtra", "");
+        await p.aba("cartao"); igual((await ruins("#v-cartao")).join(" | "), "", `textos das próximas faturas em ${w}px (${tema})`);
+        await calc(p, "sim"); igual((await ruins("#c-sim")).join(" | "), "", `textos do simulador em ${w}px (${tema})`);
+        await p.aba("inicio"); igual((await ruins("#v-inicio")).join(" | "), "", `textos dos gráficos do Início em ${w}px (${tema})`);
+        if (w === 1280) {
+          certo(await p.visivel("#seisIni svg"), "no PC o Início mostra os últimos 6 meses");
+          await p.print(`22-inicio-pc-${tema}`, true);
+        }
+      }
+    }
+  },
   "Cartões: avisa que não se digita dado do cartão": async (p) => {
     await p.aba("cartao");
     certo((await p.texto("#ktAviso")).includes("nunca pede número, validade nem código de segurança"), "faltou o aviso no cadastro de cartões");
@@ -670,8 +905,8 @@ const TESTES = {
   "Sem movimento: nada anima": async (p) => {
     await comExemplo(p);
     igual(await p.texto("#inSobra"), "R$ 1.230,70", "sobra pronta, sem contar");
-    for (const t of ["inicio", "cartao", "metas", "mes"]) {
-      await p.aba(t); if (t === "mes") await p.clicar("#dGraf summary");
+    for (const t of ["inicio", "cartao", "metas", "mes", "graficos"]) {
+      await p.aba(t); if (t === "graficos") await p.clicar('#v-graficos [data-act="mes-prev"]'); // trocar o mês redesenha os gráficos
       igual(await p.avaliar(() => document.getAnimations().filter((a) => !a.animationName || !a.animationName.startsWith("fl-")).length), 0, "animações na aba " + t);
     }
   },
@@ -930,15 +1165,17 @@ const TESTES = {
     const tops = () => p.avaliar(() => Object.fromEntries(["inResumo", "inCx", "inRitmo", "inFatura", "inMetas", "inUltimos"].map((id) => [id, Math.round(document.getElementById(id).getBoundingClientRect().top)]).concat([["atalhos", Math.round(document.querySelector("#v-inicio .atalhos").getBoundingClientRect().top)]])));
     const t360 = await tops();
     certo(t360.inResumo < t360.inCx && t360.inCx < t360.inRitmo && t360.inRitmo < t360.inFatura && t360.inFatura < t360.inMetas && t360.inMetas < t360.inUltimos && t360.inUltimos < t360.atalhos, "ordem do Início no celular: " + JSON.stringify(t360));
+    igual(await p.visivel("#seisIni"), false, "no celular o Últimos 6 meses fica só nos Gráficos");
     await p.tamanho(1280, 800); await p.recarregar();
     certo(await p.avaliar(() => !!document.querySelector("#v-inicio .n-cols")), "o Início devia ter o contêiner de colunas .n-cols");
     const r = await p.avaliar(() => { const a = document.querySelector("#arco").getBoundingClientRect(), c = document.querySelector("#inCx").getBoundingClientRect(); return { aL: a.left, aT: a.top, cL: c.left, cT: c.top }; });
     certo(r.cL - r.aL > 200, "o arco e as caixinhas deviam ficar lado a lado: " + JSON.stringify(r));
     certo(Math.abs(r.aT - r.cT) < 80, "o arco e as caixinhas deviam começar na mesma altura: " + JSON.stringify(r));
-    // coluna esquerda: arco, ritmo, últimos 6 meses (vazio e escondido até os gráficos); direita: caixinhas, A vencer, últimos gastos
+    // coluna esquerda: arco, ritmo, últimos 6 meses; direita: caixinhas, A vencer, últimos gastos
     const col = await p.avaliar(() => Object.fromEntries(["inResumo", "inRitmo", "seisIni", "inCx", "inVencer", "inUltimos"].map((id) => { const e = document.getElementById(id); return [id, e ? e.parentElement.dataset.col || "" : "falta"]; })));
     igual(JSON.stringify(col), JSON.stringify({ inResumo: "esq", inRitmo: "esq", seisIni: "esq", inCx: "dir", inVencer: "dir", inUltimos: "dir" }), "colunas do Início");
-    igual(await p.avaliar(() => document.querySelector("#seisIni").hidden), true, "o Últimos 6 meses fica escondido até a etapa dos gráficos");
+    certo(await p.visivel("#seisIni svg[role='img']"), "no PC o Início mostra os Últimos 6 meses");
+    igual(await p.avaliar(() => document.querySelectorAll("#seisIni .gb").length), 6, "seis barras, uma por mês");
     // no PC as caixinhas ficam em grade, sem rolar de lado
     const g = await p.avaliar(() => { const b = [...document.querySelectorAll("#inCx .n-bloco")].map((x) => x.getBoundingClientRect()); const f = document.querySelector("#inCx .n-blocos"); return { linhas: new Set(b.map((x) => Math.round(x.top))).size, rola: f.scrollWidth > f.clientWidth + 1 }; });
     certo(g.linhas >= 2 && !g.rola, "as caixinhas deviam ficar em grade no PC: " + JSON.stringify(g));
