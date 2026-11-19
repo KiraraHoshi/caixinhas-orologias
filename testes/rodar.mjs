@@ -1822,6 +1822,45 @@ const TESTES = {
     await p.clicar('#temaBox [data-tm="usar"][data-id="dia"]');
     igual(await p.avaliar(() => window.__barras.length), 0, "no site nenhum estilo de barra é pedido");
   },
+  // Em WebView anterior à 140 a página não passa por trás da barra: a faixa mostra o fundo da janela nativa, que segue o modo
+  // claro/escuro do sistema. Aí o app pede "DEFAULT" (o plugin escolhe os ícones pelo modo do sistema), não o estilo do tema.
+  "Android: em WebView anterior à 140 a barra segue o modo do sistema, não o tema": { nativo: true, fn: async (p) => {
+    const ua = (v) => `Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 ${v} Mobile Safari/537.36" });`;
+    const estilos = () => p.avaliar(() => window.__nativo.barras.map((b) => b.style));
+    const ultimo = async () => (await estilos()).pop() || null;
+    await p.injetar(ua("Chrome/130.0.6723.107")); await p.recarregar();
+    await comExemplo(p);
+    igual(await ultimo(), "DEFAULT", "tema escuro numa WebView 130");
+    await p.aba("ajustes/aparencia");
+    for (const id of ["dia", "g-lirio", "noite"]) { await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]'); igual(await ultimo(), "DEFAULT", "tema " + id + " numa WebView 130"); }
+    certo((await estilos()).every((s) => s === "DEFAULT"), "nada pede LIGHT/DARK numa WebView 130: " + JSON.stringify(await estilos()));
+    // 140 ou mais: o estilo segue o tema, como antes
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-lirio", meus: [] })));
+    await p.injetar(ua("Chrome/140.0.7339.51")); await p.recarregar();
+    igual(await ultimo(), "LIGHT", "tema claro numa WebView 140");
+    // versão ilegível: fica como antes (segue o tema)
+    await p.injetar(ua("Navegador/1")); await p.recarregar();
+    igual(await ultimo(), "LIGHT", "tema claro sem versão legível");
+  } },
+  "Fundo de reserva sem color-mix na folha de lançar e no aviso": async (p) => {
+    // navegador sem color-mix descarta a declaração inteira: a regra de base precisa de um fundo simples antes
+    const r = await p.avaliar(() => {
+      const achou = {};
+      for (const f of document.styleSheets) for (const regra of f.cssRules) {
+        if (!regra.style || (regra.selectorText !== ".folha-caixa" && regra.selectorText !== ".toast")) continue;
+        const v = regra.style.getPropertyValue("background") || regra.style.getPropertyValue("background-color");
+        if (v && !v.includes("color-mix")) achou[regra.selectorText] = v.trim();
+      }
+      return achou;
+    });
+    igual(r[".folha-caixa"], "var(--surface)", "fundo simples da folha de lançar");
+    igual(r[".toast"], "var(--surface2)", "fundo simples do aviso");
+  },
+  "Gastos fixos: a linha mostra o dia, a caixinha e a forma separados": async (p) => {
+    await semearContas(p); await p.recarregar();
+    const sub = await p.avaliar(() => { const i = [...document.querySelectorAll("#fixosLista .item")].find((x) => x.textContent.includes("Internet")); return i ? i.querySelector(".sub").textContent : null; });
+    certo(/^todo dia \d+ · Contas · Pix$/.test(sub || ""), "texto da linha do fixo: " + JSON.stringify(sub));
+  },
   "Android: o botão de apoio pelo GitHub não aparece no app": { nativo: true, fn: async (p) => {
     await comExemplo(p);
     // links de apoio (a tela Apoie e o GitHub Sponsors) que aparecem na tela

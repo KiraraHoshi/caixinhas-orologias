@@ -101,12 +101,15 @@ function leveLigado(){ return estado.leve === 'auto' || estado.leve === 'sim'; }
 function aplicarLeve(){ var r = document.documentElement; if (leveLigado()) r.setAttribute('data-leve', ''); else r.removeAttribute('data-leve'); }
 /* No app Android a página passa por trás das barras do sistema: os ícones delas (relógio, bateria, navegação) seguem o tema.
    Plugin SystemBars do Capacitor: "DARK" = ícones claros (tema escuro), "LIGHT" = ícones escuros (tema claro); sem "bar", vale
-   para as duas barras. Só no app; sem o plugin (site, versão antiga) não faz nada e nunca quebra. Repete só quando o estilo muda. */
+   para as duas barras. Só no app; sem o plugin (site, versão antiga) não faz nada e nunca quebra. Repete só quando o estilo muda.
+   WebView anterior à 140: a página não passa por trás da barra, e a faixa mostra o fundo da janela nativa, que segue o modo
+   claro/escuro do sistema (não o tema). Aí vale "DEFAULT": o plugin escolhe os ícones pelo modo do sistema. Versão ilegível: como 140+. */
 var barraFeita = null, barrasPlugin;
+function webviewAntiga(){ var m = /Chrome\/(\d+)/.exec(navigator.userAgent || ''); return !!m && Number(m[1]) < 140; }
 function estiloBarras(t){
   try {
     var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
-    var estilo = escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) return;
+    var estilo = webviewAntiga() ? 'DEFAULT' : escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) return;
     if (barrasPlugin === undefined) barrasPlugin = (C.Plugins && C.Plugins.SystemBars) || (C.registerPlugin ? C.registerPlugin('SystemBars') : null) || null;
     if (!barrasPlugin || typeof barrasPlugin.setStyle !== 'function') return;
     var r = barrasPlugin.setStyle({ style: estilo }); barraFeita = estilo;
@@ -320,7 +323,7 @@ table.mini input{padding:6px 8px;min-width:80px}
 .icon:disabled{opacity:.35;cursor:default}
 .cx-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .cx-row:last-child{border-bottom:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 30px + var(--base));z-index:30;background:var(--surface2);color:var(--fg);border-radius:999px;font-size:.88rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
 textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:120px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 .support{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
@@ -417,7 +420,7 @@ html[data-trava] body{overflow:hidden}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
-.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+.folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
 .folha-topo{display:flex;align-items:center;gap:6px}
 .folha-topo .icon{margin-left:auto}
@@ -2360,7 +2363,7 @@ function renderFixos(){
       <span class="dot" style="background:${esc(corOk(cx(f.caixinha).cor))}"></span>
       <span class="desc">${esc(f.desc)}</span>
       <span class="val num">${fmt(f.valor)}</span>
-      <span class="sub">todo dia ${Number(f.dia)} ·${esc(cx(f.caixinha).nome)} · ${esc(f.forma || '')}</span>
+      <span class="sub">todo dia ${Number(f.dia)} · ${esc(cx(f.caixinha).nome)} · ${esc(f.forma || '')}</span>
       <span class="act"><button class="link ${UI.armed === 'f:' + f.id ? 'armed' : ''}" type="button" data-act="del-fixo" data-id="${esc(f.id)}">${UI.armed === 'f:' + f.id ? 'Toque de novo' : 'Remover'}</button></span>
     </div>`).join('') : `<p class="empty">Nenhum gasto fixo cadastrado.</p>`;
 }
