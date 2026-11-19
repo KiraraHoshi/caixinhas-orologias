@@ -12,9 +12,12 @@ var BASE = {
   dia: { id:'dia', nome:'Orologia Dia', fundo:'#F2F0F7', card:'#FFFFFF', texto:'#1E1A2B', suave:'#5E5874', destaque:'#5A50D6', secundaria:'#8C5E14', raio:14, fonte:'padrao', fixo:true,
     extra:{ '--surface2':'#F6F4FA', '--deep':'#EAE7F2', '--line':'#D6D1E3', '--track':'#E3DFEC', '--faint':'#767090', '--accent-ink':'#FFFFFF', '--tint':'#C8C2F2', '--ok':'#1F7A55', '--warn':'#8F5400', '--over':'#C42848' } }
 };
-/* Galeria: os mesmos temas da galeria do Orolon Player (pasta temas/ de lá), embutidos para funcionar offline. */
-function G(id, nome, fundo, card, texto, suave, destaque, secundaria, raio, fonte){
-  return { id:'g-' + id, nome:nome, fundo:fundo, card:card, texto:texto, suave:suave, destaque:destaque, secundaria:secundaria, raio:raio, fonte:fonte, fixo:true, galeria:true };
+/* Galeria: os seis primeiros são os mesmos da galeria do Orolon Player (pasta temas/ de lá), embutidos para funcionar offline.
+   Os da 2.0 (Ametista em diante) trazem o "brilho" próprio. Todos são livres; os identificadores não mudam (o tema escolhido fica salvo por eles). */
+function G(id, nome, fundo, card, texto, suave, destaque, secundaria, raio, fonte, brilho){
+  var t = { id:'g-' + id, nome:nome, fundo:fundo, card:card, texto:texto, suave:suave, destaque:destaque, secundaria:secundaria, raio:raio, fonte:fonte, fixo:true, galeria:true };
+  if (brilho) t.brilho = brilho;
+  return t;
 }
 var GALERIA = [
   G('brasa', 'Brasa', '#17100C', '#241812', '#F7EBDD', '#B59E8A', '#FF8A3D', '#F2D7A6', 12, 'padrao'),
@@ -22,7 +25,14 @@ var GALERIA = [
   G('folha', 'Folha', '#F1F4EA', '#FFFFFF', '#1C2414', '#5F6B52', '#3F7A14', '#B5560F', 18, 'padrao'),
   G('mare', 'Maré', '#0A1418', '#12222A', '#E6F4F6', '#8FB0B8', '#4FD1E0', '#F06A86', 20, 'padrao'),
   G('meia-noite', 'Meia-noite', '#000000', '#101014', '#F2F2F5', '#9A9AA8', '#7C9BFF', '#E3C98A', 14, 'sistema'),
-  G('papel', 'Papel', '#F3F1EC', '#FFFEFB', '#22201C', '#6B665C', '#2F5FA8', '#9A4B2F', 6, 'serifada')
+  G('papel', 'Papel', '#F3F1EC', '#FFFEFB', '#22201C', '#6B665C', '#2F5FA8', '#9A4B2F', 6, 'serifada'),
+  // 2.0: três escuros e três claros
+  G('ametista', 'Ametista', '#160D1A', '#24162A', '#F6EAF7', '#BBA2C1', '#D98CF0', '#F0C98C', 16, 'padrao', '#7E3496'),
+  G('musgo', 'Musgo', '#0D150F', '#16231A', '#EAF3EB', '#9DB5A3', '#B4D778', '#E8B979', 18, 'padrao', '#3C6B2E'),
+  G('grafite', 'Grafite', '#131416', '#1D1F22', '#ECEDEF', '#A3A7AD', '#6FDCC1', '#F0B88A', 10, 'sistema', '#2C5F56'),
+  G('areia', 'Areia', '#F4EEE4', '#FFFCF6', '#2A2119', '#6B5E50', '#B0502A', '#2E7468', 14, 'padrao', '#E9B892'),
+  G('nevoa', 'Névoa', '#EBEFF3', '#FAFBFC', '#18202A', '#536070', '#3D6D9C', '#9A5B3C', 12, 'padrao', '#A8C2DA'),
+  G('lirio', 'Lírio', '#F8EEF2', '#FFFFFF', '#2A1822', '#6E5663', '#A33D86', '#8A5A12', 20, 'padrao', '#EBAACD')
 ];
 var FONTES = {
   padrao:  { n:'Orologia',   d:'"Cinzel", Constantia, Georgia, serif', b:'"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif' },
@@ -37,28 +47,52 @@ function mix(a,b,t){ var x = rgb(a), y = rgb(b); return '#' + x.map(function(v,i
 function lum(h){ var c = rgb(h).map(function(v){ v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }); return .2126*c[0] + .7152*c[1] + .0722*c[2]; }
 function contraste(a,b){ var x = lum(a), y = lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
 function escuro(t){ return lum(t.fundo) < .2; }
+/* Cor do clarão do fundo: o campo opcional "brilho" do tema; sem ele (temas da 1.9 e do Orolon Player), derivada do destaque. */
+function brilhoDe(t){ return t.brilho || mix(t.destaque, t.fundo, .35); }
+/* Ponta final do degradê do + (e do "+ Lançar"): no tema escuro, a secundária (o dourado); no claro, o dourado é escuro de propósito
+   (contraste com o fundo claro) e o degradê roxo → marrom ficava sujo: ali vale o próprio destaque, mais fundo. O ícone (--accent-ink)
+   precisa ler nas duas pontas; se não ler, o degradê vira cor única. */
+function fabFim(t, tinta){
+  if (escuro(t) && contraste(tinta, t.secundaria) >= 3) return t.secundaria;
+  var fundo = mix(t.destaque, t.texto, .28);
+  return contraste(tinta, fundo) >= 3 ? fundo : t.destaque;
+}
 function tokens(t){
-  var e = escuro(t), v = {
+  var e = escuro(t), tinta = contraste('#FFFFFF', t.destaque) >= contraste('#110E18', t.destaque) ? '#FFFFFF' : '#110E18', v = {
     '--bg':t.fundo, '--surface':t.card, '--fg':t.texto, '--muted':t.suave, '--accent':t.destaque, '--gold':t.secundaria,
     '--surface2':mix(t.card, t.texto, .05), '--deep':e ? mix(t.fundo, '#000000', .35) : mix(t.fundo, t.texto, .05),
     '--line':mix(t.card, t.texto, e ? .16 : .15), '--track':mix(t.card, t.texto, .09), '--faint':mix(t.suave, t.fundo, .3),
-    '--accent-ink':contraste('#FFFFFF', t.destaque) >= contraste('#110E18', t.destaque) ? '#FFFFFF' : '#110E18',
+    '--accent-ink':tinta,
     '--tint':mix(t.destaque, t.fundo, e ? .55 : .7),
-    '--ok':e ? '#8FD3B4' : '#1F7A55', '--warn':e ? '#F2B45A' : '#8F5400', '--over':e ? '#FF5C7A' : '#C42848'
+    '--ok':e ? '#8FD3B4' : '#1F7A55', '--warn':e ? '#F2B45A' : '#8F5400', '--over':e ? '#FF5C7A' : '#C42848',
+    /* Visual 2.0: clarão parado do fundo e cartões de vidro, sempre calculados das cores do tema (funcionam em tema claro e escuro). */
+    '--glow':brilhoDe(t),
+    '--glass':'color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) ' + (e ? 55 : 72) + '%, transparent))',
+    '--glass-line':'color-mix(in srgb, var(--fg) ' + (e ? 12 : 14) + '%, transparent)'
   };
+  v['--fab-fim'] = fabFim(t, tinta);
+  /* Por último, os ajustes finos dos temas de fábrica (extra: hoje só Noite e Dia). Vêm depois de tudo de propósito, para um tema de
+     fábrica poder acertar qualquer variável, inclusive as do visual 2.0. Tema importado nunca tem extra (validar não o copia);
+     a cor do clarão de um tema vem sempre do campo "brilho". */
   if (t.extra) for (var k in t.extra) v[k] = t.extra[k];
-  /* Visual 2.0: clarão parado do fundo e cartões de vidro, sempre calculados das cores do tema (funcionam em tema claro e escuro). */
-  v['--glow'] = mix(t.destaque, t.fundo, .35);
-  v['--glass'] = 'color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) ' + (e ? 55 : 72) + '%, transparent))';
-  v['--glass-line'] = 'color-mix(in srgb, var(--fg) ' + (e ? 12 : 14) + '%, transparent)';
   return v;
 }
-function ler(){ var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ o = {}; } if (!Array.isArray(o.meus)) o.meus = []; return o; }
+var LEVES = ['auto', 'sim', 'nao'];
+function ler(){
+  var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ o = {}; }
+  if (!Array.isArray(o.meus)) o.meus = [];
+  if (LEVES.indexOf(o.leve) < 0) delete o.leve; // quem vem da 1.9 não tem "leve": nunca mexido
+  return o;
+}
 var estado = ler();
 function todos(){ return [BASE.noite, BASE.dia].concat(GALERIA, estado.meus); }
 function porId(id){ return todos().filter(function(t){ return t.id === id; })[0]; }
 function atual(){ return porId(estado.atual) || BASE.noite; }
-function salvar(){ try { localStorage.setItem(LS, JSON.stringify({ atual: estado.atual, meus: estado.meus })); } catch(e){} }
+/* Visual leve fica na mesma chave do tema (fora do backup): undefined = nunca mexido, 'auto' = ligou sozinho (abertura lenta),
+   'sim' = ligado à mão, 'nao' = desligado à mão (o app não religa sozinho). */
+function salvar(){ try { localStorage.setItem(LS, JSON.stringify({ atual: estado.atual, meus: estado.meus, leve: estado.leve })); } catch(e){} }
+function leveLigado(){ return estado.leve === 'auto' || estado.leve === 'sim'; }
+function aplicarLeve(){ var r = document.documentElement; if (leveLigado()) r.setAttribute('data-leve', ''); else r.removeAttribute('data-leve'); }
 function aplicar(t){
   var r = document.documentElement, v = tokens(t), f = FONTES[t.fonte] || FONTES.padrao;
   for (var k in v) r.style.setProperty(k, v[k]);
@@ -67,23 +101,27 @@ function aplicar(t){
   if (escuro(t)) r.removeAttribute('data-claro'); else r.setAttribute('data-claro', '');
   var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t.fundo);
 }
+function corHex(v, rotulo, campo){
+  v = String(v || '').trim();
+  if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v.slice(1).split('').map(function(x){ return x + x; }).join('');
+  if (!HEX.test(v)) throw new Error('A cor "' + rotulo + '" (campo ' + campo + ') precisa estar no formato #RRGGBB.');
+  return v.toUpperCase();
+}
 function validar(o){
   if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('Esse conteúdo não é um tema.');
   if (o.formato && o.formato !== 'orologia-tema') throw new Error('Esse arquivo não é um tema Orologia (formato "' + o.formato + '").');
   var t = { nome: String(o.nome || 'Tema importado').trim().slice(0,40) || 'Tema importado' };
-  CAMPOS.forEach(function(c){
-    var v = String(o[c[0]] || '').trim();
-    if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v.slice(1).split('').map(function(x){ return x + x; }).join('');
-    if (!HEX.test(v)) throw new Error('A cor "' + c[1] + '" (campo ' + c[0] + ') precisa estar no formato #RRGGBB.');
-    t[c[0]] = v.toUpperCase();
-  });
+  CAMPOS.forEach(function(c){ t[c[0]] = corHex(o[c[0]], c[1], c[0]); });
+  // brilho é opcional (2.0): ausente ou vazio, o clarão segue o destaque
+  if (o.brilho != null && String(o.brilho).trim() !== '') t.brilho = corHex(o.brilho, 'Brilho do fundo', 'brilho');
   t.raio = Math.max(0, Math.min(28, Math.round(Number(o.raio) || 16)));
   t.fonte = FONTES[o.fonte] ? o.fonte : 'padrao';
   return t;
 }
-function json(t){ return JSON.stringify({ formato:'orologia-tema', versao:1, nome:t.nome, fundo:t.fundo, card:t.card, texto:t.texto, suave:t.suave, destaque:t.destaque, secundaria:t.secundaria, raio:t.raio, fonte:t.fonte }, null, 2); }
-window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste };
-aplicar(atual());
+/* Exporta sempre com o brilho que está na tela (o do tema ou o derivado): o Orolon Player ignora o campo, e a versão do formato continua 1. */
+function json(t){ return JSON.stringify({ formato:'orologia-tema', versao:1, nome:t.nome, fundo:t.fundo, card:t.card, texto:t.texto, suave:t.suave, destaque:t.destaque, secundaria:t.secundaria, brilho:brilhoDe(t), raio:t.raio, fonte:t.fonte }, null, 2); }
+window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste, brilhoDe:brilhoDe, tokens:tokens, leveLigado:leveLigado, aplicarLeve:aplicarLeve };
+aplicar(atual()); aplicarLeve();
 })();
 </script>
 </head><body><title>Orolon Caixinhas</title>
@@ -102,7 +140,7 @@ aplicar(atual());
   --display:"Cinzel", Constantia, Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --glow:#6B6BA8; --glass:color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) 55%, transparent)); --glass-line:color-mix(in srgb, var(--fg) 12%, transparent);
+  --glow:#6B6AA8; --fab-fim:#E3C98A; --glass:color-mix(in srgb, var(--fg) 5%, color-mix(in srgb, var(--surface) 55%, transparent)); --glass-line:color-mix(in srgb, var(--fg) 12%, transparent);
   --tabh:64px;
   color-scheme:dark;
 }
@@ -113,7 +151,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 a{color:var(--accent)}
 .wrap{max-width:640px;margin:0 auto;padding-block:14px calc(var(--tabh) + 40px + var(--base));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 /* Cabeçalho */
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -149,6 +186,7 @@ h3{font-family:var(--display);font-weight:700;font-size:.82rem;letter-spacing:.1
 .row>*{flex:1 1 130px;min-width:0}
 .row>label:not(.check){justify-content:flex-end} /* campos alinhados pela base mesmo quando um rótulo quebra linha */
 .row.tight>*{flex:1 1 90px}
+.row>label:has(>input[type="month"]){flex-basis:190px} /* "dezembro de 2026" não cabe em 130 px: no celular o campo desce para uma linha própria */
 label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);font-weight:500;letter-spacing:.02em}
 input,select{font:inherit;color:var(--fg);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
 input[type="checkbox"],input[type="radio"]{width:auto;accent-color:var(--accent)}
@@ -156,19 +194,15 @@ input[type="checkbox"],input[type="radio"]{width:auto;accent-color:var(--accent)
 .primary{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 75%,var(--tint)));color:var(--accent-ink);border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-family:var(--display);letter-spacing:.08em}
 .primary:disabled{opacity:.5;cursor:default}
 .ghost{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-weight:600;font-size:.88rem}
-.ghost.danger{color:var(--over);border-color:color-mix(in srgb,var(--over) 45%,var(--line))}
-.ghost.armed{background:var(--over);color:var(--accent-ink);border-color:var(--over)}
 .link{background:none;border:0;padding:2px 0;color:var(--muted);font-size:.8rem;text-decoration:underline}
 .link.armed{color:var(--over);font-weight:700}
 .btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .hint{font-size:.82rem;color:var(--muted);margin:0}
 .hint.warn{color:var(--warn)} .hint.bad{color:var(--over)} .hint.good{color:var(--ok)}
 .empty{color:var(--muted);margin:0;padding:6px 0}
-details{border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 60%,transparent)}
 details>summary{cursor:pointer;font-weight:600;padding:13px 16px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
 details>summary::-webkit-details-marker{display:none}
 details>summary::after{content:"+";color:var(--gold);font-family:var(--mono);font-size:1.1rem}
-details[open]>summary::after{content:"−"}
 details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 
 /* Resumo e medidores */
@@ -181,7 +215,6 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .boxes{display:flex;flex-direction:column;gap:16px}
 .box{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:baseline}
 .box .name{font-weight:600;display:flex;align-items:center;gap:8px;min-width:0;background:none;border:0;padding:0;text-align:left}
-.box .name small{color:var(--faint);font-weight:500}
 .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 .box .left{text-align:right;font-weight:600}
 .bar{grid-column:1/-1;height:10px;border-radius:5px;background:var(--track);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
@@ -208,7 +241,6 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .credit{color:var(--warn)}
 .ex{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);border:1px dashed var(--gold);border-radius:6px;padding:0 5px;margin-left:6px}
 .banner{border:1px dashed var(--gold);border-radius:12px;padding:10px 12px;font-size:.85rem;color:var(--gold);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.daygroup{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 0 2px;font-weight:700}
 
 /* Tabelas de resultado */
 .out{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
@@ -236,13 +268,10 @@ details>.inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .aviso-fin{margin:0;color:var(--warn);font-weight:600;font-size:.88rem}.aviso-fin:empty{display:none}
 .calc-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .calc-tabs button{flex:none;border:1px solid var(--line);background:var(--deep);border-radius:999px;padding:7px 13px;font-size:.85rem;font-weight:600;color:var(--muted)}
-.calc-tabs button[aria-selected="true"]{color:var(--accent-ink);background:var(--gold);border-color:var(--gold)}
 
 /* Metas */
 .meta-card{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-bottom:1px solid var(--line)}
-.meta-card:last-child{border-bottom:0}
 .meta-card .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.meta-card .hd b{font-size:1.02rem}
 .meta-card .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 12px;font-size:.82rem;color:var(--muted)}
 .meta-card .facts b{display:block;color:var(--fg);font-weight:600;font-size:.92rem}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
@@ -275,14 +304,9 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 :root[data-claro] .toast{box-shadow:0 8px 24px rgba(30,26,43,.25)}
 .temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .tema-card{position:relative;border:2px solid var(--line);border-radius:12px;background:var(--surface2);display:flex;flex-direction:column}
-.tema-card.sel{border-color:var(--accent)}
 .tema-use{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:8px;width:100%}
-.tema-prev{display:flex;flex-direction:column;gap:6px;height:66px;border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid rgba(128,128,128,.25);position:relative}
-.tema-prev span{display:flex;flex-direction:column;gap:5px;border-radius:5px;padding:6px;width:72%}
-.tema-prev b{display:block;height:6px;width:80%;border-radius:4px}
-.tema-prev em{display:block;height:5px;width:55%;border-radius:4px}
-.tema-prev i{position:absolute;bottom:8px;width:14px;height:14px;border-radius:50%}
-.tema-prev i:nth-of-type(1){right:26px}.tema-prev i:nth-of-type(2){right:8px}
+/* miniatura do Início com as cores do tema (arco, um bloco e a barra com o +), desenhada por cartaoTema() */
+.n-mini{display:block;width:100%;height:auto;aspect-ratio:5/3;border-radius:10px;margin-bottom:6px;border:1px solid rgba(128,128,128,.28)}
 .tema-nome{font-weight:600;font-size:.9rem}
 .tema-card .link{position:absolute;top:12px;right:12px;background:var(--surface);border-radius:999px;padding:2px 8px;text-decoration:none;font-weight:600;color:var(--fg)}
 .tema-card.add{align-items:center;justify-content:center;border-style:dashed;color:var(--muted);min-height:120px;font-weight:600;background:none}
@@ -311,7 +335,6 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 .guia ol{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:6px}
 details.plain{border:0;background:none}
 details.plain>summary{padding:4px 0;font-weight:500;font-size:.82rem;color:var(--muted);text-decoration:underline}
-details.plain>summary::after{content:none}
 details.plain>.inner{padding:6px 0 0}
 .filtros{display:flex;flex-direction:column;gap:8px}
 .filtros .vhead input{flex:1}
@@ -331,7 +354,6 @@ html[data-trava] body{overflow:hidden}
 .trava-box input{text-align:center;font:600 1.5rem/1 var(--mono);letter-spacing:.45em;max-width:220px}
 .teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
 .teclado button{height:56px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font:600 1.25rem var(--mono);color:var(--fg)}
-.teclado button:active{background:var(--surface2)}
 .atalhos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .atalho{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:linear-gradient(180deg,var(--surface),color-mix(in srgb,var(--surface) 70%,var(--deep)));border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
 .atalho svg{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -358,7 +380,7 @@ html[data-trava] body{overflow:hidden}
 .atalho.linha{flex-direction:row;align-items:center;gap:10px;padding:12px}
 .atalho.linha b{font-size:.9rem;font-weight:600}
 /* Botão de lançar: o + no meio da barra (2.0) e a folha que sobe */
-.fab{justify-self:center;display:grid;place-items:center;width:56px;height:56px;margin-top:-22px;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--gold));color:var(--accent-ink);box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 35%,rgba(0,0,0,.4)),inset 0 1px 0 rgba(255,255,255,.3)}
+.fab{justify-self:center;display:grid;place-items:center;width:56px;height:56px;margin-top:-22px;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--fab-fim));color:var(--accent-ink);box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 35%,rgba(0,0,0,.4)),inset 0 1px 0 rgba(255,255,255,.3)}
 .fab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
 .fab:active{transform:scale(.95)}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
@@ -367,7 +389,6 @@ html[data-trava] body{overflow:hidden}
 .folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:fl-sobe .22s cubic-bezier(.2,.8,.2,1)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
 .folha-topo{display:flex;align-items:center;gap:6px}
-.folha-topo h3{font-size:.9rem}
 .folha-topo .icon{margin-left:auto}
 .folha .valor input{font:700 1.7rem/1.2 var(--mono);padding:12px 14px;letter-spacing:-.02em}
 .folha .primary{width:100%;padding:14px}
@@ -394,19 +415,15 @@ h3{font-size:1.04rem;letter-spacing:0;text-transform:none}
 .eyebrow{font-family:var(--body);font-size:.82rem;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
 .num{font-family:inherit;font-variant-numeric:tabular-nums lining-nums;letter-spacing:0}
 .sync{border:0;background:none;padding:0;font-size:.74rem}
-.panel,details,.atalho,.guia-card{background:var(--surface);box-shadow:none;border-color:color-mix(in srgb,var(--line) 55%,transparent)}
-.panel,details{border-radius:18px}
-.guia-card.slim{border-radius:14px}
-input,select,textarea,.ghost,.primary,.sponsor{border-radius:12px}
+.atalho,.guia-card{background:var(--surface);box-shadow:none;border-color:color-mix(in srgb,var(--line) 55%,transparent)}
+input,select,textarea{border-radius:12px}
 .primary,.sponsor{background:var(--accent);font-family:var(--body);letter-spacing:0;font-weight:700}
 .pill{border:0;background:color-mix(in srgb,currentColor 15%,transparent);text-transform:none;letter-spacing:0;font-size:.74rem;font-weight:600;padding:2px 9px}
 .ex{text-transform:none;letter-spacing:0;font-size:.7rem;font-weight:600}
 .total .lbl{text-transform:none;letter-spacing:0;font-size:.82rem}
-.daygroup{text-transform:none;letter-spacing:0;font-size:.8rem;color:var(--muted);font-weight:600}
 table.mini th{text-transform:none;letter-spacing:0;font-size:.78rem}
 .box .name small{font-family:inherit}
 .qm{font-family:var(--body)}
-.calc-tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent)}
 .folha-topo h3{font-size:1.12rem}
 .folha .valor input{font-family:var(--body);font-variant-numeric:tabular-nums lining-nums}
 .teclado button,.trava-box input{font-family:var(--body);font-variant-numeric:tabular-nums lining-nums}
@@ -564,7 +581,7 @@ details>summary .n-ico{margin-right:4px}
 /* campos e botões */
 input,select,textarea{background:color-mix(in srgb,var(--deep) 60%,transparent);border-color:var(--glass-line)}
 input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg) 22%,transparent)}
-.primary,.sponsor{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--gold)));color:var(--accent-ink);border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.22)}
+.primary,.sponsor{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--fab-fim)));color:var(--accent-ink);border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.22)}
 .ghost{background:color-mix(in srgb,var(--fg) 6%,transparent);border-color:var(--glass-line);border-radius:999px;padding:9px 15px}
 .ghost:hover{background:color-mix(in srgb,var(--fg) 10%,transparent)}
 .ghost.danger{color:var(--over);border-color:color-mix(in srgb,var(--over) 40%,var(--glass-line));background:color-mix(in srgb,var(--over) 7%,transparent)}
@@ -574,7 +591,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 .calc-tabs{gap:8px;padding:2px 0 4px;scrollbar-width:none}
 .calc-tabs::-webkit-scrollbar{display:none}
 .calc-tabs button{background:color-mix(in srgb,var(--fg) 5%,transparent);border-color:var(--glass-line);color:var(--muted);font-weight:600}
-.calc-tabs button[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--gold)));border-color:transparent;color:var(--accent-ink)}
+.calc-tabs button[aria-selected="true"]{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 80%,var(--fab-fim)));border-color:transparent;color:var(--accent-ink)}
 .banner{border-color:color-mix(in srgb,var(--gold) 55%,transparent);background:color-mix(in srgb,var(--gold) 6%,transparent);border-radius:16px}
 .item,.out .r,.cx-row,.copia,.copia-pasta,.cmp,table.mini th,table.mini td{border-color:var(--glass-line)}
 .out{border-color:var(--glass-line)}
@@ -611,7 +628,11 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 .n-lancs{gap:10px}
 .n-lancs .filtros{gap:10px}
 .n-lanc{padding:11px 10px;margin:0 -10px;width:calc(100% + 20px);border-bottom:1px solid var(--glass-line);cursor:pointer;-webkit-tap-highlight-color:transparent}
-.n-lanc:last-of-type{border-bottom:0}
+.n-lanc:not(:has(~ .n-lanc)){border-bottom:0} /* a última linha, mesmo com o "Mostrar todos" depois dela */
+/* seta discreta à direita: a linha é tocável (abre a edição) */
+.n-lanc{grid-template-columns:auto minmax(0,1fr) auto 14px}
+.n-lanc .n-seta{grid-column:4;grid-row:1/3;justify-self:end;width:8px;height:8px;border:solid var(--faint);border-width:1.6px 1.6px 0 0;transform:rotate(45deg);margin-right:3px}
+.n-lanc:hover .n-seta{border-color:var(--muted)}
 .n-lanc:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
 .n-lanc:active{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .n-lanc .val{font-weight:700}
@@ -628,7 +649,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 .meta-card .hd b{font-size:1.06rem;font-family:var(--display);font-weight:700}
 .meta-card .hd .num{font-weight:700}
 .meta-card .bar{height:10px;background:color-mix(in srgb,var(--fg) 9%,transparent);box-shadow:none}
-.meta-card .bar i{background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--gold)))}
+.meta-card .bar i{background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--fab-fim)))}
 .meta-card .facts{gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .meta-card .facts>span{padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--fg) 5%,transparent)}
 .meta-card .btns input{max-width:130px}
@@ -691,7 +712,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
   .n-lado-marca{display:flex;align-items:center;gap:10px;min-width:0;padding:0 6px 18px}
   .n-lado-marca svg{flex:none;width:34px;height:34px}
   .n-lado-marca b{min-width:0;font-family:var(--display);font-size:1.02rem;line-height:1.15;overflow-wrap:anywhere}
-  .n-lado-lancar{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;margin:0 0 14px;padding:11px 14px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--gold));color:var(--accent-ink);font-weight:700;box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 28%,rgba(0,0,0,.35)),inset 0 1px 0 rgba(255,255,255,.3)}
+  .n-lado-lancar{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;margin:0 0 14px;padding:11px 14px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--fab-fim));color:var(--accent-ink);font-weight:700;box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 28%,rgba(0,0,0,.35)),inset 0 1px 0 rgba(255,255,255,.3)}
   .n-lado-lancar svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
   .n-lado-lancar kbd{border-color:color-mix(in srgb,var(--accent-ink) 25%,transparent);background:color-mix(in srgb,var(--accent-ink) 10%,transparent);color:inherit;opacity:.75;font-size:.72rem}
   .n-lado-lancar:active{transform:scale(.97)}
@@ -714,7 +735,13 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
   #v-calc .calc-tabs{grid-column:1;grid-row:2/span 2;flex-direction:column;overflow:visible;position:sticky;top:20px}
   #v-calc .calc-tabs button{text-align:left;padding:10px 14px;white-space:normal}
   #v-calc .calc,#calcNota{grid-column:2;min-width:0}
-  /* Início: esquerda arco, ritmo e últimos 6 meses; direita caixinhas em grade, A vencer, últimos gastos */
+  /* Metas: resumo e "Nova meta" lado a lado em cima; as metas embaixo, em duas colunas (uma lista longa não deixa a direita vazia) */
+  #v-metas .n-2col>.n-coluna:first-child{display:contents}
+  #v-metas #metasResumo{grid-column:1;grid-row:1}
+  #v-metas .n-2col>.n-coluna:last-child{grid-column:2;grid-row:1}
+  #v-metas #metasLista{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  /* Início: esquerda arco, ritmo e últimos 6 meses; direita caixinhas em grade, A vencer, últimos gastos.
+     ATENÇÃO: o JS (MQ_COLS, em "Render: Início") repete esta condição para mover as peças de coluna. Mudou aqui, mude lá. */
   .n-cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;align-items:start}
   #seisIni{display:flex}
   /* Gráficos: grade de duas colunas; o ritmo e a comparação ocupam a largura toda */
@@ -739,15 +766,28 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
   .tabs nav{grid-template-columns:none;grid-auto-rows:auto;height:auto;padding:6px 0;row-gap:2px}
   .tabs a{height:auto;padding:7px 0;font-size:.64rem;border-radius:16px}
   .tabs a svg{width:20px;height:20px}
-  .tabs a[aria-current="page"]::after{bottom:auto;top:50%;left:auto;right:5px;margin:-2px 0 0}
+  .tabs a[aria-current="page"]::after{bottom:auto;top:9px;left:auto;right:calc(50% - 17px);margin:0} /* ao lado do ícone, longe da borda curva do trilho */
   .fab{width:48px;height:48px;margin:4px 0}
   .wrap{max-width:none;padding-bottom:calc(28px + var(--base));padding-right:calc(88px + env(safe-area-inset-right,0px))}
-  .toast{bottom:calc(16px + var(--base));left:calc(50% - 44px)}
-  .n-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  /* o aviso fica centrado na área do conteúdo e nunca passa por baixo do trilho (88 px à direita), mesmo com texto longo */
+  .toast{bottom:calc(16px + var(--base));left:calc(50% - 44px - env(safe-area-inset-right,0px) / 2);max-width:calc(100% - 120px - env(safe-area-inset-right,0px));border-radius:18px}
+  .n-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start} /* condição repetida no JS (MQ_COLS) */
   .n-arco-caixa{width:min(100%,280px)}
   .n-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));overflow:visible;margin:0;padding:0;scroll-snap-type:none}
   .n-bloco{width:auto}
 }
+/* Visual leve (data-leve no html; ver aplicarLeve e medirAbertura): sem clarões, sem degradês nos blocos, sem sombras e sem desfoque.
+   As cores ficam: cada caixinha continua tingindo o seu bloco, com uma cor chapada. Os anéis de seleção (tema escolhido, parte aberta) continuam. */
+:root[data-leve] body,:root[data-leve] .trava{background:var(--bg)}
+:root[data-leve] .n-bloco{background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+:root[data-leve] .n-bloco.n-novo{background:none}
+:root[data-leve] .box{background:color-mix(in srgb,var(--c) 9%,var(--surface))}
+:root[data-leve] .n-resumo,:root[data-leve] .onb,:root[data-leve] .guia-card{background:var(--glass)}
+:root[data-leve] #arco .arco-luz{filter:none}
+:root[data-leve] .tabs,:root[data-leve] .folha-caixa,:root[data-leve] .toast{backdrop-filter:none;-webkit-backdrop-filter:none}
+:root[data-leve] .tabs,:root[data-leve] .folha-caixa{background:var(--surface)}
+:root[data-leve] .toast{background:var(--surface2)}
+:root[data-leve] .tabs,:root[data-leve] .fab,:root[data-leve] .n-lado-lancar,:root[data-leve] .primary,:root[data-leve] .sponsor,:root[data-leve] .n-vidro,:root[data-leve] .panel,:root[data-leve] details,:root[data-leve] .toast,:root[data-leve] .n-dica,:root[data-leve] .folha-caixa{box-shadow:none}
 </style>
 
 <div class="trava" id="trava" role="dialog" aria-modal="true" aria-labelledby="travaT">
@@ -1412,6 +1452,11 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <div class="vhead qh"><h3>Aparência</h3><button class="qm" type="button" data-act="qm" data-id="temas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
       <div id="temaBox" class="flat"></div>
     </div>
+    <div class="panel">
+      <label class="check"><input type="checkbox" id="tgLeve" role="switch"> Visual leve</label>
+      <p class="hint">Tira os clarões, os degradês, as sombras e o desfoque. Bom para celular mais simples e para gastar menos bateria.</p>
+      <p class="hint warn" id="tgLeveNota" hidden>Ligado automaticamente: a abertura do app estava lenta neste aparelho. Se preferir o visual completo, desligue; o app não liga de novo sozinho.</p>
+    </div>
 
     </div>
 
@@ -2010,13 +2055,7 @@ function renderMes(){
   if (orphans.length) $('mesBoxes').insertAdjacentHTML('beforeend', `<p class="hint warn">Há ${fmt(orphans.reduce((a,id)=>a+R.por[id].gasto,0))} em gastos de caixinhas que não existem mais.</p>`);
 
   // chips da caixinha e formas
-  const sel = (document.querySelector('input[name="gCx"]:checked') || {}).value || S.caixinhas[0].id;
-  $('gCats').innerHTML = S.caixinhas.map((c,i) => `<input type="radio" name="gCx" id="gCx${i}" value="${esc(c.id)}" ${c.id === sel ? 'checked' : ''}><label for="gCx${i}">${cxi(c, 'xs')}${esc(c.nome)}</label>`).join('');
-  if (!document.querySelector('input[name="gCx"]:checked')) { const f = document.querySelector('input[name="gCx"]'); if (f) f.checked = true; }
-  const fSel = $('gForma').value;
-  // na edição, a forma do gasto pode ter saído da lista: ela continua como opção, para um redesenho não trocar o que está na folha
-  const formasG = UI.editG && fSel && !S.formas.includes(fSel) ? S.formas.concat([fSel]) : S.formas;
-  $('gForma').innerHTML = formasG.map(f => `<option ${f === fSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
+  opcoesFolha();
   if (!UI.editG && (!$('gData').value || monthOf($('gData').value) !== k)) $('gData').value = k === thisMonth() ? today() : k + '-01';
   previewGasto(); renderApagar();
 
@@ -2083,6 +2122,7 @@ function renderLista(k){
       <span class="desc">${esc(g.descricao)}${g.ex ? '<span class="ex">exemplo</span>' : ''}${g.fixoId ? '<span class="ex">fixo</span>' : ''}</span>
       <span class="val num">${fmt(g.valor)}</span>
       <span class="sub">${esc(c.nome)} · <span class="${g.forma === 'Crédito' ? 'credit' : ''}">${esc(g.forma || '')}</span></span>
+      <i class="n-seta" aria-hidden="true"></i>
     </button>`;
   }).join('') + mais : filtrando ? '<p class="empty">Nada encontrado com esses filtros.</p>' : `<p class="empty">Nenhum gasto em ${esc(monthLabel(k))}. Toque em “Lançar” para registrar o primeiro${hasData(S) ? '' : ', ou carregue dados de exemplo em Ajustes'}.</p>`;
 }
@@ -2170,9 +2210,22 @@ function renderFixos(){
       <span class="act"><button class="link ${UI.armed === 'f:' + f.id ? 'armed' : ''}" type="button" data-act="del-fixo" data-id="${esc(f.id)}">${UI.armed === 'f:' + f.id ? 'Toque de novo' : 'Remover'}</button></span>
     </div>`).join('') : `<p class="empty">Nenhum gasto fixo cadastrado.</p>`;
 }
+/* Caixinhas e formas da folha de lançar. Na edição, a caixinha ou a forma do gasto podem ter saído da lista: cada uma ganha uma
+   opção própria, para a folha mostrar o que o gasto é e um redesenho não trocar nada sem a pessoa ver. Fora da edição, só o que existe. */
+function opcoesFolha(cxSel, formaSel){
+  if (cxSel === undefined) cxSel = (document.querySelector('input[name="gCx"]:checked') || {}).value;
+  if (formaSel === undefined) formaSel = $('gForma').value;
+  const orfa = UI.editG && cxSel && !S.caixinhas.some(c => c.id === cxSel);
+  const sel = orfa || S.caixinhas.some(c => c.id === cxSel) ? cxSel : (S.caixinhas[0] || {}).id;
+  $('gCats').innerHTML = S.caixinhas.map((c,i) => `<input type="radio" name="gCx" id="gCx${i}" value="${esc(c.id)}" ${c.id === sel ? 'checked' : ''}><label for="gCx${i}">${cxi(c, 'xs')}${esc(c.nome)}</label>`).join('')
+    + (orfa ? `<input type="radio" name="gCx" id="gCxOrfa" value="${esc(cxSel)}" checked><label for="gCxOrfa" class="n-orfa">Caixinha apagada</label>` : '');
+  const formasG = UI.editG && formaSel && !S.formas.includes(formaSel) ? S.formas.concat([formaSel]) : S.formas;
+  $('gForma').innerHTML = formasG.map(f => `<option ${f === formaSel ? 'selected' : ''}>${esc(f)}</option>`).join('');
+}
 function previewGasto(){
   const v = parseNum($('gValor').value), id = (document.querySelector('input[name="gCx"]:checked') || {}).value;
   const el = $('gPrev');
+  if (id && !S.caixinhas.some(c => c.id === id)) { el.className = 'hint warn'; el.textContent = 'A caixinha deste gasto foi apagada. Salvar deixa o gasto nela; para mudar, escolha outra.'; return; }
   if (!Number.isFinite(v) || v <= 0 || !id) { el.className = 'hint'; el.textContent = 'Digite o valor para ver se cabe.'; return; }
   const k = monthOf($('gData').value || today());
   const p = resumoMes(k).por[id] || { sobra: 0 };
@@ -3104,9 +3157,7 @@ document.addEventListener('click', e => {
       const a = achaGasto(id); if (!a) break;
       UI.editG = id; irMes(a.k); renderMes();
       $('gValor').value = numStr(a.g.valor); $('gDesc').value = a.g.descricao; $('gData').value = a.g.data;
-      if (![...$('gForma').options].some(o => o.value === a.g.forma)) $('gForma').add(new Option(a.g.forma, a.g.forma));
-      $('gForma').value = a.g.forma;
-      const r = [...document.querySelectorAll('input[name="gCx"]')].find(x => x.value === a.g.caixinha); if (r) r.checked = true;
+      opcoesFolha(a.g.caixinha, a.g.forma); // a caixinha e a forma do gasto, mesmo que tenham saído da lista
       $('gHead').textContent = 'Editar gasto'; $('gBtn').textContent = 'Salvar alterações';
       $('gApagar').dataset.id = id; $('gApagar').hidden = false; renderApagar();
       previewGasto(); abrirFolha(); break;
@@ -3353,7 +3404,9 @@ function sairEdicaoGasto(){
   if (UI.editG && UI.armed === 'g:' + UI.editG) disarm(); // a confirmação de apagar não sobra para depois
   UI.editG = null; $('gHead').textContent = 'Lançar gasto'; $('gBtn').textContent = 'Lançar';
   $('gApagar').hidden = true; delete $('gApagar').dataset.id; renderApagar();
-  $('gValor').value = ''; $('gDesc').value = ''; previewGasto();
+  $('gValor').value = ''; $('gDesc').value = '';
+  opcoesFolha(); // a forma ou a caixinha que só existiam para o gasto editado saem da folha (fechar por X, Esc ou Voltar não as deixa para o próximo lançamento)
+  previewGasto();
 }
 /* botão Apagar da folha de edição: a mesma confirmação em dois toques da 1.9 (arm/disarm) */
 function renderApagar(){
@@ -3473,6 +3526,23 @@ $('fPmt').addEventListener('input', renderPmt);
 ['fSim','fPmt'].forEach(id => $(id).addEventListener('submit', e => e.preventDefault()));
 
 document.querySelector('.calc-tabs').addEventListener('click', e => { const b = e.target.closest('[data-calc]'); if (!b) return; UI.calc = b.dataset.calc; renderCalc(); if (UI.calc === 'sim') animarGraficos($('simChart')); });
+/* Lista das calculadoras: deitada no celular (setas ← e →), em pé no PC (↑ e ↓). O aria-orientation diz ao leitor de tela quais setas valem.
+   A largura é a mesma do CSS "#v-calc .calc-tabs" dentro de @media (min-width:900px). */
+const MQ_CALC = window.matchMedia ? window.matchMedia('(min-width:900px)') : null;
+function orientarCalc(){ document.querySelector('.calc-tabs').setAttribute('aria-orientation', MQ_CALC && MQ_CALC.matches ? 'vertical' : 'horizontal'); }
+orientarCalc();
+if (MQ_CALC) { if (MQ_CALC.addEventListener) MQ_CALC.addEventListener('change', orientarCalc); else if (MQ_CALC.addListener) MQ_CALC.addListener(orientarCalc); }
+document.querySelector('.calc-tabs').addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey || !e.target.closest('[data-calc]')) return;
+  const emPe = document.querySelector('.calc-tabs').getAttribute('aria-orientation') === 'vertical';
+  const passo = (emPe ? { ArrowDown: 1, ArrowUp: -1 } : { ArrowRight: 1, ArrowLeft: -1 })[e.key] || { Home: -1e3, End: 1e3 }[e.key];
+  if (!passo) return;
+  e.preventDefault();
+  const bs = [...document.querySelectorAll('.calc-tabs [data-calc]')], i = bs.indexOf(e.target.closest('[data-calc]'));
+  const b = bs[Math.max(0, Math.min(bs.length - 1, i + passo))];
+  UI.calc = b.dataset.calc; renderCalc(); b.focus();
+  if (UI.calc === 'sim') animarGraficos($('simChart'));
+});
 document.querySelectorAll('form.calc').forEach(f => {
   f.addEventListener('input', () => { CALCS[UI.calc](); clearTimeout(UI.cT); UI.cT = setTimeout(saveCalcInputs, 500); });
   f.addEventListener('submit', e => e.preventDefault());
@@ -3496,10 +3566,34 @@ $('impFile').addEventListener('change', e => {
 /* ---------- Aparência (temas) ---------- */
 const TM = window.TemaCx;
 const TUI = { edit: null, colar: false, apagar: false };
+/* Miniatura do Início no tema t: clarão (brilho), arco com o trecho aceso (destaque e secundária), um bloco de caixinha e a barra
+   com o + no meio. As cores saem das mesmas contas do tema (tokens), então a miniatura mostra o que o app vai mostrar.
+   Sem ids nem gradientes no SVG: a mesma miniatura aparece na Aparência e na primeira abertura ao mesmo tempo. */
+function miniTema(t){
+  const v = TM.tokens(t), c = h => esc(String(h || '').toUpperCase());
+  // card igual (ou quase) ao fundo: o bloco e a barra ganham borda, como os cartões do app
+  const linha = TM.contraste(t.card, t.fundo) < 1.1 ? c(v['--line']) : 'none';
+  return `<svg class="n-mini" viewBox="0 0 120 72" aria-hidden="true" focusable="false">
+    <rect class="n-mini-fundo" width="120" height="72" fill="${c(t.fundo)}"/>
+    <ellipse cx="44" cy="-6" rx="64" ry="34" fill="${c(v['--glow'])}" opacity=".5"/><ellipse cx="44" cy="-6" rx="40" ry="20" fill="${c(v['--glow'])}" opacity=".45"/>
+    <path d="M14 42a20 20 0 0 1 40 0" fill="none" stroke="${c(v['--track'])}" stroke-width="5" stroke-linecap="round"/>
+    <path class="n-mini-arco" d="M14 42a20 20 0 0 1 14.1-19.1" fill="none" stroke="${c(t.destaque)}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M31.7 22.3a20 20 0 0 1 9.2 1.3" fill="none" stroke="${c(t.secundaria)}" stroke-width="5" stroke-linecap="round"/>
+    <rect x="24" y="33" width="20" height="5" rx="2.5" fill="${c(t.texto)}"/><rect x="27" y="40" width="14" height="3" rx="1.5" fill="${c(t.suave)}"/>
+    <g class="n-mini-bloco"><rect x="66" y="12" width="44" height="32" rx="7" fill="${c(t.card)}" stroke="${linha}"/>
+      <rect x="66" y="12" width="44" height="32" rx="7" fill="${c(t.destaque)}" opacity=".16"/>
+      <circle cx="76" cy="22" r="5" fill="none" stroke="${c(v['--track'])}" stroke-width="2.4"/><path d="M76 17a5 5 0 0 1 5 5" fill="none" stroke="${c(t.destaque)}" stroke-width="2.4" stroke-linecap="round"/>
+      <rect x="72" y="31" width="24" height="3.5" rx="1.75" fill="${c(t.texto)}"/><rect x="72" y="37" width="16" height="2.5" rx="1.25" fill="${c(t.suave)}"/></g>
+    <rect class="n-mini-barra" x="12" y="54" width="96" height="14" rx="7" fill="${c(t.card)}" stroke="${linha}"/>
+    <circle cx="24" cy="61" r="1.8" fill="${c(t.suave)}"/><circle cx="40" cy="61" r="1.8" fill="${c(t.suave)}"/><circle cx="80" cy="61" r="1.8" fill="${c(t.suave)}"/><circle cx="96" cy="61" r="1.8" fill="${c(t.suave)}"/>
+    <g class="n-mini-mais"><circle cx="60" cy="57" r="8" fill="${c(t.destaque)}"/><path d="M56.5 57h7M60 53.5v7" stroke="${c(v['--accent-ink'])}" stroke-width="1.8" stroke-linecap="round"/></g>
+  </svg>`;
+}
 function cartaoTema(t, sel){
+  const tipo = t.fixo ? (TM.contraste(t.fundo, '#FFFFFF') < 2 ? 'Claro' : 'Escuro') : 'Seu tema';
   return `<div class="tema-card${sel ? ' sel' : ''}"><button type="button" class="tema-use" data-tm="usar" data-id="${esc(t.id)}" aria-pressed="${sel}">
-    <span class="tema-prev" style="background:${t.fundo}"><span style="background:${t.card}"><b style="background:${t.texto}"></b><em style="background:${t.suave}"></em></span><i style="background:${t.destaque}"></i><i style="background:${t.secundaria}"></i></span>
-    <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${t.galeria ? 'Galeria' : t.fixo ? 'Grátis' : 'Seu tema'}</span></button>
+    ${miniTema(t)}
+    <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${tipo}</span></button>
     ${t.fixo ? '' : `<button type="button" class="link" data-tm="editar" data-id="${esc(t.id)}" aria-label="Editar ${esc(t.nome)}">Editar</button>`}</div>`;
 }
 function linhasContraste(d){
@@ -3513,6 +3607,8 @@ function renderTema(){
     box.innerHTML = `<p class="hint">${TUI.edit.id ? 'Editando' : 'Novo tema'}: o app inteiro mostra o tema enquanto você mexe.</p>
       <label>Nome do tema<input id="tmNome" maxlength="40" value="${esc(d.nome)}" autocomplete="off"></label>
       ${TM.CAMPOS.map(([k, n]) => `<label class="cor-row" for="tm-${k}">${n}<span class="cor-in"><code id="tmx-${k}">${d[k]}</code><input type="color" id="tm-${k}" data-campo="${k}" value="${d[k].toLowerCase()}"></span></label>`).join('')}
+      <label class="cor-row" for="tm-brilho">Brilho do fundo<span class="cor-in"><code id="tmx-brilho">${textoBrilho(d)}</code><input type="color" id="tm-brilho" data-campo="brilho" value="${TM.brilhoDe(d).toLowerCase()}"></span></label>
+      <p class="hint">O brilho é o clarão parado no alto da tela. Sem escolher, ele acompanha o destaque.</p>
       <div class="flat" id="tmCtr" style="gap:6px">${linhasContraste(d)}</div>
       <div class="fontes" role="group" aria-label="Fonte">${Object.entries(TM.FONTES).map(([k, f]) => `<button type="button" data-tm="fonte" data-id="${k}" aria-pressed="${d.fonte === k}" style="font-family:${esc(f.b)}"><b style="font-family:${esc(f.d)}">Aa</b>${f.n}</button>`).join('')}</div>
       <div class="btns"><button class="primary" type="button" data-tm="salvar">Salvar tema</button><button class="ghost" type="button" data-tm="cancelar">Cancelar</button>
@@ -3524,13 +3620,50 @@ function renderTema(){
   box.innerHTML = `<div class="temas">${meus.map(t => cartaoTema(t, t.id === at.id)).join('')}<button type="button" class="tema-card add" data-tm="criar">+ Criar tema</button></div>
     <h3 style="margin-top:6px">Galeria</h3>
     <div class="temas">${gal.map(t => cartaoTema(t, t.id === at.id)).join('')}</div>
-    <p class="hint">Temas da galeria do Orolon Player, prontos e offline. Para mudar um, toque em “Criar tema”: ele começa com as cores do tema ativo.</p>
+    <p class="hint">Temas prontos, que funcionam sem internet (os seis primeiros vêm da galeria do Orolon Player). Para mudar um, toque em “Criar tema”: ele começa com as cores do tema ativo.</p>
     <p class="hint">O tema fica salvo neste aparelho. O formato é o mesmo do Orolon Player: um tema feito lá funciona aqui, e o contrário também.</p>
     <div class="btns"><button class="ghost" type="button" data-tm="copiar">Copiar tema</button><button class="ghost" type="button" data-tm="baixar">Baixar .json</button>
       <label class="ghost" style="flex-direction:row;color:var(--fg);font-size:.88rem;font-weight:600;cursor:pointer">Abrir .json<input type="file" id="temaFile" accept=".json,application/json" hidden></label>
       <button class="ghost" type="button" data-tm="colar">Colar tema</button></div>
     ${TUI.colar ? `<textarea id="temaCola" aria-label="JSON do tema" placeholder='{ "nome": "Meu tema", "fundo": "#110E18", ... }'></textarea><div class="btns"><button class="primary" type="button" data-tm="importar">Importar tema</button><button class="ghost" type="button" data-tm="colar">Cancelar</button></div>` : ''}
     <div id="temaOut"></div>`;
+  renderLeve();
+}
+// no editor: a cor do brilho, ou a derivada do destaque com "(automático)" quando o tema não escolheu uma
+function textoBrilho(d){ return d.brilho ? d.brilho : TM.brilhoDe(d) + ' (automático)'; }
+/* Chave "Visual leve" (Ajustes › Aparência): mostra o estado gravado e, se ligou sozinho, a nota. */
+function renderLeve(){
+  const tg = $('tgLeve'); if (!tg) return;
+  tg.checked = TM.leveLigado();
+  $('tgLeveNota').hidden = TM.estado.leve !== 'auto';
+}
+$('tgLeve').addEventListener('change', e => {
+  TM.estado.leve = e.target.checked ? 'sim' : 'nao'; // desligado à mão: o app não religa sozinho
+  TM.salvar(); TM.aplicarLeve(); renderLeve();
+});
+/* Visual leve automático: conta os quadros da abertura longa (a hora mais pesada do app). Média acima de 32 ms (menos de ~30 quadros
+   por segundo) com o visual leve nunca mexido liga 'auto', grava, avisa uma vez e a chave mostra. Com "reduzir movimento" não há
+   abertura longa e nada é medido; com a chave já mexida (sim, não, auto) também não. Mede só ~1,2 s, não fica em laço. */
+const LEVE_MS = 32, LEVE_JANELA = 1200;
+function medirAbertura(){
+  if (TM.estado.leve !== undefined || !window.requestAnimationFrame) return;
+  let ini = 0, ult = 0, n = 0, parou = false;
+  const sumiu = () => { parou = true; }; // app escondido no meio: os quadros param e a conta não vale
+  document.addEventListener('visibilitychange', sumiu, { once: true });
+  const quadro = t => {
+    if (parou) return;
+    // gancho de teste (window.__quadroLento = ms): segura cada quadro esse tanto, como um aparelho lento. Sem ele, nada acontece aqui.
+    const lento = +window.__quadroLento || 0;
+    if (lento > 0) { const ate = performance.now() + lento; while (performance.now() < ate); }
+    if (!ini) ini = t; else { n++; ult = t; }
+    if (t - ini < LEVE_JANELA) { requestAnimationFrame(quadro); return; }
+    document.removeEventListener('visibilitychange', sumiu);
+    if (n >= 3 && (ult - ini) / n > LEVE_MS && TM.estado.leve === undefined) {
+      TM.estado.leve = 'auto'; TM.salvar(); TM.aplicarLeve(); renderLeve();
+      toast('Visual leve ligado para o app ficar mais rápido');
+    }
+  };
+  requestAnimationFrame(quadro);
 }
 function usarTema(id){ TM.estado.atual = id; TM.salvar(); TM.aplicar(TM.atual()); }
 function importarTema(texto){
@@ -3582,7 +3715,11 @@ $('temaBox').addEventListener('input', e => {
   if (!TUI.edit) return;
   const t = e.target, d = TUI.edit.rascunho;
   if (t.id === 'tmNome') { d.nome = t.value; return; }
-  if (t.dataset.campo) { d[t.dataset.campo] = t.value.toUpperCase(); $('tmx-' + t.dataset.campo).textContent = d[t.dataset.campo]; $('tmCtr').innerHTML = linhasContraste(d); TM.aplicar(d); }
+  if (t.dataset.campo) {
+    d[t.dataset.campo] = t.value.toUpperCase(); $('tmx-' + t.dataset.campo).textContent = d[t.dataset.campo];
+    if (!d.brilho) { $('tm-brilho').value = TM.brilhoDe(d).toLowerCase(); $('tmx-brilho').textContent = textoBrilho(d); } // sem brilho escolhido, ele acompanha o destaque
+    $('tmCtr').innerHTML = linhasContraste(d); TM.aplicar(d);
+  }
 });
 $('temaBox').addEventListener('change', e => {
   if (e.target.id !== 'temaFile') return;
@@ -3732,7 +3869,9 @@ document.addEventListener('click', e => {
 
 /* ---------- Render: Início ---------- */
 /* Duas colunas (PC, celular deitado): cada peça vai para a sua coluna, para a ordem de leitura (Tab, TalkBack) ser a que se vê.
-   Numa coluna só, elas voltam para a ordem do HTML, que é a do celular. A mesma condição está no CSS (.n-cols em grade). */
+   Numa coluna só, elas voltam para a ordem do HTML, que é a do celular.
+   ATENÇÃO: a condição abaixo repete as duas media queries do CSS que põem .n-cols em grade ("@media (min-width:900px)" e a do
+   celular deitado, "(min-width:600px) and (max-width:899px) and (max-height:500px)"). Mudou uma, mude a outra. */
 const MQ_COLS = window.matchMedia ? window.matchMedia('(min-width:900px), (min-width:600px) and (max-height:500px)') : null;
 const COLUNAS = { esq: ['inResumo', 'inRitmo', 'seisIni', 'atalhos'], dir: ['inCx', 'inVencer', 'inUltimos', 'inFatura', 'inMetas'] };
 const ORDEM_CEL = ['inResumo', 'inCx', 'inRitmo', 'seisIni', 'inVencer', 'inFatura', 'inMetas', 'inUltimos', 'atalhos'];
@@ -3902,6 +4041,7 @@ function abertura(longa, alvo, diaPct){
   Vis.ids.forEach(id => { Vis.g[id] = 0; Vis.ent[id] = longa ? 0 : 1; });
   Vis.dia = longa ? 0 : diaPct; desenharInicio();
   if (longa) {
+    medirAbertura(); // só mede enquanto o visual leve nunca foi mexido
     anima(Vis.el.arco, ENTRA_ARCO, { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
     tween(v => { Vis.dia = v; }, 0, diaPct, 1000, 80);
     requestAnimationFrame(() => { animarGraficos($('inRitmo')); animarGraficos($('seisIni')); }); // o ritmo do mês (e, no PC, os 6 meses) se desenham junto, depois que o renderInicio os refaz

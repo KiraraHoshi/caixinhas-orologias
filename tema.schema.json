@@ -19,6 +19,7 @@
     "suave": { "$ref": "#/$defs/cor", "description": "Texto secundário. Contraste mínimo de 4,5:1 com o fundo." },
     "destaque": { "$ref": "#/$defs/cor", "description": "Cor de ação (botões, links, barras). Contraste mínimo de 3:1 com o fundo." },
     "secundaria": { "$ref": "#/$defs/cor", "description": "Cor de apoio (dourado nos temas Orologia). Contraste mínimo de 3:1 com o fundo." },
+    "brilho": { "$ref": "#/$defs/cor", "description": "Opcional. Cor do clarão parado no alto da tela (Caixinhas 2.0). Sem ele, o clarão é derivado do destaque. Quem não conhece o campo (Orolon Player) o ignora; a versão do formato continua 1." },
     "raio": { "type": "integer", "minimum": 0, "maximum": 28, "default": 16, "description": "Arredondamento dos cantos. Usado só no Orolon Player." },
     "fonte": { "enum": ["padrao", "sistema", "serifada", "mono"], "default": "padrao" }
   }

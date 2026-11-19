@@ -55,12 +55,15 @@ Um tema é um JSON pequeno, com as cores em `#RRGGBB`. Os tons de borda, campos 
   "suave": "#A49EB8",
   "destaque": "#9C9BF5",
   "secundaria": "#E3C98A",
+  "brilho": "#6B6AA8",
   "raio": 14,
   "fonte": "padrao"
 }
 ```
 
-`fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`. O `raio` (cantos, de 0 a 28, padrão 16) é usado só no Orolon Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
+`brilho` é opcional: é a cor do clarão parado no alto da tela. Sem ele (temas antigos e os do Orolon Player), o clarão vem do `destaque`; a exportação sempre leva o brilho que está na tela. `fonte` aceita `padrao`, `sistema`, `serifada` ou `mono`.
+
+A Aparência mostra cada tema como uma miniatura do Início. Além de Noite e Dia e dos seis da galeria do Orolon Player (Brasa, Entardecer, Folha, Maré, Meia-noite, Papel), há seis temas novos: Ametista, Musgo e Grafite (escuros) e Areia, Névoa e Lírio (claros). Todos são livres. Ali também fica o **Visual leve**, que tira clarões, degradês, sombras e desfoque; ele liga sozinho se a abertura do app for lenta no aparelho (e não religa se você desligar). O `raio` (cantos, de 0 a 28, padrão 16) é usado só no Orolon Player. O tema escolhido fica salvo neste aparelho e não entra no backup.
 
 O formato está descrito em [`tema.schema.json`](tema.schema.json) (JSON Schema), o mesmo contrato usado pelo Orolon. Arquivos com outro `formato` são recusados; campos desconhecidos são ignorados.
 

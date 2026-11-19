@@ -84,6 +84,8 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
     tamanho: (w, h) => s("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: true }),
     // liga ou desliga o "reduzir movimento" do aparelho no meio do teste
     reduzir: (sim) => s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: sim ? "reduce" : "no-preference" }] }),
+    // roda um trecho antes do app em cada carregamento seguinte (ex.: ligar um gancho de teste que precisa existir na abertura)
+    injetar: (src) => s("Page.addScriptToEvaluateOnNewDocument", { source: src }),
     print: async (nome, inteira) => {
       await mkdir(PRINTS, { recursive: true });
       const d = await s("Page.captureScreenshot", { format: "png", captureBeyondViewport: !!inteira });
@@ -146,6 +148,37 @@ const animando = (p) => p.avaliar(() => document.getAnimations().filter((a) => a
 const aportar = (p, nome, valor) => p.avaliar((nome, valor) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); c.querySelector("input").value = valor; c.querySelector('[data-act="meta-aportar"]').click(); }, nome, String(valor));
 const cartaoMeta = (p, nome) => p.avaliar((nome) => { const c = [...document.querySelectorAll("#metasLista .meta-card")].find((x) => x.textContent.includes(nome)); return c ? c.textContent.replace(/\s+/g, " ") : ""; }, nome);
 const comExemplo = async (p) => { await p.clicar('[data-act="onb-exemplo"]'); await p.espera(200); };
+const varCss = (p, nome) => p.avaliar((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toUpperCase(), nome);
+const lerTemaGuardado = (p) => p.avaliar(() => JSON.parse(localStorage.getItem("caixinhas-orologia-tema") || "{}"));
+// cola um tema na Aparência (Colar tema → Importar)
+const colarTema = async (p, tema) => {
+  await p.aba("ajustes/aparencia");
+  await p.clicar('[data-tm="colar"]');
+  await p.digitar("#temaCola", typeof tema === "string" ? tema : JSON.stringify(tema));
+  await p.clicar('[data-tm="importar"]');
+};
+// o JSON que o app exporta do tema ativo ("Baixar .json" também mostra o texto)
+const temaExportado = async (p) => { await p.aba("ajustes/aparencia"); await p.clicar('[data-tm="baixar"]'); await p.espera(200); return JSON.parse(await p.avaliar(() => document.querySelector("#temaTxt").value)); };
+// a mesma conta do app para o brilho derivado (destaque misturado 35% com o fundo)
+const misturar = (a, b, t) => "#" + [1, 3, 5].map((i) => { const x = parseInt(a.substr(i, 2), 16), y = parseInt(b.substr(i, 2), 16); return ("0" + Math.round(x + (y - x) * t).toString(16)).slice(-2); }).join("").toUpperCase();
+// cores computadas de um elemento, com o fundo e a borda (translúcidos) compostos sobre --bg; contraste pela conta do app
+const coresSobreFundo = (p, sel) => p.avaliar((sel) => {
+  const lerCor = (s) => {
+    let m = /^rgba?\(([^)]+)\)/.exec(s);
+    if (m) { const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [v[0], v[1], v[2], v.length > 3 ? v[3] : 1]; }
+    m = /^color\(srgb ([^)]+)\)/.exec(s);
+    if (m) { const v = m[1].split(/[ /]+/).filter(Boolean).map(Number); return [v[0] * 255, v[1] * 255, v[2] * 255, v.length > 3 ? v[3] : 1]; }
+    throw new Error("cor que não sei ler: " + s);
+  };
+  const hex = (c) => "#" + c.slice(0, 3).map((v) => ("0" + Math.round(Math.max(0, Math.min(255, v))).toString(16)).slice(-2)).join("");
+  const sobre = (c, f) => c.slice(0, 3).map((v, i) => v * c[3] + f[i] * (1 - c[3]));
+  const bg = lerCor(getComputedStyle(document.body).backgroundColor);
+  const e = document.querySelector(sel); if (!e) throw new Error("não achei " + sel);
+  const cs = getComputedStyle(e);
+  const fundo = sobre(lerCor(cs.backgroundColor), bg), borda = sobre(lerCor(cs.borderTopColor), bg), texto = lerCor(cs.color);
+  const C = window.TemaCx.contraste;
+  return { bg: hex(bg), fundo: hex(fundo), borda: hex(borda), cBorda: C(hex(borda), hex(bg)), cFundo: C(hex(fundo), hex(bg)), cTexto: C(hex(texto), hex(fundo)) };
+}, sel);
 
 const TESTES = {
   "primeira abertura mostra as boas-vindas e o botão Lançar": async (p) => {
@@ -280,6 +313,9 @@ const TESTES = {
     certo((await p.texto("#mesLista")).includes("Internet"), "os lançamentos continuam no Mês");
     await p.aba("ajustes/aparencia");
     certo((await p.texto("#temaBox")).includes("Meu roxo"), "o tema próprio continua na Aparência");
+    // a chave da 1.9 não tem "leve": visual completo, chave desligada, e nada é reescrito só por abrir
+    igual(await p.avaliar(() => document.documentElement.hasAttribute("data-leve") + "|" + document.querySelector("#tgLeve").checked + "|" + document.querySelector("#tgLeveNota").hidden), "false|false|true", "visual leve desligado para quem vem da 1.9");
+    igual(await p.avaliar(() => "leve" in JSON.parse(localStorage.getItem("caixinhas-orologia-tema"))), false, "a chave do tema continua sem leve");
   },
   "Início e telas vizinhas sem estourar, nos temas noite e dia (prints)": async (p) => {
     await comExemplo(p);
@@ -1453,12 +1489,48 @@ const TESTES = {
       await p.print(`21-celular-deitado-${w}`);
     }
   },
+  "Aviso no celular deitado não passa por baixo do trilho": async (p) => {
+    await comExemplo(p);
+    for (const [w, h] of [[640, 360], [844, 390]]) {
+      await p.tamanho(w, h); await p.recarregar(); await p.aba("ajustes/aparencia");
+      // um aviso bem comprido: o erro de um arquivo com outro formato repete o nome do formato
+      await p.clicar('[data-tm="colar"]');
+      await p.digitar("#temaCola", JSON.stringify({ formato: "um-formato-de-tema-com-um-nome-muito-comprido-que-nao-acaba-mais-nunca", nome: "x" }));
+      await p.clicar('[data-tm="importar"]');
+      const m = await p.avaliar(() => { const r = (q) => { const b = document.querySelector(q).getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; }; return { aviso: r("#toast"), trilho: r(".tabs"), largura: innerWidth }; });
+      certo(m.aviso.right - m.aviso.left > 300, `o aviso devia ser comprido em ${w}x${h}: ` + JSON.stringify(m.aviso));
+      certo(m.aviso.left >= 0 && m.aviso.right <= m.trilho.left - 4, `em ${w}x${h} o aviso passa por baixo do trilho ou sai da tela: ` + JSON.stringify(m));
+      await p.print(`21-aviso-deitado-${w}`);
+    }
+  },
+  "Calculadoras em pé no PC: setas para cima e para baixo": async (p) => {
+    await comExemplo(p);
+    const estado = () => p.avaliar(() => ({ ori: document.querySelector(".calc-tabs").getAttribute("aria-orientation"), sel: document.querySelector('.calc-tabs [aria-selected="true"]').dataset.calc, foco: document.activeElement.dataset.calc, vis: !document.querySelector("#c-" + document.querySelector('.calc-tabs [aria-selected="true"]').dataset.calc).hidden }));
+    const focar = () => p.avaliar(() => document.querySelector('.calc-tabs [aria-selected="true"]').focus());
+    await p.tamanho(1280, 800); await p.recarregar(); await p.aba("calc"); await focar();
+    igual((await estado()).ori, "vertical", "no PC a lista das calculadoras está em pé");
+    await tecla(p, "ArrowDown"); await p.espera(80);
+    igual(JSON.stringify(await estado()), JSON.stringify({ ori: "vertical", sel: "not", foco: "not", vis: true }), "seta para baixo vai à próxima calculadora");
+    await tecla(p, "ArrowUp"); await p.espera(80);
+    igual((await estado()).sel + (await estado()).foco, "liqliq", "seta para cima volta");
+    await tecla(p, "End"); await p.espera(80);
+    igual((await estado()).sel, "pmt", "End vai à última");
+    await p.tamanho(360, 780); await p.recarregar(); await p.aba("calc"); await focar();
+    igual((await estado()).ori, "horizontal", "no celular a lista das calculadoras está deitada");
+    await tecla(p, "ArrowRight"); await p.espera(80);
+    igual((await estado()).sel + (await estado()).foco, "notnot", "no celular a seta para a direita vai à próxima");
+    await tecla(p, "ArrowLeft"); await p.espera(80);
+    igual((await estado()).sel, "liq", "e para a esquerda volta");
+  },
   "Mês: tocar no lançamento abre a edição, e apagar fica dentro dela": async (p) => {
     await comExemplo(p); await p.aba("mes");
     const linhas = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc[data-id]")].map((b) => ({ tag: b.tagName, act: b.dataset.act, ex: !!b.querySelector(".ex"), foco: b.tabIndex })));
     certo(linhas.length === 5, "cinco lançamentos na lista do exemplo: " + linhas.length);
     certo(linhas.every((l) => l.tag === "BUTTON" && l.act === "ed-gasto" && l.foco >= 0), "cada linha é um botão que abre a edição: " + JSON.stringify(linhas[0]));
     certo(linhas.every((l) => l.ex), "a etiqueta 'exemplo' continua na linha");
+    // cada linha mostra que é tocável: uma seta discreta à direita, escondida do leitor de tela (o rótulo já diz "Editar")
+    const setas = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc")].map((b) => { const s = b.querySelector(".n-seta"); if (!s) return "sem"; const r = s.getBoundingClientRect(), v = b.querySelector(".val").getBoundingClientRect(); return s.getAttribute("aria-hidden") === "true" && r.width > 0 && r.left >= v.right - 1 ? "ok" : "ruim"; }));
+    igual(setas.join(","), "ok,ok,ok,ok,ok", "seta de tocar à direita de cada linha");
     igual(await p.avaliar(() => document.querySelectorAll('#mesLista [data-act="del-gasto"], #mesLista .act').length), 0, "a lista não tem mais os links Editar e Apagar");
     const id = await p.avaliar(() => [...document.querySelectorAll("#mesLista .n-lanc")].find((b) => b.textContent.includes("Uber")).dataset.id);
     const rotulo = await p.avaliar((id) => document.querySelector('.n-lanc[data-id="' + id + '"]').getAttribute("aria-label").replace(/\s+/g, " "), id);
@@ -1513,6 +1585,60 @@ const TESTES = {
       igual(await gravado(), "Cheque|b|42|Feira|" + k + "-02", "o gasto salvo depois de desistir de apagar" + (esperar ? " (com o desarme automático)" : ""));
     }
   },
+  "Editar gasto de caixinha apagada não o move sem a pessoa ver": async (p) => {
+    // g1 é de uma caixinha que foi apagada ("z"); antes de editar, a folha estava com o Lazer marcado
+    const k = await p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, formas: ["Pix", "Débito", "Crédito"],
+        caixinhas: [{ id: "a", nome: "Casa", cor: "#9C9BF5" }, { id: "b", nome: "Lazer", cor: "#E3C98A" }], limitesPadrao: { a: 500, b: 300 },
+        meses: { [k]: { gastos: [{ id: "g1", valor: 42, descricao: "Antigo", caixinha: "z", forma: "Pix", data: k + "-02" }] } } }));
+      return k;
+    });
+    await p.recarregar(); await p.aba("mes");
+    await p.clicar("#fab"); await p.clicar('input[name="gCx"][value="b"]'); await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    const marcada = () => p.avaliar(() => [...document.querySelectorAll('input[name="gCx"]:checked')].map((r) => r.value + ":" + document.querySelector('label[for="' + r.id + '"]').textContent.trim()).join(","));
+    const gravado = () => p.avaliar(() => { const m = Object.values(JSON.parse(localStorage.getItem("caixinhas-orologia-v1")).meses)[0]; const g = m.gastos.find((x) => x.id === "g1"); return [g.caixinha, g.valor, g.descricao].join("|"); });
+    await p.clicar('#mesLista .n-lanc[data-id="g1"]');
+    const m1 = await marcada();
+    certo(/^z:.*apagada/i.test(m1), "a folha devia mostrar que a caixinha do gasto foi apagada: " + m1);
+    certo(/apagada/i.test(await p.texto("#gPrev")), "o aviso da folha devia dizer que a caixinha foi apagada: " + await p.texto("#gPrev"));
+    // armar e desarmar o Apagar (redesenho do Mês) não troca a caixinha
+    await p.clicar("#gApagar"); await p.espera(3700);
+    igual((await marcada()).split(":")[0], "z", "a caixinha apagada continua marcada depois do redesenho");
+    await p.clicar("#gBtn"); await p.espera(150);
+    igual(await gravado(), "z|42|Antigo", "salvar sem mexer na caixinha mantém o gasto como está");
+    // escolher outra caixinha continua movendo o gasto
+    await p.clicar('#mesLista .n-lanc[data-id="g1"]');
+    await p.clicar('input[name="gCx"][value="a"]');
+    await p.clicar("#gBtn"); await p.espera(150);
+    igual(await gravado(), "a|42|Antigo", "escolher a Casa move o gasto");
+    igual(k.length, 7, "mês");
+  },
+  "Sair da edição sem salvar não deixa forma nem caixinha antigas na folha": async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, formas: ["Pix", "Débito", "Crédito"],
+        caixinhas: [{ id: "a", nome: "Casa", cor: "#9C9BF5" }, { id: "b", nome: "Lazer", cor: "#E3C98A" }], limitesPadrao: { a: 500, b: 300 },
+        meses: { [k]: { gastos: [{ id: "g1", valor: 42, descricao: "Feira", caixinha: "z", forma: "Cheque", data: k + "-02" }] } } }));
+    });
+    await p.recarregar(); await p.aba("mes");
+    const folha = () => p.avaliar(() => ({ forma: document.querySelector("#gForma").value, formas: [...document.querySelector("#gForma").options].map((o) => o.value).join(","),
+      cx: (document.querySelector('input[name="gCx"]:checked') || {}).value, cxs: [...document.querySelectorAll('input[name="gCx"]')].map((r) => r.value).join(",") }));
+    const jeitos = { "no X": () => p.clicar('.folha-topo [data-act="folha-fechar"]'), "com Esc": () => tecla(p, "Escape"), "pelo Voltar": () => p.avaliar(() => history.back()) };
+    for (const [jeito, fechar] of Object.entries(jeitos)) {
+      await p.clicar('#mesLista .n-lanc[data-id="g1"]');
+      const f0 = await folha();
+      igual(f0.forma + "|" + f0.cx, "Cheque|z", "a edição abre com a forma e a caixinha do gasto");
+      await fechar(); await p.espera(250);
+      igual(await p.visivel("#folhaGasto"), false, "a folha fechou " + jeito);
+      await p.clicar("#fab");
+      const f = await folha();
+      igual(f.formas, "Pix,Débito,Crédito", "fechando " + jeito + ", o próximo lançamento só oferece as formas da lista");
+      igual(f.cxs, "a,b", "fechando " + jeito + ", o próximo lançamento só oferece as caixinhas que existem");
+      certo(f.forma !== "Cheque" && ["a", "b"].includes(f.cx), "fechando " + jeito + ", o próximo lançamento não sai com a forma ou a caixinha antigas: " + JSON.stringify(f));
+      await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    }
+  },
   "Metas não fala em investimentos no título": async (p) => {
     await comExemplo(p); await p.aba("metas");
     igual(await p.texto("#v-metas h2"), "Metas", "título da tela");
@@ -1552,6 +1678,246 @@ const TESTES = {
     await p.clicar("#fab"); await p.espera(20);
     igual(await animando(p), 0, "com reduzir movimento, a folha não se move");
   } },
+  "Tema com brilho: importa, aplica e exporta": async (p) => {
+    await comExemplo(p);
+    const tema = { formato: "orologia-tema", versao: 1, nome: "Brilho de teste", fundo: "#101820", card: "#18242E", texto: "#EEF4F8", suave: "#9FB2C0", destaque: "#6FB7FF", secundaria: "#F2C879", brilho: "#e0457b", raio: 16, fonte: "padrao" };
+    await colarTema(p, tema);
+    igual(await varCss(p, "--bg"), "#101820", "o tema importado vale na hora");
+    igual(await varCss(p, "--glow"), "#E0457B", "o clarão do fundo usa o brilho do tema");
+    const guardado = (await lerTemaGuardado(p)).meus.find((t) => t.nome === "Brilho de teste");
+    igual(guardado && guardado.brilho, "#E0457B", "o brilho fica guardado com o tema");
+    const ex = await temaExportado(p);
+    igual(ex.brilho, "#E0457B", "a exportação leva o brilho");
+    igual(ex.formato + "|" + ex.versao + "|" + ex.destaque, "orologia-tema|1|#6FB7FF", "o formato continua o mesmo (versão 1)");
+    await p.recarregar();
+    igual(await varCss(p, "--glow"), "#E0457B", "o brilho continua depois de abrir de novo");
+    // #RGB também vale para o brilho; brilho inválido recusa o tema com um aviso que diz o campo
+    await colarTema(p, Object.assign({}, tema, { nome: "Curto", brilho: "#f0a" }));
+    igual(await varCss(p, "--glow"), "#FF00AA", "brilho em #RGB é convertido");
+    const antes = (await lerTemaGuardado(p)).meus.length;
+    await colarTema(p, Object.assign({}, tema, { nome: "Ruim", brilho: "rosa" }));
+    certo(/brilho/i.test(await p.texto("#toast")), "o aviso devia falar do brilho: " + await p.texto("#toast"));
+    igual((await lerTemaGuardado(p)).meus.length, antes, "tema com brilho inválido não entra");
+    // um tema criado na Aparência também leva o brilho escolhido
+    await p.clicar('[data-tm="criar"]');
+    await p.digitar("#tm-brilho", "#33cc99");
+    igual(await varCss(p, "--glow"), "#33CC99", "mexer no brilho do tema em edição muda o clarão na hora");
+    await p.clicar('[data-tm="salvar"]');
+    igual((await temaExportado(p)).brilho, "#33CC99", "o tema salvo exporta o brilho escolhido");
+  },
+  "Tema sem brilho continua valendo": async (p) => {
+    await comExemplo(p);
+    // o exemplo do README de antes da 2.0 (sem brilho), como o Orolon Player exporta
+    const antigo = `{
+  "formato": "orologia-tema",
+  "versao": 1,
+  "nome": "Orologia Noite",
+  "fundo": "#110E18",
+  "card": "#1C1827",
+  "texto": "#EEEAF5",
+  "suave": "#A49EB8",
+  "destaque": "#9C9BF5",
+  "secundaria": "#E3C98A",
+  "raio": 14,
+  "fonte": "padrao"
+}`;
+    await colarTema(p, antigo);
+    igual(await p.texto("#toast"), 'Tema "Orologia Noite" importado', "o tema antigo entra");
+    igual(await varCss(p, "--bg"), "#110E18", "e vale na hora");
+    igual(await varCss(p, "--glow"), misturar("#9C9BF5", "#110E18", 0.35), "sem brilho, o clarão vem do destaque");
+    const guardado = (await lerTemaGuardado(p)).meus.find((t) => t.nome === "Orologia Noite");
+    igual("brilho" in guardado, false, "o tema guardado continua sem brilho (segue o destaque)");
+    // editar o destaque de um tema sem brilho muda o clarão junto
+    await p.clicar('[data-tm="editar"][data-id="' + guardado.id + '"]');
+    await p.digitar("#tm-destaque", "#ff8800");
+    igual(await varCss(p, "--glow"), misturar("#FF8800", "#110E18", 0.35), "sem brilho, mudar o destaque muda o clarão");
+    await p.clicar('[data-tm="cancelar"]');
+    const ex = await temaExportado(p);
+    igual(ex.brilho, misturar("#9C9BF5", "#110E18", 0.35), "a exportação leva o brilho que está na tela");
+    for (const k of ["formato", "versao", "nome", "fundo", "card", "texto", "suave", "destaque", "secundaria", "raio", "fonte"]) igual(ex[k], JSON.parse(antigo)[k], "campo " + k + " exportado igual");
+    // um tema próprio da 1.9 (sem brilho) guardado no aparelho abre igual
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "tmeu1", meus: [{ id: "tmeu1", nome: "Meu roxo", fundo: "#1A1030", card: "#2A1F45", texto: "#F5F0FF", suave: "#B8A8D8", destaque: "#C78BFF", secundaria: "#FFD27A", raio: 16, fonte: "padrao" }] })));
+    await p.recarregar();
+    igual(await varCss(p, "--bg"), "#1A1030", "tema próprio da 1.9 continua aplicado");
+    igual(await varCss(p, "--glow"), misturar("#C78BFF", "#1A1030", 0.35), "com o clarão do destaque");
+  },
+  "Todos os temas de fábrica passam no contraste": async (p) => {
+    await comExemplo(p); await p.aba("ajustes/aparencia");
+    const ids = await p.avaliar(() => [...document.querySelectorAll('#temaBox [data-tm="usar"]')].map((b) => b.dataset.id));
+    for (const v of ["noite", "dia", "g-brasa", "g-entardecer", "g-folha", "g-mare", "g-meia-noite", "g-papel"]) certo(ids.includes(v), "o tema de antes continua: " + v);
+    const novos = ids.filter((i) => !["noite", "dia", "g-brasa", "g-entardecer", "g-folha", "g-mare", "g-meia-noite", "g-papel"].includes(i));
+    certo(novos.length >= 5 && novos.length <= 6, "de 5 a 6 temas novos: " + novos.join(","));
+    certo(novos.every((i) => /^g-[a-z-]+$/.test(i)), "temas novos com id g-…: " + novos.join(","));
+    const claros = await p.avaliar((ns) => ns.filter((i) => { const t = window.TemaCx.porId(i); return window.TemaCx.contraste(t.fundo, "#FFFFFF") < 2; }).length, novos);
+    certo(claros >= 2 && novos.length - claros >= 2, "temas novos claros e escuros: " + claros + " claros de " + novos.length);
+    for (const id of ids) {
+      await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]');
+      // a mesma tabela de contraste que a pessoa vê ao criar um tema a partir do ativo
+      await p.clicar('[data-tm="criar"]');
+      const linhas = await p.avaliar(() => [...document.querySelectorAll("#tmCtr .ctr")].map((l) => l.textContent.replace(/\s+/g, " ").trim()));
+      igual(linhas.length, 5, "linhas de contraste");
+      const fracas = linhas.filter((l) => /fraco/.test(l));
+      igual(fracas.join(" | "), "", "contraste do tema " + id);
+      await p.clicar('[data-tm="cancelar"]');
+      // além da tabela: etiquetas ok/passou e o + legíveis
+      const extra = await p.avaliar(() => {
+        const v = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), C = window.TemaCx.contraste;
+        return { ok: C(v("--ok"), v("--bg")), over: C(v("--over"), v("--bg")), tinta: Math.min(C(v("--accent-ink"), v("--accent")), C(v("--accent-ink"), v("--fab-fim"))) };
+      });
+      certo(extra.ok >= 3 && extra.over >= 3, `etiquetas ok/passou legíveis no tema ${id}: ` + JSON.stringify(extra));
+      certo(extra.tinta >= 3, `o + legível nas duas pontas do degradê no tema ${id}: ` + JSON.stringify(extra));
+    }
+  },
+  "Tema fora do padrão não some com os cartões": async (p) => {
+    await comExemplo(p);
+    const base = { raio: 16, fonte: "padrao" };
+    const casos = {
+      "tema claro": { id: "tc1", nome: "Claro", fundo: "#FAFAF7", card: "#FFFFFF", texto: "#222222", suave: "#5C5C5C", destaque: "#2F6FD6", secundaria: "#9A4B2F" },
+      "card igual ao fundo (escuro)": { id: "tc2", nome: "Chapado", fundo: "#14141A", card: "#14141A", texto: "#EDEDF2", suave: "#A0A0AE", destaque: "#8FA0FF", secundaria: "#E3C98A" },
+      "card igual ao fundo (claro)": { id: "tc3", nome: "Chapado claro", fundo: "#F4F4F4", card: "#F4F4F4", texto: "#1A1A1A", suave: "#575757", destaque: "#3355CC", secundaria: "#8C5E14" },
+      "tema próprio sem brilho": { id: "tc4", nome: "Sem brilho", fundo: "#0F1A12", card: "#1A2A1E", texto: "#EAF5EC", suave: "#9DB8A2", destaque: "#7FD98F", secundaria: "#F0C674" },
+    };
+    for (const [caso, t] of Object.entries(casos)) {
+      await p.avaliar((t) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: t.id, meus: [t] })), Object.assign({}, base, t));
+      await p.recarregar();
+      igual(await varCss(p, "--bg"), t.fundo, "tema aplicado (" + caso + ")");
+      for (const sel of ["#inRitmo", "#inCx .n-bloco[data-cx]", ".tabs"]) {
+        const c = await coresSobreFundo(p, sel);
+        certo(c.cBorda >= 1.15, `${caso}: a borda de ${sel} some no fundo (${c.cBorda.toFixed(2)}): ` + JSON.stringify(c));
+        certo(c.cTexto >= 4.5, `${caso}: o texto de ${sel} fica ilegível (${c.cTexto.toFixed(2)}): ` + JSON.stringify(c));
+      }
+      await p.aba("mes");
+      for (const sel of ["#v-mes .n-lancs", "#v-mes details", "#mesBoxes .box"]) {
+        const c = await coresSobreFundo(p, sel);
+        certo(c.cBorda >= 1.15 && c.cTexto >= 4.5, `${caso}: cartão do Mês (${sel}) ` + JSON.stringify(c));
+      }
+      await p.aba("inicio");
+    }
+  },
+  "Galeria mostra miniaturas e trocar de tema vale na hora": async (p) => {
+    await comExemplo(p); await p.aba("ajustes/aparencia");
+    const minis = await p.avaliar(() => [...document.querySelectorAll('#temaBox .tema-card [data-tm="usar"]')].map((b) => {
+      const t = window.TemaCx.porId(b.dataset.id), m = b.querySelector("svg.n-mini");
+      if (!m) return b.dataset.id + ": sem miniatura";
+      const cor = (q, a) => { const e = m.querySelector(q); return e ? (e.getAttribute(a) || "").toUpperCase() : "falta " + q; };
+      const erros = [];
+      if (cor(".n-mini-fundo", "fill") !== t.fundo) erros.push("fundo " + cor(".n-mini-fundo", "fill"));
+      if (cor(".n-mini-arco", "stroke") !== t.destaque) erros.push("arco " + cor(".n-mini-arco", "stroke"));
+      if (!m.querySelector(".n-mini-bloco")) erros.push("sem bloco");
+      if (cor(".n-mini-barra", "fill") !== t.card) erros.push("barra " + cor(".n-mini-barra", "fill"));
+      if (!m.querySelector(".n-mini-mais")) erros.push("sem o +");
+      if (m.getAttribute("aria-hidden") !== "true") erros.push("a miniatura devia ficar fora do leitor de tela");
+      const r = m.getBoundingClientRect();
+      if (r.width < 90 || r.height < 50) erros.push("pequena demais " + r.width + "x" + r.height);
+      return erros.length ? b.dataset.id + ": " + erros.join(", ") : "";
+    }).filter(Boolean));
+    igual(minis.join(" | "), "", "cada tema mostra uma miniatura do Início com as cores dele");
+    const n = await p.avaliar(() => document.querySelectorAll('#temaBox [data-tm="usar"]').length);
+    certo(n >= 13, "temas de fábrica na Aparência: " + n);
+    certo(!/apoiador|premium|pago|comprar|desbloque/i.test(await p.texto("#v-ajustes")), "nada de tema pago ou Apoiador na Aparência");
+    // trocar de tema vale na hora, sem recarregar
+    const alvo = await p.avaliar(() => [...document.querySelectorAll('#temaBox [data-tm="usar"]')].map((b) => b.dataset.id).filter((i) => !["noite", "dia", "g-brasa", "g-entardecer", "g-folha", "g-mare", "g-meia-noite", "g-papel"].includes(i))[0]);
+    const fundo = await p.avaliar((i) => window.TemaCx.porId(i).fundo, alvo);
+    await p.clicar('#temaBox [data-tm="usar"][data-id="' + alvo + '"]');
+    igual(await varCss(p, "--bg"), fundo, "o tema novo vale na hora");
+    igual(await p.avaliar((i) => document.querySelector('#temaBox [data-tm="usar"][data-id="' + i + '"]').getAttribute("aria-pressed") + "|" + document.querySelectorAll('#temaBox [aria-pressed="true"]').length, alvo), "true|1", "só o tema escolhido fica marcado");
+    igual(await p.avaliar(() => document.querySelector('meta[name="theme-color"]').getAttribute("content").toUpperCase()), fundo, "a cor da barra do navegador acompanha");
+    await p.recarregar();
+    igual(await varCss(p, "--bg"), fundo, "o tema escolhido fica salvo");
+    igual((await lerTemaGuardado(p)).atual, alvo, "guardado na chave do tema");
+  },
+  "Visual leve: a chave liga e desliga; o automático grava e não religa depois de desligado à mão": { movimento: true, fn: async (p) => {
+    // os avisos (toast) que aparecem a cada carregamento ficam anotados em window.__avisos
+    await p.injetar(`window.__avisos = []; document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("toast"); new MutationObserver(() => { if (!t.hidden) window.__avisos.push(t.textContent); }).observe(t, { attributes: true, childList: true, characterData: true, subtree: true }); });`);
+    const leve = () => p.avaliar(() => document.documentElement.hasAttribute("data-leve"));
+    const guardado = async () => (await lerTemaGuardado(p)).leve;
+    const avisosLeve = () => p.avaliar(() => window.__avisos.filter((a) => /visual leve/i.test(a)).length);
+    const chave = async () => { await p.aba("ajustes/aparencia"); const r = await p.avaliar(() => ({ marcada: document.querySelector("#tgLeve").checked, nota: (document.querySelector("#tgLeveNota") || {}).textContent || "", notaVisivel: !!document.querySelector("#tgLeveNota") && !document.querySelector("#tgLeveNota").hidden })); await p.aba("inicio"); return r; };
+    // 1) Prova: sem o gancho, o Chrome dos testes abre rápido e o visual leve não liga sozinho
+    await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "noite", meus: [] }))); // chave da 1.9, sem "leve"
+    await comExemplo(p); await p.recarregar(); await p.espera(2200);
+    igual(await p.avaliar(() => document.querySelector("#inResumo").dataset.abertura), "longa", "a abertura longa tocou");
+    igual(await leve(), false, "sem quadros lentos o visual leve não liga");
+    igual(await guardado(), undefined, "e nada é gravado");
+    igual((await chave()).marcada, false, "a chave começa desligada");
+    // 2) abertura com quadros lentos: liga sozinho, grava 'auto', avisa uma vez e aparece na chave
+    await p.injetar("window.__quadroLento = 45;");
+    await p.recarregar(); await p.espera(2200);
+    igual(await leve(), true, "quadros lentos na abertura ligam o visual leve");
+    igual(await guardado(), "auto", "o ligar sozinho fica gravado");
+    igual(await avisosLeve(), 1, "avisa uma vez");
+    const c1 = await chave();
+    certo(c1.marcada && c1.notaVisivel && /automaticamente/i.test(c1.nota), "a chave mostra que ligou sozinho: " + JSON.stringify(c1));
+    // 3) abrir de novo: já abre leve, sem medir nem avisar outra vez
+    await p.recarregar();
+    igual(await leve(), true, "o visual leve já vem ligado na abertura seguinte");
+    await p.espera(2200);
+    igual(await avisosLeve(), 0, "não avisa de novo");
+    // 4) a pessoa desliga: tira na hora, grava 'nao' e a próxima abertura lenta não religa
+    await p.aba("ajustes/aparencia"); await p.clicar("#tgLeve");
+    igual(await leve(), false, "desligar a chave tira o visual leve na hora");
+    igual(await guardado(), "nao", "desligado à mão fica gravado");
+    igual(await p.avaliar(() => document.querySelector("#tgLeveNota").hidden), true, "a nota de automático some");
+    await p.aba("inicio"); await p.recarregar(); await p.espera(2200);
+    igual(await p.avaliar(() => window.__quadroLento), 45, "a abertura continua lenta");
+    igual(await leve(), false, "depois de desligado à mão, não religa sozinho");
+    igual(await guardado(), "nao", "continua 'nao'");
+    igual(await avisosLeve(), 0, "nem avisa");
+    // 5) ligar e desligar à mão
+    await p.aba("ajustes/aparencia"); await p.clicar("#tgLeve");
+    igual(await leve() + "|" + await guardado(), "true|sim", "ligar à mão");
+    await p.clicar("#tgLeve");
+    igual(await leve() + "|" + await guardado(), "false|nao", "desligar à mão");
+    // o tema escolhido e os temas próprios continuam na mesma chave
+    igual((await lerTemaGuardado(p)).atual, "noite", "o tema continua guardado junto");
+  } },
+  "Visual leve tira clarões e gradientes": async (p) => {
+    await comExemplo(p);
+    const visual = () => p.avaliar(() => {
+      const cs = (q) => getComputedStyle(document.querySelector(q));
+      return { corpo: cs("body").backgroundImage, bloco: cs("#inCx .n-bloco[data-cx]").backgroundImage, resumo: cs(".n-resumo") ? cs(".n-resumo").backgroundImage : "none",
+        arco: cs("#arco .arco-luz").filter, barra: cs(".tabs").boxShadow, borrao: cs(".tabs").backdropFilter, mais: cs("#fab").boxShadow, vidro: cs("#inRitmo").boxShadow };
+    });
+    const antes = await visual();
+    certo(/gradient/.test(antes.corpo) && /gradient/.test(antes.bloco) && antes.arco !== "none" && antes.barra !== "none", "sem o visual leve há clarões, gradientes e sombras: " + JSON.stringify(antes));
+    await p.aba("ajustes/aparencia"); await p.clicar("#tgLeve"); await p.aba("inicio");
+    igual(await p.avaliar(() => document.documentElement.hasAttribute("data-leve")), true, "a chave põe data-leve no html");
+    const depois = await visual();
+    igual(JSON.stringify(depois), JSON.stringify({ corpo: "none", bloco: "none", resumo: "none", arco: "none", barra: "none", borrao: "none", mais: "none", vidro: "none" }), "o visual leve tira clarões, gradientes, sombras e desfoque");
+    // a cor da caixinha continua no bloco (sem gradiente, só uma cor chapada)
+    const blocoCor = await p.avaliar(() => getComputedStyle(document.querySelector("#inCx .n-bloco[data-cx]")).backgroundColor);
+    certo(blocoCor !== "rgba(0, 0, 0, 0)", "o bloco continua com fundo: " + blocoCor);
+    await p.print("23-leve-noite-360");
+    await p.aba("ajustes/aparencia"); await p.print("23-leve-aparencia-noite-360");
+    await p.clicar('#temaBox [data-tm="usar"][data-id="dia"]'); await p.aba("inicio");
+    await p.print("23-leve-dia-360");
+  },
+  "Temas de fábrica legíveis no Início, Mês, Gráficos e folha (prints)": async (p) => {
+    await comExemplo(p);
+    const ANTIGOS = ["noite", "dia", "g-brasa", "g-entardecer", "g-folha", "g-mare", "g-meia-noite", "g-papel"];
+    const ids = await p.avaliar(() => window.TemaCx.todos().filter((t) => t.fixo).map((t) => t.id));
+    const largura = async (onde) => { const s = await p.avaliar(() => document.documentElement.scrollWidth - innerWidth); certo(s <= 0, `${onde} passa ${s}px da largura`); };
+    for (const id of ids) {
+      await p.avaliar((id) => { const o = JSON.parse(localStorage.getItem("caixinhas-orologia-tema") || "{}"); o.atual = id; localStorage.setItem("caixinhas-orologia-tema", JSON.stringify(o)); }, id);
+      await p.tamanho(360, 780); await p.recarregar();
+      await largura("Início " + id); await p.print(`24-tema-${id}-inicio-360`);
+      if (ANTIGOS.includes(id)) continue;
+      for (const t of ["mes", "graficos"]) { await p.aba(t); await largura(t + " " + id); await p.print(`24-tema-${id}-${t}-360`); }
+      await p.aba("inicio"); await p.clicar("#fab"); await p.digitar("#gValor", "2000"); await p.avaliar(() => document.querySelector("#gValor").dispatchEvent(new Event("input", { bubbles: true })));
+      await p.print(`24-tema-${id}-folha-360`); await p.clicar('.folha-topo [data-act="folha-fechar"]');
+      await p.tamanho(1280, 800); await p.recarregar(); await largura("Início PC " + id); await p.print(`24-tema-${id}-inicio-1280`);
+    }
+    for (const tema of ["noite", "dia"]) {
+      await p.avaliar((tema) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: tema, meus: [] })), tema);
+      for (const [w, h] of [[360, 780], [320, 640], [1280, 800]]) {
+        await p.tamanho(w, h); await p.recarregar(); await p.aba("ajustes/aparencia");
+        await largura(`Aparência ${tema} ${w}`);
+        const cortado = await p.avaliar(() => [...document.querySelectorAll("#temaBox .tema-card")].filter((c) => c.scrollWidth > c.clientWidth + 1).length);
+        igual(cortado, 0, `cartões de tema sem estourar em ${w}px (${tema})`);
+        await p.print(`24-aparencia-${tema}-${w}`, true);
+      }
+    }
+  },
   "Nenhuma tela passa da largura": async (p) => {
     await comExemplo(p);
     const TELAS = ["inicio", "mes", "graficos", "cartao", "metas", "calc", "ajustes", "ajustes/caixinhas", "ajustes/dados", "guia", "apoie"];
