@@ -3,6 +3,9 @@
 //   loja   -> loja/pt: 8 capturas 1080×1920 com legenda, numa moldura de celular, e a imagem de destaque 1024×500
 //   readme -> docs/: as imagens do README (seis de celular e duas de PC, 1280×800)
 //   sem nada, gera os dois conjuntos; os números escolhem só algumas imagens do conjunto (ex.: loja 3 5).
+//   medir <cena> <largura> <alturas> -> diz, para cada altura (ex.: 800,840), em que rolagens a cena tem corte limpo.
+// O celular é 360×800. Cada foto rola até a barra flutuante cair entre dois cartões, sem texto meio escondido (enquadrar);
+// se não houver um jeito, o script para com erro e diz o que ficou cortado.
 // Os dados são inventados aqui (uma casa com contas comuns; nenhum nome de pessoa nem de banco de verdade) e o "hoje"
 // fica preso em 19/11/2026 às 10h30, para o script dar sempre as mesmas imagens. Com "reduzir movimento", nada está no meio
 // de uma animação na hora da foto.
@@ -23,28 +26,32 @@ const LOJA = {
   prints: [
     ["inicio", "Seu mês num olhar", "Quanto sobra, quanto dá por dia e o ritmo dos gastos"],
     ["lancar", "Cabe ou não cabe?", "Lance um gasto e veja na hora se cabe na caixinha"],
-    ["graficos", "Para onde foi o dinheiro", "Ritmo do mês, caixinhas e os últimos 6 meses"],
-    ["mes", "Cada gasto na sua caixinha", "Limites por caixinha, entradas e gastos fixos"],
+    ["graficos", "Para onde foi o dinheiro", "Ritmo do mês e para onde foi cada real"],
+    ["mes", "Cada gasto na sua caixinha", "Cada caixinha com o seu limite e quanto dá por dia"],
     ["cartao", "Cartão sem susto", "Fatura, parcelas, assinaturas e quem te deve"],
     ["metas", "Metas que andam", "Quanto falta e em quanto tempo você chega lá"],
-    ["calc", "Financiamento sem mistério", "SAC ou PRICE, e quanto a parcela extra economiza"],
+    ["calc", "Financiamento sem mistério", "SAC ou PRICE, e o que a amortização extra economiza"],
     ["temas", "Do seu jeito", "14 temas claros e escuros, ou crie o seu"],
   ],
 };
 /* ---- imagens do README: [arquivo, cena, tema, largura, altura, escala] ---- */
 const README = [
-  ["1-inicio.png", "inicio", "noite", 360, 780, 1.5],
-  ["2-mes.png", "mes", "noite", 360, 780, 1.5],
-  ["3-graficos.png", "graficos", "noite", 360, 780, 1.5],
-  ["4-cartao.png", "cartao", "dia", 360, 780, 1.5],
-  ["5-temas.png", "temas", "g-lirio", 360, 780, 1.5],
-  ["6-calculadoras.png", "calc", "g-ametista", 360, 780, 1.5],
+  ["1-inicio.png", "inicio", "noite", 360, 800, 1.5],
+  ["2-mes.png", "mes", "noite", 360, 800, 1.5],
+  ["3-graficos.png", "graficos", "noite", 360, 800, 1.5],
+  ["4-cartao.png", "cartao", "dia", 360, 800, 1.5],
+  ["5-temas.png", "temas", "g-lirio", 360, 800, 1.5],
+  ["6-calculadoras.png", "calc", "g-ametista", 360, 800, 1.5],
   ["7-pc-inicio.png", "inicio", "noite", 1280, 800, 1],
   ["8-pc-graficos.png", "graficos", "noite", 1280, 800, 1],
 ];
 const TEMA_LOJA = { temas: "g-areia" }; // na loja, as outras cenas ficam no tema padrão (noite)
 
-/* ---- dados inventados ---- */
+/* ---- dados inventados ----
+   Montados aqui no formato que o app guarda (chave caixinhas-orologia-v1), e não a partir do carregarExemplo: as funções do
+   app ficam num bloco fechado, sem acesso de fora. Para o script avisar se um dia o app deixar de entender estes dados, cada
+   cena confere antes da foto que não há NaN/Infinity/undefined na tela e que a sobra do Início é a esperada (SOBRA). */
+const SOBRA = "R$ 2.074,80";
 function dados() {
   const pad = (n) => String(n).padStart(2, "0");
   const [ano, mes0, dia] = HOJE, chave = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1);
@@ -121,6 +128,76 @@ function antesDoApp(hoje, estado, tema) {
   localStorage.setItem("caixinhas-orologia-backup", JSON.stringify(base)); // backup feito hoje: sem o aviso de backup
 }
 
+/* ---- corte limpo: roda na página e diz o que a barra flutuante de baixo (ou a borda de cima) corta ----
+   Sujo é: a borda de cima da barra atravessar um cartão ou uma linha de texto, algum texto aparecer entre a barra e o
+   pé da tela (meio escondido), ou, com a tela rolada, a borda de cima da tela atravessar um cartão ou um texto. */
+function corteSujo() {
+  const bar = document.querySelector(".tabs"), H = innerHeight, sujos = [];
+  const rb = bar && getComputedStyle(bar).display !== "none" && !document.querySelector(".folha:not([hidden])") ? bar.getBoundingClientRect() : null;
+  const raiz = document.querySelector(".folha:not([hidden])") || [...document.querySelectorAll(".view")].find((v) => !v.hidden) || document.body;
+  const nome = (e) => e.tagName.toLowerCase() + (e.id ? "#" + e.id : "") + (e.classList.length ? "." + [...e.classList].join(".") : "");
+  const util = (rb ? rb.top : H) - 20;
+  const CART = ".n-vidro,.panel,details,.n-resumo,.box,.n-fatura,.meta-card,.n-bloco,.tema-card,.guia-card,.n-lanc,.fin-lado .r,.fin-lado h4,#c-fin .row,#c-fin>.flat>*";
+  // uma linha corta o cartão quando o que ele mostra fica dos dois lados dela; passar só pela margem de dentro é limpo
+  const corta = (c, y) => { let a = Infinity, b = -Infinity; for (const e of c.querySelectorAll("*")) { const q = e.getBoundingClientRect(); if (q.width > 0 && q.height > 0) { a = Math.min(a, q.top); b = Math.max(b, q.bottom); } } return a < y - 1 && b > y + 1; };
+  // o + sai um pouco acima da barra: texto inteiro atrás dele some, mas texto meio coberto por ele fica feio
+  const fab = document.querySelector("#fab"), rf = rb && fab ? fab.getBoundingClientRect() : null;
+  for (const c of raiz.querySelectorAll(CART)) {
+    const r = c.getBoundingClientRect();
+    if (!r.height || r.height > util * 0.9) continue; // contêiner maior que a tela: valem as peças de dentro
+    if (rb && r.top < rb.top - 2 && r.bottom > rb.top + 2 && corta(c, rb.top)) sujos.push("a barra corta " + nome(c));
+    if (scrollY > 0 && r.top < -1 && r.bottom > 0.5 && (corta(c, 0) || r.bottom < 40)) sujos.push("o topo corta " + nome(c));
+    if (scrollY > 0 && r.top >= -1 && r.top < 6) sujos.push("cartão colado no topo: " + nome(c)); // a moldura arredondada o cortaria
+  }
+  // desenhos soltos (barras de progresso, pontos, ícones) aparecendo entre a barra e o pé da tela também sujam
+  if (rb) for (const e of raiz.querySelectorAll("*")) {
+    if (e.children.length) continue;
+    const r = e.getBoundingClientRect();
+    // (traços finos, como a barra de progresso de 8 px, não contam: lá embaixo eles leem como a borda do cartão seguinte)
+    if (r.width > 0 && r.height >= 12 && r.bottom > rb.bottom + 1 && r.top < H) { sujos.push("desenho embaixo da barra: " + nome(e)); break; }
+  }
+  // campos e botões contam como texto (o que está escrito neles não é um nó de texto da página)
+  for (const e of raiz.querySelectorAll("input, select, textarea, button")) {
+    const r = e.getBoundingClientRect(); if (!r.width || !r.height || e.closest(".tabs")) continue;
+    if (rb && r.top < rb.top - 1 && r.bottom > rb.top + 1) sujos.push("a barra corta o campo " + nome(e));
+    if (rb && r.bottom > rb.bottom + 1 && r.top < H) sujos.push("campo embaixo da barra: " + nome(e));
+    if (scrollY > 0 && r.top < -1 && r.bottom > 1) sujos.push("o topo corta o campo " + nome(e));
+  }
+  // o cabeçalho do app (símbolo, engrenagem) não pode ficar pela metade no topo
+  if (scrollY > 0) for (const e of document.querySelectorAll("header.top svg, header.top img, header.top a, header.top button")) {
+    const r = e.getBoundingClientRect();
+    if (r.height && r.top < -1 && r.bottom > 1) sujos.push("o topo corta " + nome(e));
+  }
+  // textos da tela toda (inclusive o cabeçalho do app, fora da aba), menos os da própria barra e do aviso
+  const w = document.createTreeWalker(document.querySelector(".folha:not([hidden])") || document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = w.nextNode());) {
+    if (!n.textContent.trim() || n.parentElement.closest(".tabs, #toast, .n-lado, script, style")) continue;
+    const g = document.createRange(); g.selectNodeContents(n);
+    for (const r of g.getClientRects()) {
+      if (!r.width || !r.height) continue;
+      const t = '"' + n.textContent.trim().slice(0, 24) + '"';
+      if (rb && r.top < rb.top - 1 && r.bottom > rb.top + 1) sujos.push("a barra corta o texto " + t);
+      if (rf && r.top < rf.top - 1 && r.bottom > rf.top + 1 && r.right > rf.left && r.left < rf.right) sujos.push("o + corta o texto " + t);
+      if (rb && r.bottom > rb.bottom + 1 && r.top < H) sujos.push("texto embaixo da barra: " + t);
+      if (scrollY > 0 && r.top < 0 && r.bottom > 0) sujos.push("texto cortado no topo: " + t);
+    }
+  }
+  return sujos;
+}
+// rola a partir de y0 até achar um corte limpo (no máximo `ate` px); sem achar, para com erro
+async function enquadrar(p, y0 = 0, ate = 500) {
+  const r = await p.avaliar((y0, ate, f) => {
+    const sujo = new Function("return (" + f + ")()");
+    const max = document.documentElement.scrollHeight - innerHeight;
+    for (let y = y0; y <= Math.min(max, y0 + ate); y++) { scrollTo(0, y); if (!sujo().length) return { ok: true, y }; }
+    // no fim da página não há para onde descer: procura subindo
+    for (let y = Math.min(y0, max) - 1; y >= Math.max(0, y0 - ate); y--) { scrollTo(0, y); if (!sujo().length) return { ok: true, y }; }
+    scrollTo(0, y0); return { ok: false, sujos: sujo() };
+  }, y0, ate, corteSujo.toString());
+  if (!r.ok) throw new Error("sem corte limpo a partir de " + y0 + " px: " + r.sujos.slice(0, 6).join("; "));
+  return r.y;
+}
+
 /* ---- as cenas: cada uma deixa o app na tela que será fotografada ---- */
 const CENAS = {
   inicio: async (p) => { await p.aba("inicio"); },
@@ -136,6 +213,7 @@ const CENAS = {
   },
   graficos: async (p) => { await p.aba("graficos"); },
   mes: async (p) => { await p.aba("mes"); },
+  // (o enquadrar procura, a partir do topo, a primeira rolagem em que a barra cai entre dois cartões)
   cartao: async (p) => { await p.aba("cartao"); },
   metas: async (p) => { await p.aba("metas"); },
   calc: async (p) => {
@@ -146,11 +224,13 @@ const CENAS = {
       document.activeElement && document.activeElement.blur();
     });
     await espera(200);
-    await p.avaliar(() => { const r = document.querySelector("#c-fin .fin-lado > div:nth-child(2) h4"); if (r && innerWidth < 900) scrollTo(0, Math.max(0, r.getBoundingClientRect().top + scrollY - 16)); });
+    // começa no título do cartão "Financiamento de imóvel" (o enquadrar segue dali até um corte limpo)
+    await p.avaliar(() => { if (innerWidth < 900) scrollTo(0, Math.max(0, document.querySelector("#c-fin").getBoundingClientRect().top + scrollY - 12)); });
   },
+  // a galeria a partir dos temas novos da 2.0 (Ametista, Musgo, Grafite, Areia, Névoa, Lírio), com o nome de cada um
   temas: async (p) => {
     await p.aba("ajustes/aparencia");
-    await p.avaliar(() => { const h = [...document.querySelectorAll("#temaBox h3")].find((x) => x.textContent.trim() === "Galeria"); if (h) { const a = h.previousElementSibling; scrollTo(0, Math.max(0, (a ? a.getBoundingClientRect().bottom : h.getBoundingClientRect().top - 12) + scrollY + 2)); } });
+    await p.avaliar(() => { const b = document.querySelector('#temaBox [data-tm="usar"][data-id="g-ametista"]'); if (b) scrollTo(0, Math.max(0, b.closest(".tema-card").getBoundingClientRect().top + scrollY - 6)); }); // as fileiras ficam a 10 px
   },
 };
 
@@ -159,10 +239,10 @@ const CSS_BASE = `*{margin:0;box-sizing:border-box}body{font-family:"Segoe UI",s
 .cel{background:#07060d;border:2px solid #2b2540;box-shadow:0 30px 80px #0009,inset 0 0 0 2px #15121f}.cel img{display:block}`;
 const htmlPrint = (img, titulo, sub) => `<!doctype html><meta charset="utf-8"><style>${CSS_BASE}
 body{width:1080px;height:1920px;text-align:center}
-.topo{height:500px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:30px;padding:30px 70px 10px}
+.topo{height:410px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:30px;padding:30px 70px 10px}
 h1{font-family:Constantia,Georgia,serif;font-size:84px;line-height:1.08;letter-spacing:-.01em;font-weight:700;text-wrap:balance;color:#F5EBD2}
 p{font-size:42px;line-height:1.25;color:#CFC6EE;text-wrap:balance}
-.cel{width:760px;height:1320px;border-radius:92px;margin:0 auto;padding:18px}.cel img{width:720px;height:1280px;border-radius:74px}</style>
+.cel{width:680px;height:1462px;border-radius:84px;margin:0 auto;padding:18px}.cel img{width:640px;height:1422px;border-radius:66px}</style>
 <div class="topo"><h1>${titulo}</h1><p>${sub}</p></div><div class="cel"><img src="${img}"></div>`;
 const htmlDestaque = (icone, a, b, [nome, frase, selos]) => `<!doctype html><meta charset="utf-8"><style>${CSS_BASE}
 body{width:1024px;height:500px;background:radial-gradient(90% 120% at 22% 18%,#3d3270 0%,#1a1530 52%,#0c0a14 100%);position:relative}
@@ -219,11 +299,33 @@ async function fotografar(cr, base, cena, tema, w, h, escala) {
     await CENAS[cena](p);
     await espera(500);
     await p.avaliar(() => { const t = document.querySelector("#toast"); if (t) t.hidden = true; });
+    // o app entendeu os dados? (sem NaN/Infinity/undefined e com a sobra esperada no Início)
+    const conf = await p.avaliar(() => ({ ruim: (document.body.innerText.match(/NaN|Infinity|undefined/) || [])[0] || "", sobra: (document.querySelector("#inSobra") || {}).textContent || "" }));
+    if (conf.ruim) throw new Error(`${cena}: a tela mostra "${conf.ruim}": o app não entendeu os dados inventados`);
+    if (conf.sobra.replace(/\s+/g, " ").trim() !== SOBRA) throw new Error(`${cena}: a sobra do Início devia ser ${SOBRA}, veio "${conf.sobra.trim()}"`);
+    // a barra flutuante cai entre dois cartões, sem texto meio escondido (procura a partir de onde a cena deixou)
+    await enquadrar(p, await p.avaliar(() => scrollY), 900);
     return await p.foto("png");
   } finally { await p.fechar(); }
 }
 
 /* ---- execução ---- */
+if (process.argv[2] === "medir") { // node scripts/prints-loja.mjs medir cena largura altura: o que a barra de baixo corta
+  const [, , , cena, w, h] = process.argv, srv = await servir(), cr = await abrirChrome({ prefixo: "caixinhas-prints-" });
+  for (const hh of h.split(",").map(Number)) {
+    const p = await pagina(cr, Number(w), hh, 1);
+    await p.abrirApp(`http://127.0.0.1:${srv.address().port}/index.html`, dados(), "noite"); await CENAS[cena](p); await espera(400);
+    const y = await p.avaliar(() => scrollY), s = await p.avaliar(corteSujo);
+    const limpo = await p.avaliar((f) => { // todas as rolagens com corte limpo, em faixas
+      const sujo = new Function("return (" + f + ")()"), max = document.documentElement.scrollHeight - innerHeight, faixas = [];
+      for (let y = 0; y <= max; y++) { scrollTo(0, y); if (!sujo().length) { const u = faixas[faixas.length - 1]; if (u && u[1] === y - 1) u[1] = y; else faixas.push([y, y]); } }
+      return faixas.map((f) => f[0] + "-" + f[1]).join(" ");
+    }, corteSujo.toString());
+    console.log(`${cena} ${w}x${hh} y=${y}: ${s.length ? s.slice(0, 3).join("; ") : "limpo"} | primeiro limpo: ${limpo}`);
+    await p.fechar();
+  }
+  await cr.fechar(); srv.close(); process.exit(0);
+}
 const args = process.argv.slice(2), conjuntos = args.filter((a) => a === "loja" || a === "readme"), quais = args.filter((a) => /^\d+$/.test(a)).map(Number);
 const srv = await servir(), base = `http://127.0.0.1:${srv.address().port}`;
 const cr = await abrirChrome({ prefixo: "caixinhas-prints-", extra: ["--lang=pt-BR", "--accept-lang=pt-BR", "--hide-scrollbars"] });
@@ -233,8 +335,8 @@ try {
     await mkdir(pasta, { recursive: true });
     for (const [i, [cena, titulo, sub]] of LOJA.prints.entries()) {
       if (quais.length && !quais.includes(i + 1)) continue;
-      // tela do celular em 405×720 (9:16), fotografada a 720×1280 para caber na moldura
-      telas[cena] = "data:image/png;base64," + await fotografar(cr, base, cena, TEMA_LOJA[cena] || "noite", 405, 720, 720 / 405);
+      // tela do celular em 360×800 (o tamanho mais comum de Android), fotografada a 640×1422 para caber na moldura
+      telas[cena] = "data:image/png;base64," + await fotografar(cr, base, cena, TEMA_LOJA[cena] || "noite", 360, 800, 640 / 360);
       const m = await pagina(cr, 1080, 1920, 1);
       await m.conteudo(htmlPrint(telas[cena], titulo, sub));
       await writeFile(join(pasta, `print-${i + 1}-${cena}.jpg`), Buffer.from(await m.foto("jpeg"), "base64"));

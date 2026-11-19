@@ -2,7 +2,7 @@
 
 ## 2.0.0 "Noite Orologia"
 
-A versão com que o Orolon Caixinhas entra na Google Play. O app ficou com cara nova, ganhou uma tela de gráficos, um jeito de usar no computador de verdade e um widget no Android. Seus dados, o tema escolhido, o PIN e a pasta do backup continuam como estavam: nada muda no que fica guardado.
+A versão preparada para levar o Orolon Caixinhas à Google Play (ainda não publicada; primeiro vem um teste fechado). O app ficou com cara nova, ganhou uma tela de gráficos, um jeito de usar no computador de verdade e um widget no Android. Seus dados, o tema escolhido, o PIN e a pasta do backup continuam como estavam: nada muda no que fica guardado.
 
 ### Visual
 - **Visual novo em todas as telas:** fundo com um brilho suave no alto, cartões translúcidos e cada caixinha tingida com a sua cor.
@@ -43,7 +43,7 @@ A versão com que o Orolon Caixinhas entra na Google Play. O app ficou com cara 
 ### Android
 - **Widget "Lançar gasto"** para a tela inicial: um botão que abre o app direto na folha de lançar e, embaixo, a sobra do mês e quanto dá por dia. Com o PIN ligado, o widget não mostra valores, e o app pede o PIN antes de abrir a folha.
 - **Ícone próprio na notificação** dos lembretes de contas a vencer.
-- O **APK de teste** agora se chama "Orolon Caixinhas (teste)" e fica instalado ao lado do app da Google Play, cada um com os seus dados. Os dados de um APK de teste anterior à 2.0 não passam sozinhos para o novo: exporte um backup no antigo e importe no novo.
+- O **APK de teste** agora se chama "Orolon Caixinhas (teste)" e, quando o app estiver na Google Play, fica instalado ao lado dele, cada um com os seus dados. Os dados de um APK de teste anterior à 2.0 não passam sozinhos para o novo: exporte um backup no antigo e importe no novo.
 - O link de apoio pelo GitHub fica só no site.
 - Continua sem a permissão de internet.
 

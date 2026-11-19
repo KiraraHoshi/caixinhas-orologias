@@ -2303,6 +2303,26 @@ const TESTES = {
       }
     }
   },
+  "Financiamento: o PRICE diz a verdade sobre a parcela": async (p) => {
+    await calc(p, "fin");
+    const ler = () => p.avaliar(() => ({
+      sub: document.querySelector("#c-fin .fin-lado > div:nth-child(2) h4 small").textContent.trim(),
+      ajuda: document.querySelector("#c-fin .fin-lado > div:nth-child(2)").textContent.replace(/\s+/g, " "),
+    }));
+    const caso = async (corr, extra) => { await p.digitar("#iCorr", corr); await p.digitar("#iExtra", extra); await p.espera(150); return ler(); };
+    const parcelas = () => p.avaliar(() => [...document.querySelectorAll("#finPrice .r .num")].slice(0, 2).map((e) => e.textContent.trim()));
+    let r = await caso("0", "");
+    igual(r.sub, "parcela igual do começo ao fim", "sem correção nem extra");
+    let [a, b] = await parcelas(); igual(a, b, "e de fato a primeira e a última parcela são iguais");
+    r = await caso("4", "");
+    [a, b] = await parcelas(); certo(a !== b, "com correção a parcela muda: " + a + " / " + b);
+    certo(/corre/i.test(r.sub) && !/igual do começo ao fim/.test(r.sub), "com correção o texto diz que a parcela acompanha o índice: " + r.sub);
+    r = await caso("0", "500");
+    [a, b] = await parcelas(); certo(a !== b, "com amortização extra a última parcela é menor: " + a + " / " + b);
+    certo(/última/i.test(r.sub) && !/igual do começo ao fim/.test(r.sub), "com amortização extra o texto avisa da última parcela: " + r.sub);
+    r = await caso("0", "");
+    igual(r.sub, "parcela igual do começo ao fim", "voltando ao caso simples, o texto volta");
+  },
   "Versão é a mesma em todo lugar": async () => {
     const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
     const versao = (ler("index.html").match(/const VERSION = '(\d+\.\d+\.\d+)';/) || [])[1];
@@ -2363,7 +2383,21 @@ const TESTES = {
       const g = readFileSync(join(proj, "build.gradle"), "utf8"), v = html.match(/const VERSION = '(\d+)\.(\d+)\.(\d+)';/).slice(1).map(Number);
       certo(g.includes(`versionCode ${(v[0] * 10000 + v[1] * 100 + v[2]) * 10}`) && g.includes(`versionName "${v.join(".")}"`), "versionCode pela regra da versão: " + (g.match(/versionCode \d+/) || [])[0]);
       certo(/signingConfig signingConfigs\.loja/.test(g) && /System\.getenv\("CX_CHAVE_SENHA"\)/.test(g) && /System\.getenv\("CX_CHAVE_ALIAS"\)/.test(g), "assina com a chave de envio, senha e apelido só das variáveis");
+      // no ensaio o .aab nunca se confunde com o de verdade: versionName termina em -ensaio
+      const p2 = await mkdtemp(join(tmpdir(), "caixinhas-loja-"));
+      try {
+        const proj2 = await projetoAndroidFalso(p2);
+        await writeFile(join(p2, "index.html"), html);
+        const r2 = spawnSync(process.execPath, [join(RAIZ, "scripts", "chave-loja-android.mjs")], { cwd: p2, encoding: "utf8", env: Object.assign({}, process.env, { CX_ENSAIO: "1" }) });
+        igual(r2.status, 0, "o script da chave no ensaio terminou bem (" + (r2.stderr || "").trim() + ")");
+        certo(readFileSync(join(proj2, "build.gradle"), "utf8").includes(`versionName "${v.join(".")}-ensaio"`), "no ensaio o versionName termina em -ensaio");
+      } finally { await rm(p2, { recursive: true, force: true }); }
+      certo(!/versionName "[^"]*-ensaio"/.test(g), "fora do ensaio o versionName é só a versão");
     } finally { await rm(pasta, { recursive: true, force: true }); }
+    certo(/CX_ENSAIO: \$\{\{ inputs\.ensaio && '1' \|\| '' \}\}/.test(wl), "o workflow avisa o script da chave quando é ensaio");
+    // o INTERNET é conferido no mesmo manifesto final nos dois workflows
+    const padrao = (t) => (t.match(/-name AndroidManifest\.xml -path "([^"]+)"/) || [])[1];
+    igual(padrao(wl), padrao(wt), "mesmo manifesto final conferido no workflow da loja e no do APK de teste");
     igual(((v) => (v[0] * 10000 + v[1] * 100 + v[2]) * 10)([2, 0, 0]), 200000, "a 2.0.0 vira 200000");
   },
   "Chrome que não abre: tenta de novo e diz o motivo": async () => {

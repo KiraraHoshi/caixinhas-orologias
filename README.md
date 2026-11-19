@@ -6,7 +6,7 @@ App de finanças pessoais em que o dinheiro do mês fica dividido em **caixinhas
 
 | Início | Mês | Gráficos |
 |---|---|---|
-| ![Início com o arco do mês, a sobra e as caixinhas](docs/1-inicio.png) | ![Mês com a sobra e as caixinhas com limite](docs/2-mes.png) | ![Gráficos com o ritmo do mês e a rosca por caixinha](docs/3-graficos.png) |
+| ![Início com o arco do mês, a sobra e as caixinhas](docs/1-inicio.png) | ![Mês com as caixinhas e o limite de cada uma](docs/2-mes.png) | ![Gráficos com o ritmo do mês e a rosca por caixinha](docs/3-graficos.png) |
 
 | Cartão (tema Orologia Dia) | Temas (tema Lírio) | Calculadoras (tema Ametista) |
 |---|---|---|
@@ -52,7 +52,7 @@ Com teclado físico, fora dos campos de texto: **N** lança um gasto, **/** abre
 ## Como conseguir
 
 - **No navegador (celular ou computador):** abra **[kirarahoshi.github.io/caixinhas-orologias](https://kirarahoshi.github.io/caixinhas-orologias/)**. Para instalar, use **Instalar app** ou **Adicionar à tela inicial** no menu do navegador. Depois disso ele abre mesmo sem internet.
-- **Google Play:** em teste fechado.
+- **Google Play:** em breve (primeiro em teste fechado).
 - **APK de teste:** na página [Releases](https://github.com/KiraraHoshi/caixinhas-orologias/releases), em "Android (teste)". Ele se chama "Orolon Caixinhas (teste)" e instala ao lado do app da loja. Detalhes em [ANDROID.md](ANDROID.md).
 
 Os dados ficam no aparelho (no navegador, no `localStorage`). **Exporte um backup** de vez em quando (Ajustes › Backup e dados), principalmente antes de limpar o navegador ou trocar de aparelho.

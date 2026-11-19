@@ -30,6 +30,8 @@ if (!/android\s*\{/.test(g) || !/buildTypes\s*\{\s*release\s*\{/.test(g)) falhar
 if (!/versionCode \d+/.test(g) || !/versionName "[^"]*"/.test(g)) falhar("versionCode ou versionName não encontrado em " + arq);
 g = g.replace(/android\s*\{/, (x) => x + bloco);
 g = g.replace(/buildTypes\s*\{\s*release\s*\{/, (x) => x + `\n            signingConfig signingConfigs.loja`);
-g = g.replace(/versionCode \d+/, `versionCode ${codigo}`).replace(/versionName "[^"]*"/, `versionName "${versao}"`);
+// no ensaio (CX_ENSAIO=1, chave descartável) o nome da versão termina em "-ensaio": o .aab nunca se confunde com o de verdade
+const nome = process.env.CX_ENSAIO === "1" ? versao + "-ensaio" : versao;
+g = g.replace(/versionCode \d+/, `versionCode ${codigo}`).replace(/versionName "[^"]*"/, `versionName "${nome}"`);
 writeFileSync(arq, g);
-console.log(`Orolon Caixinhas ${versao} (versionCode ${codigo})`);
+console.log(`Orolon Caixinhas ${nome} (versionCode ${codigo})`);

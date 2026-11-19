@@ -1,6 +1,7 @@
 # Ficha da Google Play
 
-Textos prontos para copiar no Play Console, só em português (o app é só em português). Os limites de tamanho são os do Console: nome 30, descrição curta 80, descrição completa 4.000 caracteres.
+Textos prontos para copiar no Play Console, só em português (o app é só em português). Os textos cabem em nome 30, descrição curta 80 e descrição completa 4.000 caracteres, os limites usados na ficha do Orolon Player (**a confirmar** no próprio Console, que mostra o contador de cada campo).
+Tudo o que este arquivo diz sobre como a Google Play e o Console funcionam vem da experiência com o Orolon Player e do que se sabe hoje, sem fonte oficial conferida: está marcado como **a confirmar** e deve ser conferido na Central de Ajuda do Play Console antes de responder.
 O que está marcado como **a confirmar** depende do que o Console mostrar na hora (as perguntas mudam de tempos em tempos): confira lá antes de responder.
 Os textos evitam de propósito as palavras "consultoria" e "investimento" (o app não é nenhum dos dois).
 
@@ -11,12 +12,12 @@ Os textos evitam de propósito as palavras "consultoria" e "investimento" (o app
 | Nome do app | Orolon Caixinhas |
 | Idioma padrão | Português (Brasil) |
 | App ou jogo | App |
-| Categoria | Finanças (**a confirmar**: é a categoria dos apps de controle de gastos; ao escolhê-la o Console pede a declaração de recursos financeiros, abaixo) |
+| Categoria | Finanças (**a confirmar** no Console: parece ser a categoria dos apps de controle de gastos; responder também a declaração de recursos financeiros, abaixo) |
 | Grátis ou pago | Grátis |
 | Site | https://kirarahoshi.github.io/caixinhas-orologias/ |
 | Política de privacidade | https://kirarahoshi.github.io/caixinhas-orologias/privacy.html |
-| E-mail de contato | preencher (fica público na loja) |
-| Telefone de contato | preencher, se quiser (opcional; fica público) |
+| E-mail de contato | preencher (deve ficar público na loja; **a confirmar** no Console) |
+| Telefone de contato | preencher, se quiser (opcional e público, **a confirmar** no Console) |
 | Ícone | `icon-512.png` (512×512, na raiz do repositório) |
 | Imagem de destaque | `loja/pt/destaque-1024x500.jpg` |
 | Capturas de tela do celular | `loja/pt/print-1…8`, nessa ordem |
@@ -87,10 +88,10 @@ Os cálculos são estimativas para ajudar a organizar o seu dinheiro. Confira im
 | Acesso ao app | Todas as funções estão disponíveis sem restrição | Não há login nem conta; nada fica atrás de senha (o PIN é opcional e criado pela própria pessoa) |
 | Anúncios | Não, o app não contém anúncios | Não há nenhuma biblioteca de anúncios, e o app nem tem acesso à internet |
 | Classificação de conteúdo | Categoria "Utilitário, produtividade, comunicação ou outro" (**a confirmar** o nome exato no questionário); "não" para violência, sexo, linguagem, drogas, jogos de azar, compra de itens digitais, compartilhamento de local e interação entre usuários. Resultado esperado: Livre (**a confirmar**) | O app só mostra números e textos que a própria pessoa digita; não há conteúdo de terceiros nem contato entre pessoas |
-| Público-alvo | 18 anos ou mais | É um app de finanças pessoais (contas, cartão, salário), feito para adultos; marcar faixas de crianças traria as regras do programa Famílias, que não se aplicam |
+| Público-alvo | 18 anos ou mais | É um app de finanças pessoais (contas, cartão, salário), feito para adultos; marcar faixas de crianças traria regras próprias para apps infantis, que não se aplicam (**a confirmar** na Central de Ajuda do Play Console) |
 | O app é atraente para crianças? | Não | Mesmo motivo |
 | App de notícias | Não | |
-| Recursos financeiros | **A confirmar no Console** qual opção cabe. O app é um controle de gastos pessoal: não tem conta, não movimenta dinheiro, não se conecta a banco, não oferece empréstimo, pagamento, câmbio, cripto nem recomendação de aplicação. Se a lista do Console tiver uma opção de orçamento ou controle de gastos pessoal, marcar essa; se não tiver, "O app não oferece nenhum recurso financeiro". Na dúvida, ler a descrição de cada opção na Central de Ajuda do Play Console antes de enviar | A declaração existe para apps de banco, crédito, pagamento e afins; o Caixinhas só faz contas com o que a pessoa digita |
+| Recursos financeiros | **A confirmar no Console** qual opção cabe. O app é um controle de gastos pessoal: não tem conta, não movimenta dinheiro, não se conecta a banco, não oferece empréstimo, pagamento, câmbio, cripto nem recomendação de aplicação. Se a lista do Console tiver uma opção de orçamento ou controle de gastos pessoal, marcar essa; se não tiver, "O app não oferece nenhum recurso financeiro". Na dúvida, ler a descrição de cada opção na Central de Ajuda do Play Console antes de enviar | Até onde se sabe, a declaração existe para apps de banco, crédito, pagamento e afins (**a confirmar** na Central de Ajuda do Play Console); o Caixinhas só faz contas com o que a pessoa digita |
 | Saúde | Nenhum recurso de saúde | |
 | App governamental | Não | |
 | ID de publicidade | O app não usa ID de publicidade | Não há biblioteca de anúncios nem de análise |
@@ -98,7 +99,7 @@ Os cálculos são estimativas para ajudar a organizar o seu dinheiro. Confira im
 ### Segurança dos dados
 
 - O app coleta ou compartilha algum dos tipos de dados do usuário exigidos? **Não.**
-- Com "não", o Console não pede o restante do formulário. Se ele perguntar mesmo assim: nenhum dado é coletado, nenhum é compartilhado, não há criptografia em trânsito a declarar (nada é transmitido) e não existe conta para excluir.
+- Com "não", o Console deve dispensar o restante do formulário (**a confirmar** na Central de Ajuda do Play Console). Se ele perguntar mesmo assim: nenhum dado é coletado, nenhum é compartilhado, não há criptografia em trânsito a declarar (nada é transmitido) e não existe conta para excluir.
 - Motivo, para o caso de revisão: gastos, caixinhas, cartões (só apelido e dias), metas e ajustes ficam só no armazenamento do app no aparelho. O app não tem a permissão de internet. O backup é um arquivo que a própria pessoa guarda onde quiser; "Enviar backup" abre o compartilhamento do Android, e quem envia é o app escolhido pela pessoa. O widget guarda no aparelho só a sobra e o valor por dia (nada com o PIN ligado).
 
 ### Permissões
@@ -110,14 +111,14 @@ Conferir a lista final no resumo do workflow "App Android (loja)" (passo "Permis
 | `POST_NOTIFICATIONS` | Mostrar o lembrete de contas a vencer, só se a pessoa ligar em Ajustes › Lembretes. O texto do lembrete não tem valores. |
 | `RECEIVE_BOOT_COMPLETED` e `WAKE_LOCK` | Do plugin de notificações: reagendar os lembretes depois que o celular reinicia. |
 
-- **Sem `INTERNET`:** a montagem falha se ela aparecer. Na página do app na Play, a lista de permissões não deve mostrar "acesso à rede".
-- Se aparecer `SCHEDULE_EXACT_ALARM` ou `USE_EXACT_ALARM`, parar e avisar antes de publicar: o app não usa alarme exato, e essas permissões pedem declaração própria na Play.
-- Sem serviço em primeiro plano: não há declaração de serviço a fazer.
+- **Sem `INTERNET`:** a montagem falha se ela aparecer. Depois de publicado, conferir na página do app na Play que a lista de permissões não mostra acesso à rede (**a confirmar** como a Play mostra essa lista).
+- Se aparecer `SCHEDULE_EXACT_ALARM` ou `USE_EXACT_ALARM`, parar e avisar antes de publicar: o app não usa alarme exato, e essas permissões costumam pedir declaração própria na Play (**a confirmar** na Central de Ajuda do Play Console).
+- O app não tem serviço em primeiro plano, então não deve haver declaração de serviço a fazer (**a confirmar** no Console).
 
 ## Teste fechado
 
 - Conta pessoal nova: 12 testadores inscritos por 14 dias seguidos antes de pedir a produção (**a confirmar** os números atuais na página do teste fechado no Console).
-- Os testadores entram por uma lista de e-mails (contas Google) ou por um Grupo do Google; depois de adicionados, cada um precisa abrir o link de participação e instalar pela Play.
+- Os testadores devem entrar por uma lista de e-mails (contas Google) ou por um Grupo do Google e, depois de adicionados, abrir o link de participação e instalar pela Play (como foi no Orolon Player; **a confirmar** na Central de Ajuda do Play Console).
 - Notas da versão para o teste: "Primeira versão de teste do Orolon Caixinhas. Conte o que achou, se algo ficou difícil de achar e se algum valor pareceu errado."
 
 ## O que fazer no Console (lista)
@@ -127,5 +128,5 @@ Conferir a lista final no resumo do workflow "App Android (loja)" (passo "Permis
 3. Ficha da loja: nome, descrição curta e completa (acima), ícone, imagem de destaque e as 8 capturas de `loja/pt`, categoria, e-mail de contato (preencher), site e política de privacidade.
 4. Conteúdo do app: responder cada item da tabela acima, inclusive Segurança dos dados e Recursos financeiros.
 5. Criar a chave de envio e os segredos no GitHub e rodar o workflow "App Android (loja)" (passo a passo em `ANDROID.md`). Ler no resumo do envio o `versionCode` e as permissões.
-6. Teste fechado: criar a faixa, enviar o `.aab`, deixar o Play App Signing ativado, colar as notas da versão e adicionar os testadores.
-7. Mandar para revisão e, depois de aprovado, acompanhar os 14 dias com os 12 testadores antes de pedir a produção.
+6. Teste fechado: criar a faixa, enviar o `.aab`, deixar o Play App Signing ativado (ver `ANDROID.md`), colar as notas da versão e adicionar os testadores.
+7. Mandar para revisão e, depois de aprovado, acompanhar os 14 dias com os 12 testadores antes de pedir a produção (números **a confirmar**, ver "Teste fechado").

@@ -63,6 +63,8 @@ jobs:
       - name: Colocar a chave de envio
         env:
           B64: ${{ secrets.CX_CHAVE_BASE64 }}
+          # no ensaio o versionName termina em -ensaio (esse .aab nunca vai ao Play Console)
+          CX_ENSAIO: ${{ inputs.ensaio && '1' || '' }}
         run: |
           if [ "${{ inputs.ensaio }}" = "true" ]; then
             keytool -genkeypair -keystore android/caixinhas-envio.jks -storetype PKCS12 -storepass ensaio123 -keypass ensaio123 -alias ensaio -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Ensaio"
@@ -87,7 +89,7 @@ jobs:
       - name: Permissões que ficaram no app
         run: |
           # o manifesto final (já com o que as bibliotecas acrescentam): não pode haver permissão de internet
-          M=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*merged_manifest*" 2>/dev/null | head -1)
+          M=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*merged_manifests*" | head -1)
           if [ -z "$M" ]; then echo "::error title=Permissões::manifesto final não encontrado para conferir"; exit 1; fi
           PERMS=$(grep -o '<uses-permission[^>]*>' "$M" | grep -o 'android:name="[^"]*"' | sed 's/android:name="//; s/"$//' | sort -u || true)
           echo "$PERMS"

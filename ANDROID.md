@@ -7,7 +7,7 @@ O app Android é o mesmo site (`index.html`), empacotado com o [Capacitor](https
 Cada envio, de qualquer branch, gera um APK de teste publicado em **Releases → Android (teste)**. A página diz de qual branch ele veio.
 Ele é assinado com a chave fixa de `android-teste/`, então cada versão nova instala por cima da anterior.
 
-Identificador do app: `com.joah.caixinhas` (não muda depois de publicado na Google Play).
+Identificador do app: `com.joah.caixinhas` (não mudar: a Google Play trata outro identificador como outro app; **a confirmar** na Central de Ajuda do Play Console).
 
 **APK de teste ao lado do app da loja (desde a 2.0):** o APK de teste tem o identificador `com.joah.caixinhas.teste` e se chama "Orolon Caixinhas (teste)", então os dois ficam instalados juntos, cada um com os seus dados, a sua pasta de backup e o seu widget. Mesmo apontando para a mesma pasta, o APK de teste tem marca própria nos backups (ver "Plugin próprio"), então um não apaga as cópias do outro. Quem decide é `scripts/plugin-android.mjs`: sem `CX_LOJA=1` ele põe `applicationIdSuffix ".teste"` no `build.gradle` e o "(teste)" no nome; com `CX_LOJA=1` (pacote da loja) não mexe em nada disso. O que depende do identificador acompanha sozinho (o FileProvider usa `${applicationId}` no manifesto e `getPackageName()` no plugin).
 Os dados de um APK de teste anterior à 2.0 (`com.joah.caixinhas`) **não passam sozinhos** para o novo: exporte um backup no antigo e importe no novo.
@@ -18,9 +18,16 @@ As versões das bibliotecas ficam presas no `package-lock.json` (o workflow usa 
 
 O pacote da loja é montado pelo workflow **App Android (loja)** (`.github/workflows/android-loja.yml`), que só roda quando você pede. Ele monta o projeto com `CX_LOJA=1` (identificador `com.joah.caixinhas`, sem o `.teste`, e o app fica sabendo que é o da loja pela marca `DA_LOJA` do `index.html`), assina o `.aab` com a **chave de envio** e falha se a permissão de internet aparecer no manifesto final. A chave nunca entra no repositório.
 
-O `versionCode` sai da versão do `index.html`: `(a*10000 + b*100 + c) * 10`, então a 2.0.0 vira 200000 e a 2.0.1 vira 200010. Ele sempre cresce; para mandar uma atualização à loja, suba a versão antes (`VERSION`, `CACHE` do `sw.js`, `package.json`).
+O `versionCode` sai da versão do `index.html`: `(a*10000 + b*100 + c) * 10`, então a 2.0.0 vira 200000 e a 2.0.1 vira 200010. Ele sempre cresce; para mandar uma atualização à loja, suba a versão antes, em todos estes lugares (o teste "Versão é a mesma em todo lugar" confere):
 
-**Ensaio (sem a chave de verdade):** em Actions › "App Android (loja)" › Run workflow, marque **Ensaio**. O workflow cria uma chave descartável na hora e gera um `.aab` que só prova que a montagem funciona. Esse arquivo **não serve para a loja**.
+- `VERSION` no `index.html`;
+- `CACHE` no `sw.js` (`caixinhas-v<versão>`);
+- `version` no `package.json`;
+- `version` no `package-lock.json`, duas vezes (no topo e no pacote raiz, `packages[""]`);
+- o primeiro título do `CHANGELOG.md` (`## <versão>`);
+- "Novidades da a.b" no `README.md`.
+
+**Ensaio (sem a chave de verdade):** em Actions › "App Android (loja)" › Run workflow, marque **Ensaio**. O workflow cria uma chave descartável na hora e gera um `.aab` que só prova que a montagem funciona; o `versionName` dele termina em `-ensaio` e o arquivo se chama `Caixinhas-<versão>-ensaio.aab`. **Nunca envie o `.aab` do ensaio ao Play Console:** a chave descartável viraria a chave de envio registrada do app, e ela some quando o workflow termina.
 
 ### Criar a chave de envio (uma vez)
 
@@ -54,11 +61,11 @@ Depois de cadastrar, pode apagar o `caixinhas-envio.base64.txt`.
 2. No fim, o resumo do envio mostra a versão, o `versionCode` e as permissões que ficaram no app.
 3. Baixe o `.aab` em **Artifacts** (`Caixinhas-<versão>-google-play`, guardado por 30 dias) e envie no Play Console.
 
-Na primeira publicação, deixe ativado o **Play App Signing** (o padrão): o Google guarda a chave final do app, e a chave de envio pode ser trocada pelo suporte se um dia se perder.
+Na primeira publicação, deixe ativado o **Play App Signing**: o Google guarda a chave final do app, e a chave de envio pode ser trocada se um dia se perder. Que ele vem ativado de fábrica e que a troca é feita pelo suporte é o que se sabe hoje (**a confirmar** na Central de Ajuda do Play Console).
 
 **Quem já tem um APK de teste:**
 - da 2.0 em diante (`com.joah.caixinhas.teste`, "Orolon Caixinhas (teste)"): o app da loja instala ao lado, sem apagar nada. Para levar os dados, exporte um backup no APK de teste e importe no app da loja.
-- de antes da 2.0 (`com.joah.caixinhas`, o mesmo identificador da loja, mas assinado com a chave de teste): a Play **não instala por cima**. Antes: Ajustes › Backup e dados › Exportar backup (ou Enviar backup) e guarde o arquivo fora do app; depois desinstale o APK antigo, instale pela Play e importe o backup. Desinstalar sem backup apaga tudo.
+- de antes da 2.0 (`com.joah.caixinhas`, o mesmo identificador da loja, mas assinado com a chave de teste): o Android não aceita atualizar um app com outra assinatura, então a Play **não deve instalar por cima** (**a confirmar** no celular). Antes: Ajustes › Backup e dados › Exportar backup (ou Enviar backup) e guarde o arquivo fora do app; depois desinstale o APK antigo, instale pela Play e importe o backup. Desinstalar sem backup apaga tudo.
 
 ## O que muda dentro do app
 

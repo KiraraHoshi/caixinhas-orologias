@@ -1358,7 +1358,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <p class="aviso-fin" id="finAviso" role="status"></p>
       <div class="fin-lado">
         <div><h4>SAC <small>parcela começa maior e cai</small></h4><div class="out" id="finSac"></div></div>
-        <div><h4>PRICE <small>parcela igual do começo ao fim</small></h4><div class="out" id="finPrice"></div></div>
+        <div><h4>PRICE <small id="finPriceSub">parcela igual do começo ao fim</small></h4><div class="out" id="finPrice"></div></div>
       </div>
       <div class="flat"><h4 style="margin:0;font-size:.95rem">Saldo devedor ao longo do prazo</h4><div id="finSaldo"></div></div>
       <p class="hint">É uma estimativa para comparar os dois sistemas. O banco ainda soma seguros e taxas à parcela, e a correção real muda mês a mês.</p>
@@ -1570,7 +1570,7 @@ const AJUDAS = {
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
   vencer: 'Faturas dos cartões cadastrados e gastos fixos que vencem de hoje até 7 dias. O valor da fatura soma as compras da aba Cartão. Gasto fixo pago no crédito não aparece sozinho: ele vence junto com a fatura. O item some quando o dia passa.',
-  fin: 'Compara os dois sistemas de financiamento. No SAC a parcela começa maior e vai caindo; no PRICE ela é igual do começo ao fim e o total pago é maior. A amortização extra é um valor a mais pago todo mês, que encurta o prazo.',
+  fin: 'Compara os dois sistemas de financiamento. No SAC a parcela começa maior e vai caindo; no PRICE ela é igual do começo ao fim (com correção, acompanha o índice) e o total pago é maior. A amortização extra é um valor a mais pago todo mês, que encurta o prazo.',
   clt: 'Estimativas de salário líquido, adicional noturno, 13º, férias e saque-aniversário com as tabelas de 2026. Confira sempre com o seu holerite.',
   caixinhas: 'As caixinhas são as categorias com limite mensal. Aqui você cria, renomeia, reordena (▲ ▼), troca o ícone e a cor (ou escolhe outra livre) e remove. Ao remover uma caixinha que já tem gastos, o app pergunta para qual caixinha levá-los. Nada vale até tocar em “Salvar caixinhas”.',
   selic: 'A taxa de referência é usada como rendimento padrão nas metas e nos simuladores. Atualize quando a Selic ou o CDI mudar.',
@@ -2937,6 +2937,9 @@ function calcFin(){
       ${base ? `<div class="r sub"><span>A amortização extra economiza</span><span class="num">${fmt(Math.max(0, base.total - f.total))} e ${prazoTxt(Math.max(0, base.meses - f.meses))}</span></div>` : ''}`;
   };
   $('finSac').innerHTML = lado('sac'); $('finPrice').innerHTML = lado('price');
+  // o subtítulo do PRICE só promete parcela igual quando ela é igual mesmo: com correção ela acompanha o índice,
+  // e com amortização extra a última parcela é menor (fecha o saldo)
+  $('finPriceSub').textContent = corr > 0 ? 'parcela acompanha a correção do índice' : extra > 0 ? 'parcela igual até a última, que é menor' : 'parcela igual do começo ao fim';
   const s1 = B.sac, p1 = B.price;
   // saldo devedor: SAC e PRICE na mesma área; com amortização extra, as curvas encurtadas e, tracejadas, as do prazo contratado
   const series = [];

@@ -3,8 +3,9 @@
 - [`ficha.md`](ficha.md): nome, descrições, respostas do Console e o que fazer lá.
 - `pt/`: imagem de destaque (1024×500) e 8 capturas de tela (1080×1920), em português.
 - O ícone da loja é o `icon-512.png` da raiz do repositório (512×512).
+- O `.aab` vem do workflow "App Android (loja)" (ver `ANDROID.md`). **Nunca envie ao Console o `.aab` do ensaio** (`Caixinhas-<versão>-ensaio.aab`, `versionName` terminado em `-ensaio`): a chave descartável dele viraria a chave de envio registrada do app e some quando o workflow termina.
 
-As capturas, na ordem: Início, Lançar gasto, Gráficos, Mês, Cartão, Metas, Financiamento e Temas (tema Areia).
+As capturas, na ordem: Início, Lançar gasto, Gráficos, Mês, Cartão, Metas, Financiamento e Temas (tema Areia). A tela do celular é a de um Android de 360×800, e a foto rola até a barra de baixo cair entre dois cartões.
 
 ## Como refazer
 
