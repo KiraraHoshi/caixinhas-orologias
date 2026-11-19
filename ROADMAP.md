@@ -17,7 +17,9 @@ A **2.0 "Noite Orologia"** reúne o visual novo, a tela de Gráficos, o uso no c
    - Esc fora do Início usa `history.back()`: numa aba aberta direto em `#mes` vinda de outra página, o Esc sai do app;
    - `color-mix()` não tem cor de reserva: em WebView abaixo da 111 os cartões ficam sem fundo (o texto continua legível). Só a folha de lançar e o aviso curto já têm reserva (um `@supports not` com fundo simples); o resto não;
    - vários testes de movimento dependem de esperas fixas (podem falhar num computador lento);
-   - a marca `.teste` do APK de teste e a limpeza das cópias por aparelho são feitas no Java: só o aparelho prova.
+   - a marca `.teste` do APK de teste e a limpeza das cópias por aparelho são feitas no Java: só o aparelho prova;
+   - pasta do backup no PC que não responde (rede fora do ar) deixa a escolha da subpasta pendurada: nada é gravado e a tela não avisa; trocar de pasta ou parar resolve;
+   - no Android, se a pasta "Orolon Caixinhas" for recriada com outro nome, a tela mostra o nome antigo até a pasta ser escolhida de novo.
 
 ## Ideias
 
