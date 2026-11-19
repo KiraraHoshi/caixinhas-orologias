@@ -82,6 +82,11 @@ function ler(){
   var o; try { o = JSON.parse(localStorage.getItem(LS) || '{}'); } catch(e){ o = {}; }
   if (!o || typeof o !== 'object' || Array.isArray(o)) o = {}; // chave estragada (5, "x", [], null): começa do zero em vez de derrubar o script
   if (!Array.isArray(o.meus)) o.meus = [];
+  // cada tema próprio passa pela mesma validação da importação: o que não é tema (sem as cores, cor inválida, nem objeto) sai,
+  // em vez de quebrar a Aparência ou a abertura. O que é válido continua igual (já tinha sido gravado pela validar).
+  o.meus = o.meus.map(function(t){
+    try { var v = validar(t); if (typeof t.id !== 'string' || !t.id) return null; v.id = t.id; return v; } catch(e){ return null; }
+  }).filter(Boolean);
   if (LEVES.indexOf(o.leve) < 0) delete o.leve; // quem vem da 1.9 não tem "leve": nunca mexido
   return o;
 }
@@ -122,7 +127,7 @@ function validar(o){
 /* O brilho só vai na exportação quando o tema tem um próprio: sem ele, reimportado, o clarão continua seguindo o destaque.
    O Orolon Player ignora o campo, e a versão do formato continua 1. */
 function json(t){ return JSON.stringify({ formato:'orologia-tema', versao:1, nome:t.nome, fundo:t.fundo, card:t.card, texto:t.texto, suave:t.suave, destaque:t.destaque, secundaria:t.secundaria, brilho:t.brilho || undefined, raio:t.raio, fonte:t.fonte }, null, 2); }
-window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste, brilhoDe:brilhoDe, tokens:tokens, leveLigado:leveLigado, aplicarLeve:aplicarLeve };
+window.TemaCx = { BASE:BASE, GALERIA:GALERIA, FONTES:FONTES, CAMPOS:CAMPOS, estado:estado, todos:todos, porId:porId, atual:atual, salvar:salvar, aplicar:aplicar, validar:validar, json:json, contraste:contraste, escuro:escuro, brilhoDe:brilhoDe, tokens:tokens, leveLigado:leveLigado, aplicarLeve:aplicarLeve };
 aplicar(atual()); aplicarLeve();
 })();
 </script>
@@ -179,6 +184,11 @@ h1{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.1;
 h2{font-family:var(--display);font-weight:700;font-size:1.25rem;margin:0;letter-spacing:.03em;text-wrap:balance}
 h3{font-family:var(--display);font-weight:700;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;margin:0;color:var(--fg)}
 .month{display:flex;align-items:center;gap:6px}
+/* Título do mês com as setas ao lado em toda fonte: se o nome não couber (fonte larga, 320 px), o título quebra em duas linhas
+   no lugar de empurrar as setas para baixo (antes isso só acontecia nos temas com a fonte do sistema) */
+.vhead:has(>.month){flex-wrap:nowrap;align-items:center}
+.vhead:has(>.month)>div:first-child{min-width:0;flex:1 1 auto}
+.vhead>.month{flex:none}
 .icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.05rem;line-height:1;display:inline-grid;place-items:center;padding:0}
 .icon.sm{width:30px;height:30px;font-size:.9rem}
 
@@ -304,7 +314,7 @@ textarea{font:inherit;font-family:var(--mono);font-size:.75rem;color:var(--fg);b
 /* Aparência (temas) */
 :root[data-claro] .bar i,:root[data-claro] .dot,:root[data-claro] .arco-seg,:root[data-claro] .n-anel .anel-v{filter:brightness(.8) saturate(1.35)}
 :root[data-claro] .toast{box-shadow:0 8px 24px rgba(30,26,43,.25)}
-.temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:10px}
 .tema-card{position:relative;border:2px solid var(--line);border-radius:12px;background:var(--surface2);display:flex;flex-direction:column}
 .tema-use{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:8px;width:100%}
 /* miniatura do Início com as cores do tema (arco, um bloco e a barra com o +), desenhada por cartaoTema() */
@@ -1540,6 +1550,10 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 (function(){
 'use strict';
 const VERSION = '1.9.0';
+// Pacote da Google Play: o scripts/preparar-www.mjs troca para true quando monta com CX_LOJA=1 (workflow android-loja.yml).
+// No site e no APK de teste fica false. Hoje nenhum texto do app depende disso (não há aviso de "versão nova" apontando para
+// o GitHub, como no Orolon Player); a marca existe para o que precisar ser diferente na versão da loja.
+const DA_LOJA = false;
 const LS_KEY = 'caixinhas-orologia-v1';
 const LS_CALC = 'caixinhas-orologia-calc';
 const PALETA = ['#9C9BF5','#E3C98A','#C9A6F5','#8FD3B4','#F2A48A','#8FB8F5','#F28FB8'];
@@ -3617,7 +3631,7 @@ function miniTema(t){
   </svg>`;
 }
 function cartaoTema(t, sel){
-  const tipo = t.fixo ? (TM.contraste(t.fundo, '#FFFFFF') < 2 ? 'Claro' : 'Escuro') : 'Seu tema';
+  const tipo = t.fixo ? (TM.escuro(t) ? 'Escuro' : 'Claro') : 'Seu tema'; // o mesmo critério que decide o color-scheme e os tons
   return `<div class="tema-card${sel ? ' sel' : ''}"><button type="button" class="tema-use" data-tm="usar" data-id="${esc(t.id)}" aria-pressed="${sel}">
     ${miniTema(t)}
     <span class="tema-nome">${esc(t.nome)}</span><span class="hint">${tipo}</span></button>
@@ -3633,8 +3647,8 @@ function renderTema(){
     const d = TUI.edit.rascunho;
     box.innerHTML = `<p class="hint">${TUI.edit.id ? 'Editando' : 'Novo tema'}: o app inteiro mostra o tema enquanto você mexe.</p>
       <label>Nome do tema<input id="tmNome" maxlength="40" value="${esc(d.nome)}" autocomplete="off"></label>
-      ${TM.CAMPOS.map(([k, n]) => `<label class="cor-row" for="tm-${k}">${n}<span class="cor-in"><code id="tmx-${k}">${d[k]}</code><input type="color" id="tm-${k}" data-campo="${k}" value="${d[k].toLowerCase()}"></span></label>`).join('')}
-      <label class="cor-row" for="tm-brilho">Brilho do fundo<span class="cor-in"><code id="tmx-brilho">${textoBrilho(d)}</code><input type="color" id="tm-brilho" data-campo="brilho" value="${TM.brilhoDe(d).toLowerCase()}"></span></label>
+      ${TM.CAMPOS.map(([k, n]) => `<label class="cor-row" for="tm-${k}">${n}<span class="cor-in"><code id="tmx-${k}">${esc(d[k])}</code><input type="color" id="tm-${k}" data-campo="${k}" value="${esc(String(d[k]).toLowerCase())}"></span></label>`).join('')}
+      <label class="cor-row" for="tm-brilho">Brilho do fundo<span class="cor-in"><code id="tmx-brilho">${esc(textoBrilho(d))}</code><input type="color" id="tm-brilho" data-campo="brilho" value="${esc(TM.brilhoDe(d).toLowerCase())}"></span></label>
       <p class="hint">O brilho é o clarão parado no alto da tela. Sem escolher, ele acompanha o destaque. <button type="button" class="link" data-tm="brilho-auto" id="tmBrilhoAuto"${d.brilho ? '' : ' hidden'}>Automático</button></p>
       <div class="flat" id="tmCtr" style="gap:6px">${linhasContraste(d)}</div>
       <div class="fontes" role="group" aria-label="Fonte">${Object.entries(TM.FONTES).map(([k, f]) => `<button type="button" data-tm="fonte" data-id="${k}" aria-pressed="${d.fonte === k}" style="font-family:${esc(f.b)}"><b style="font-family:${esc(f.d)}">Aa</b>${f.n}</button>`).join('')}</div>

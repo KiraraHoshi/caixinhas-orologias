@@ -9,9 +9,10 @@ import { tmpdir } from "node:os";
 import { join, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { abrirChrome } from "./chrome.mjs";
+
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
 const PRINTS = join(RAIZ, "testes", "prints");
-const CHROMES = [process.env.CX_CHROME, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "/usr/bin/google-chrome", "/usr/bin/chromium"].filter(Boolean);
 const TIPOS = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml" };
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -21,34 +22,15 @@ function servir() {
     if (p.endsWith("/")) p += "index.html";
     const f = resolve(RAIZ, "." + p);
     if (!f.startsWith(resolve(RAIZ))) { res.writeHead(403); return res.end(); }
+    if (Number(process.env.CX_DEMORA) > 0) await espera(Number(process.env.CX_DEMORA)); // CX_DEMORA=ms: servidor lento (acha esperas frágeis)
     try { const d = await readFile(f); res.writeHead(200, { "content-type": TIPOS[extname(f)] || "application/octet-stream", "cache-control": "no-store" }); res.end(d); }
     catch { res.writeHead(404); res.end(); }
   });
   return new Promise((ok) => srv.listen(0, "127.0.0.1", () => ok(srv)));
 }
 
-async function abrirChrome() {
-  const exe = CHROMES.find((c) => existsSync(c));
-  if (!exe) throw new Error("Chrome não encontrado. Defina CX_CHROME com o caminho do executável.");
-  const perfil = await mkdtemp(join(tmpdir(), "caixinhas-teste-"));
-  const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--no-first-run", "--no-default-browser-check", ...(process.platform === "linux" ? ["--no-sandbox"] : []), "about:blank"], { stdio: "ignore" });
-  const arq = join(perfil, "DevToolsActivePort");
-  for (let i = 0; i < 100 && !existsSync(arq); i++) await espera(100);
-  const [porta, caminho] = readFileSync(arq, "utf8").trim().split("\n");
-  const ws = new WebSocket(`ws://127.0.0.1:${porta}${caminho}`);
-  await new Promise((ok, erro) => { ws.onopen = ok; ws.onerror = erro; });
-  let seq = 0; const pend = new Map(), ouvintes = new Set();
-  ws.onmessage = (ev) => {
-    const m = JSON.parse(ev.data);
-    if (m.id && pend.has(m.id)) { const [ok, erro] = pend.get(m.id); pend.delete(m.id); m.error ? erro(new Error(m.error.message)) : ok(m.result); }
-    else for (const f of ouvintes) f(m);
-  };
-  const enviar = (method, params = {}, sessionId) => new Promise((ok, erro) => { const id = ++seq; pend.set(id, [ok, erro]); ws.send(JSON.stringify({ id, method, params, sessionId })); });
-  const fechar = async () => { try { ws.close(); } catch {} proc.kill(); await espera(300); await rm(perfil, { recursive: true, force: true }).catch(() => {}); };
-  return { enviar, ouvintes, fechar };
-}
-
 // Cada teste ganha uma página com armazenamento próprio (começa sempre do zero).
+// CX_LENTO=N (ex.: 8) deixa o processador da página N vezes mais lento: simula um servidor ocupado, para achar esperas frágeis.
 async function novaPagina(cr, base, movimento = false, nativo = false, largura = 360, altura = 780) {
   const { browserContextId } = await cr.enviar("Target.createBrowserContext");
   const { targetId } = await cr.enviar("Target.createTarget", { url: "about:blank", browserContextId });
@@ -64,9 +46,14 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
   await s("Emulation.setDeviceMetricsOverride", { width: largura, height: altura, deviceScaleFactor: 1, mobile: true });
   // por padrão os testes rodam com "reduzir movimento" ligado: os valores aparecem prontos, sem esperar animação
   await s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: movimento ? "no-preference" : "reduce" }] });
+  if (Number(process.env.CX_LENTO) > 1) await s("Emulation.setCPUThrottlingRate", { rate: Number(process.env.CX_LENTO) });
   if (nativo) await s("Page.addScriptToEvaluateOnNewDocument", { source: `(${capacitorFalso})()` }); // finge o app Android
   await s("Page.navigate", { url: `${base}/index.html` });
   await espera(700);
+  for (const fim = Date.now() + 5000; Date.now() < fim; await espera(50)) { // num servidor ocupado a primeira abertura pode passar dos 700 ms
+    const r = await s("Runtime.evaluate", { expression: "document.readyState === 'complete' && !!window.TemaCx", returnByValue: true }).catch(() => null);
+    if (r && r.result && r.result.value) break;
+  }
   const avaliar = async (fn, ...args) => {
     const r = await s("Runtime.evaluate", { expression: `(${fn})(...${JSON.stringify(args)})`, awaitPromise: true, returnByValue: true });
     if (r.exceptionDetails) throw new Error("na página: " + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
@@ -78,7 +65,13 @@ async function novaPagina(cr, base, movimento = false, nativo = false, largura =
     digitar: (sel, txt) => avaliar((q, v) => { const e = document.querySelector(q); e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); }, sel, txt),
     texto: (sel) => avaliar((q) => { const e = document.querySelector(q); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; }, sel),
     visivel: (sel) => avaliar((q) => { const e = document.querySelector(q); if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }, sel),
-    recarregar: async () => { await avaliar(() => { location.reload(); }).catch(() => {}); await espera(700); },
+    // espera a condição (uma função da página) ficar verdadeira, sem tempo fixo: devolve o último valor (até 5 s)
+    ate: async (fn, ...args) => { let v; for (const fim = Date.now() + 5000; Date.now() < fim; await espera(50)) { try { v = await avaliar(fn, ...args); } catch (e) { v = undefined; } if (v) return v; } return v; },
+    // recarrega e espera o documento novo terminar de carregar (a página velha tem a marca __velha; a nova, não)
+    recarregar: async () => {
+      await avaliar(() => { window.__velha = true; location.reload(); }).catch(() => {}); await espera(700);
+      await p.ate(() => !window.__velha && document.readyState === "complete");
+    },
     aba: async (t) => { await avaliar((x) => { location.hash = "#" + x; }, t); await espera(200); },
     abaAtual: () => avaliar(() => [...document.querySelectorAll(".view")].find((v) => !v.hidden).id.slice(2)),
     tamanho: (w, h) => s("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: true }),
@@ -1225,8 +1218,8 @@ const TESTES = {
     igual(await p.avaliar(() => document.querySelectorAll('#ajMenu [aria-current]').length), 0, "na lista, nenhuma parte marcada como aberta");
     igual(await p.avaliar(() => location.hash), "#ajustes", "endereço da lista");
     await p.clicar('#ajMenu [data-parte="pin"]');
-    await p.avaliar(() => history.back()); await p.espera(200);
-    certo(await p.visivel("#ajMenu"), "o voltar do aparelho fecha a parte e mostra a lista");
+    await p.avaliar(() => history.back()); // o popstate chega depois: esperar a lista aparecer, sem tempo fixo
+    certo(await p.ate(() => { const e = document.querySelector("#ajMenu"); return !!e && e.getBoundingClientRect().height > 0; }), "o voltar do aparelho fecha a parte e mostra a lista");
     await p.aba("mes"); await p.clicar('[data-go="ajustes/caixinhas"]');
     certo(await p.visivel("#cxList"), "o atalho Editar caixinhas abre direto a parte Caixinhas");
     await p.digitar("#cxn-0", "Nome em edição"); await p.clicar("#ajVoltar"); await p.clicar('#ajMenu [data-parte="caixinhas"]');
@@ -2103,7 +2096,7 @@ const TESTES = {
     const novos = ids.filter((i) => !["noite", "dia", "g-brasa", "g-entardecer", "g-folha", "g-mare", "g-meia-noite", "g-papel"].includes(i));
     certo(novos.length >= 5 && novos.length <= 6, "de 5 a 6 temas novos: " + novos.join(","));
     certo(novos.every((i) => /^g-[a-z-]+$/.test(i)), "temas novos com id g-…: " + novos.join(","));
-    const claros = await p.avaliar((ns) => ns.filter((i) => { const t = window.TemaCx.porId(i); return window.TemaCx.contraste(t.fundo, "#FFFFFF") < 2; }).length, novos);
+    const claros = await p.avaliar((ns) => ns.filter((i) => !window.TemaCx.escuro(window.TemaCx.porId(i))).length, novos);
     certo(claros >= 2 && novos.length - claros >= 2, "temas novos claros e escuros: " + claros + " claros de " + novos.length);
     for (const id of ids) {
       await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]');
@@ -2167,6 +2160,14 @@ const TESTES = {
       return erros.length ? b.dataset.id + ": " + erros.join(", ") : "";
     }).filter(Boolean));
     igual(minis.join(" | "), "", "cada tema mostra uma miniatura do Início com as cores dele");
+    // a etiqueta Claro/Escuro do cartão usa o mesmo critério do app (o que decide o color-scheme e os tons do tema)
+    const etiquetas = await p.avaliar(() => [...document.querySelectorAll("#temaBox .tema-card")].map((c) => {
+      const b = c.querySelector('[data-tm="usar"]'), t = b && window.TemaCx.porId(b.dataset.id);
+      if (!t || !t.fixo) return "";
+      const esperada = window.TemaCx.escuro(t) ? "Escuro" : "Claro", h = c.querySelector(".hint").textContent.trim();
+      return h === esperada ? "" : `${t.id}: "${h}", o app trata como ${esperada}`;
+    }).filter(Boolean));
+    igual(etiquetas.join(" | "), "", "etiqueta Claro/Escuro igual ao critério do app");
     const n = await p.avaliar(() => document.querySelectorAll('#temaBox [data-tm="usar"]').length);
     certo(n >= 13, "temas de fábrica na Aparência: " + n);
     certo(!/apoiador|premium|pago|comprar|desbloque/i.test(await p.texto("#v-ajustes")), "nada de tema pago ou Apoiador na Aparência");
@@ -2255,6 +2256,113 @@ const TESTES = {
       igual((await lerTemaGuardado(p)).atual, "dia", "e grava de novo com a chave " + v);
       await p.aba("inicio");
     }
+    // temas próprios estragados dentro de "meus" (não são objetos, sem as cores, cor inválida) saem ao ler; o bom fica
+    const cores = { fundo: "#1A1030", card: "#2A1F45", texto: "#F5F0FF", suave: "#B8A8D8", destaque: "#C78BFF", secundaria: "#FFD27A", raio: 16, fonte: "padrao" };
+    const meus = [5, null, "x", [], { id: "t1" }, { id: "t2", nome: "Sem cores", fundo: "#000000" }, Object.assign({ id: "t3", nome: "Brilho ruim", brilho: "azul" }, cores), Object.assign({ id: "tbom", nome: "Bom" }, cores)];
+    await p.avaliar((meus) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "t1", meus })), meus);
+    await p.recarregar();
+    igual(await p.avaliar(() => typeof window.TemaCx), "object", "o motor de temas carrega com temas próprios estragados");
+    igual(await varCss(p, "--bg"), "#110E18", "o tema escolhido estragado cai no padrão");
+    igual(await p.avaliar(() => window.TemaCx.estado.meus.map((t) => t.id).join(",")), "tbom", "só o tema próprio bom continua");
+    await p.aba("ajustes/aparencia");
+    await p.clicar('#temaBox [data-tm="usar"][data-id="tbom"]');
+    igual(await varCss(p, "--bg"), "#1A1030", "a Aparência funciona e o tema bom vale");
+    igual((await lerTemaGuardado(p)).meus.map((t) => t.id).join(","), "tbom", "ao gravar, os estragados não voltam");
+  },
+  "Editor de tema mostra como texto o que veio guardado": async (p) => {
+    await comExemplo(p); await p.aba("ajustes/aparencia");
+    // um tema próprio com HTML no lugar das cores (o que está guardado no aparelho pode ter sido mexido à mão)
+    await p.avaliar(() => window.TemaCx.estado.meus.push({ id: "tinj", nome: "Injetado", fundo: '#110E18"><i id="injF"></i>', card: "#1C1827", texto: "#EEEAF5", suave: "#A49EB8", destaque: "#9C9BF5", secundaria: "#E3C98A", brilho: '<i id="injB"></i>', raio: 16, fonte: "padrao" }));
+    await p.aba("ajustes/sobre"); await p.aba("ajustes/aparencia");
+    await p.clicar('[data-tm="editar"][data-id="tinj"]');
+    igual(await p.avaliar(() => document.querySelectorAll("#injF, #injB").length), 0, "nada do que veio guardado vira elemento na página");
+    igual(await p.texto("#tmx-brilho"), '<i id="injB"></i>', "o brilho aparece como texto");
+    igual(await p.texto("#tmx-fundo"), '#110E18"><i id="injF"></i>', "a cor aparece como texto");
+    await p.clicar('[data-tm="cancelar"]');
+  },
+  "Cabeçalho do Mês e dos Gráficos com o mesmo arranjo em todas as fontes": async (p) => {
+    await comExemplo(p);
+    const mono = { id: "tmono", nome: "Mono", fundo: "#14141A", card: "#1E1E26", texto: "#EDEDF2", suave: "#A0A0AE", destaque: "#8FA0FF", secundaria: "#E3C98A", raio: 16, fonte: "mono" };
+    // noite (Orologia), Grafite (do sistema), Papel (serifada) e um tema próprio com a fonte mono
+    for (const [id, meus] of [["noite", []], ["g-grafite", []], ["g-papel", []], ["tmono", [mono]]]) {
+      await p.avaliar((id, meus) => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: id, meus })), id, meus);
+      for (const [w, h] of [[360, 780], [320, 640]]) {
+        await p.tamanho(w, h); await p.recarregar();
+        for (const aba of ["mes", "graficos"]) {
+          await p.aba(aba);
+          // o nome de mês mais comprido, para o caso pior
+          const r = await p.avaliar((aba) => {
+            const v = document.querySelector("#v-" + aba), h2 = v.querySelector(".vhead h2"), m = v.querySelector(".vhead .month");
+            h2.querySelector(".cap").textContent = "Fevereiro de 2026";
+            const a = h2.getBoundingClientRect(), b = m.getBoundingClientRect();
+            return { mesmaLinha: b.top < a.bottom && b.left >= a.right - 1, dentro: b.right <= innerWidth + 0.5, h2: [Math.round(a.left), Math.round(a.top), Math.round(a.right), Math.round(a.bottom)], nav: [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] };
+          }, aba);
+          certo(r.mesmaLinha && r.dentro, `${aba} em ${w}px com o tema ${id}: as setas do mês ficam ao lado do título, dentro da tela ` + JSON.stringify(r));
+          if (w === 360 && (id === "noite" || id === "g-grafite")) await p.print(`29-cabecalho-${aba}-${id}-${w}`);
+        }
+      }
+    }
+  },
+  "Pacote da loja vira DA_LOJA": async () => {
+    const html = readFileSync(join(RAIZ, "index.html"), "utf8");
+    igual(html.split("const DA_LOJA = false;").length, 2, "o index.html tem a marca do pacote da loja uma vez, desligada");
+    // roda o preparo da pasta www numa cópia mínima do app e devolve o index.html que iria para o Android
+    const montar = async (loja, conteudo = html) => {
+      const pasta = await mkdtemp(join(tmpdir(), "caixinhas-www-"));
+      try {
+        for (const f of ["manifest.webmanifest", "privacy.html", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"]) await writeFile(join(pasta, f), "");
+        await writeFile(join(pasta, "index.html"), conteudo);
+        const r = spawnSync(process.execPath, [join(RAIZ, "scripts", "preparar-www.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "" }) });
+        return { status: r.status, erro: (r.stderr || "").trim(), html: existsSync(join(pasta, "www", "index.html")) ? readFileSync(join(pasta, "www", "index.html"), "utf8") : "" };
+      } finally { await rm(pasta, { recursive: true, force: true }); }
+    };
+    const teste = await montar(false), loja = await montar(true);
+    igual(teste.status, 0, "o preparo do APK de teste terminou bem (" + teste.erro + ")");
+    certo(teste.html.includes("const DA_LOJA = false;"), "no APK de teste (e no site) o app não é o da loja");
+    igual(loja.status, 0, "o preparo da loja terminou bem (" + loja.erro + ")");
+    certo(loja.html.includes("const DA_LOJA = true;") && !loja.html.includes("const DA_LOJA = false;"), "no pacote da loja o app sabe que é o da loja");
+    const semMarca = await montar(true, html.replace("const DA_LOJA = false;", ""));
+    certo(semMarca.status !== 0 && /DA_LOJA/.test(semMarca.erro), "sem a marca, o preparo da loja para com erro em vez de montar um pacote que não sabe que é da loja: " + semMarca.status + " " + semMarca.erro);
+    // o workflow da loja: manual, com ensaio, .aab assinado, sem o .teste, sem internet, segredos com o prefixo CX_
+    const wl = readFileSync(join(RAIZ, ".github", "workflows", "android-loja.yml"), "utf8"), wt = readFileSync(join(RAIZ, ".github", "workflows", "android.yml"), "utf8");
+    certo(/^on:\s*\n\s+workflow_dispatch:/m.test(wl) && !/^\s+push:/m.test(wl), "o workflow da loja só roda quando pedido");
+    certo(/ensaio:/.test(wl) && /keytool -genkeypair/.test(wl), "tem o modo ensaio com chave descartável");
+    certo(/CX_LOJA=1 npm run www/.test(wl), "monta a www com CX_LOJA=1");
+    certo(/CX_LOJA=1 node scripts\/plugin-android\.mjs/.test(wl), "liga o plugin com CX_LOJA=1 (sem o .teste no identificador nem no nome)");
+    certo(/applicationIdSuffix/.test(wl), "confere que o identificador não ficou com o .teste");
+    certo(/node scripts\/chave-loja-android\.mjs/.test(wl) && /bundleRelease/.test(wl) && /\.aab/.test(wl), "gera o .aab assinado");
+    certo(/android\.permission\.INTERNET"' "\$M"; then echo "::error/.test(wl), "falha se a permissão de internet voltar");
+    const segredos = [...wl.matchAll(/secrets\.(\w+)/g)].map((x) => x[1]);
+    certo(segredos.length >= 3 && segredos.every((s) => s.startsWith("CX_")), "segredos com o prefixo CX_: " + segredos.join(","));
+    certo(!/chave-teste-android/.test(wl), "o pacote da loja não usa a chave de teste");
+    certo(!/^[^#\n]*CX_LOJA/m.test(wt), "o APK de teste não é o pacote da loja (CX_LOJA só pode aparecer em comentário)");
+    // a chave de envio e o versionCode: (a*10000 + b*100 + c) * 10
+    const pasta = await mkdtemp(join(tmpdir(), "caixinhas-loja-"));
+    try {
+      const proj = await projetoAndroidFalso(pasta);
+      await writeFile(join(pasta, "index.html"), html);
+      const r = spawnSync(process.execPath, [join(RAIZ, "scripts", "chave-loja-android.mjs")], { cwd: pasta, encoding: "utf8" });
+      igual(r.status, 0, "o script da chave terminou bem (" + (r.stderr || "").trim() + ")");
+      const g = readFileSync(join(proj, "build.gradle"), "utf8"), v = html.match(/const VERSION = '(\d+)\.(\d+)\.(\d+)';/).slice(1).map(Number);
+      certo(g.includes(`versionCode ${(v[0] * 10000 + v[1] * 100 + v[2]) * 10}`) && g.includes(`versionName "${v.join(".")}"`), "versionCode pela regra da versão: " + (g.match(/versionCode \d+/) || [])[0]);
+      certo(/signingConfig signingConfigs\.loja/.test(g) && /System\.getenv\("CX_CHAVE_SENHA"\)/.test(g) && /System\.getenv\("CX_CHAVE_ALIAS"\)/.test(g), "assina com a chave de envio, senha e apelido só das variáveis");
+    } finally { await rm(pasta, { recursive: true, force: true }); }
+    igual(((v) => (v[0] * 10000 + v[1] * 100 + v[2]) * 10)([2, 0, 0]), 200000, "a 2.0.0 vira 200000");
+  },
+  "Chrome que não abre: tenta de novo e diz o motivo": async () => {
+    const prefixo = "caixinhas-chrome-falso-";
+    const restos = () => readdirSync(tmpdir()).filter((f) => f.startsWith(prefixo)).length;
+    // um "Chrome" que fica aberto sem nunca responder (o caso do servidor do GitHub ocupado) e um que fecha na hora
+    for (const [caso, antes] of [["não responde", ["-e", "setTimeout(() => {}, 20000)", "--"]], ["fecha na hora", ["-e", "process.exit(3)", "--"]]]) {
+      const t0 = Date.now();
+      let erro = null;
+      try { const cr = await abrirChrome({ exe: process.execPath, antes, prefixo, limite: 1200 }); await cr.fechar(); } catch (e) { erro = e; }
+      certo(erro, `${caso}: devia falhar`);
+      certo(/^o Chrome não abriu depois de 2 tentativas/.test(erro.message), `${caso}: mensagem clara: ` + erro.message);
+      certo(/tentativa 1: .*tentativa 2: /.test(erro.message), `${caso}: tentou duas vezes: ` + erro.message);
+      if (caso === "não responde") certo(Date.now() - t0 >= 2400, `${caso}: esperou o limite nas duas tentativas (${Date.now() - t0} ms)`);
+      igual(restos(), 0, `${caso}: os perfis temporários foram apagados`);
+    }
   },
   "Visual leve tira clarões e gradientes": async (p) => {
     // a chave fica antes da Galeria: quem recebeu o aviso automático acha sem rolar muito
@@ -2267,14 +2375,16 @@ const TESTES = {
     const visual = () => p.avaliar(() => {
       const cs = (q) => getComputedStyle(document.querySelector(q));
       return { corpo: cs("body").backgroundImage, bloco: cs("#inCx .n-bloco[data-cx]").backgroundImage, resumo: cs(".n-resumo") ? cs(".n-resumo").backgroundImage : "none",
-        arco: cs("#arco .arco-luz").filter, barra: cs(".tabs").boxShadow, borrao: cs(".tabs").backdropFilter, mais: cs("#fab").boxShadow, vidro: cs("#inRitmo").boxShadow };
+        arco: cs("#arco .arco-luz").filter, barra: cs(".tabs").boxShadow, borrao: cs(".tabs").backdropFilter, mais: cs("#fab").boxShadow, vidro: cs("#inRitmo").boxShadow,
+        borraoFolha: cs(".folha-caixa").backdropFilter, borraoAviso: cs(".toast").backdropFilter };
     });
     const antes = await visual();
     certo(/gradient/.test(antes.corpo) && /gradient/.test(antes.bloco) && antes.arco !== "none" && antes.barra !== "none", "sem o visual leve há clarões, gradientes e sombras: " + JSON.stringify(antes));
+    certo(/blur/.test(antes.borrao) && /blur/.test(antes.borraoFolha) && /blur/.test(antes.borraoAviso), "sem o visual leve a barra, a folha e o aviso têm desfoque: " + JSON.stringify(antes));
     await p.aba("ajustes/aparencia"); await p.clicar("#tgLeve"); await p.aba("inicio");
     igual(await p.avaliar(() => document.documentElement.hasAttribute("data-leve")), true, "a chave põe data-leve no html");
     const depois = await visual();
-    igual(JSON.stringify(depois), JSON.stringify({ corpo: "none", bloco: "none", resumo: "none", arco: "none", barra: "none", borrao: "none", mais: "none", vidro: "none" }), "o visual leve tira clarões, gradientes, sombras e desfoque");
+    igual(JSON.stringify(depois), JSON.stringify({ corpo: "none", bloco: "none", resumo: "none", arco: "none", barra: "none", borrao: "none", mais: "none", vidro: "none", borraoFolha: "none", borraoAviso: "none" }), "o visual leve tira clarões, gradientes, sombras e desfoque (barra, folha e aviso)");
     // a cor da caixinha continua no bloco (sem gradiente, só uma cor chapada)
     const blocoCor = await p.avaliar(() => getComputedStyle(document.querySelector("#inCx .n-bloco[data-cx]")).backgroundColor);
     certo(blocoCor !== "rgba(0, 0, 0, 0)", "o bloco continua com fundo: " + blocoCor);
@@ -2305,6 +2415,9 @@ const TESTES = {
         await largura(`Aparência ${tema} ${w}`);
         const cortado = await p.avaliar(() => [...document.querySelectorAll("#temaBox .tema-card")].filter((c) => c.scrollWidth > c.clientWidth + 1).length);
         igual(cortado, 0, `cartões de tema sem estourar em ${w}px (${tema})`);
+        // a galeria não cai para uma coluna no celular estreito
+        const colunas = await p.avaliar(() => new Set([...[...document.querySelectorAll("#temaBox .temas")].pop().querySelectorAll(":scope > .tema-card")].map((c) => Math.round(c.getBoundingClientRect().left))).size);
+        certo(colunas >= 2, `a galeria tem ao menos duas colunas em ${w}px (${tema}): ${colunas}`);
         await p.print(`24-aparencia-${tema}-${w}`, true);
       }
     }
@@ -2340,7 +2453,9 @@ const TESTES = {
 
 const srv = await servir();
 const base = `http://127.0.0.1:${srv.address().port}`;
-const cr = await abrirChrome();
+let cr;
+try { cr = await abrirChrome(); }
+catch (e) { console.log("FALHA ao começar\n      " + e.message); srv.close(); process.exit(1); }
 let falhas = 0;
 // um teste é uma função (movimento desligado) ou { movimento: true, fn } para testar as animações
 const SO = process.argv[2]; // opcional: roda só os testes cujo nome contém este texto
