@@ -1,6 +1,6 @@
 {
   "name": "orolon-caixinhas",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Orolon Caixinhas: finanças pessoais offline. Este arquivo só serve para montar o app Android com Capacitor (o site não usa).",
   "scripts": {

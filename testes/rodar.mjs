@@ -2303,6 +2303,23 @@ const TESTES = {
       }
     }
   },
+  "Versão é a mesma em todo lugar": async () => {
+    const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
+    const versao = (ler("index.html").match(/const VERSION = '(\d+\.\d+\.\d+)';/) || [])[1];
+    certo(versao, "VERSION no index.html");
+    const lock = JSON.parse(ler("package-lock.json"));
+    const achadas = {
+      "CACHE do sw.js": (ler("sw.js").match(/const CACHE = 'caixinhas-v(\d+\.\d+\.\d+)';/) || [])[1],
+      "package.json": JSON.parse(ler("package.json")).version,
+      "package-lock.json": lock.version,
+      "package-lock.json (pacote raiz)": lock.packages[""].version,
+      "primeiro título do CHANGELOG.md": (ler("CHANGELOG.md").match(/^## (\d+\.\d+\.\d+)/m) || [])[1],
+    };
+    const erradas = Object.entries(achadas).filter(([, v]) => v !== versao).map(([k, v]) => `${k}: ${v}`);
+    igual(erradas.join(" | "), "", `tudo na versão ${versao} do index.html`);
+    const [a, b] = versao.split(".");
+    certo(ler("README.md").includes(`Novidades da ${a}.${b}`), `o README fala das novidades da ${a}.${b}`);
+  },
   "Pacote da loja vira DA_LOJA": async () => {
     const html = readFileSync(join(RAIZ, "index.html"), "utf8");
     igual(html.split("const DA_LOJA = false;").length, 2, "o index.html tem a marca do pacote da loja uma vez, desligada");
