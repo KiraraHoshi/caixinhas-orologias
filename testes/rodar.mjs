@@ -13,7 +13,7 @@ import { abrirChrome } from "./chrome.mjs";
 
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
 const PRINTS = join(RAIZ, "testes", "prints");
-const TIPOS = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml" };
+const TIPOS = { ".woff2": "font/woff2", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml" };
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function servir() {
@@ -2835,6 +2835,22 @@ const TESTES = {
     r = await caso("0", "");
     igual(r.sub, "parcela igual do começo ao fim", "voltando ao caso simples, o texto volta");
   },
+  "Fonte Cinzel vem dentro do app (site, cache e Android) e a política de segurança deixa carregar": async () => {
+    const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
+    const html = ler("index.html");
+    const m = html.match(/@font-face\s*\{[^}]*font-family:\s*"Cinzel"[^}]*url\(["']?([^"')]+)["']?\)/);
+    certo(m, "sem @font-face da Cinzel no index.html");
+    certo(existsSync(join(RAIZ, m[1])), "arquivo da fonte não existe: " + m[1]);
+    igual(readFileSync(join(RAIZ, m[1])).subarray(0, 4).toString(), "wOF2", "arquivo da fonte é woff2");
+    certo(existsSync(join(RAIZ, "fontes", "OFL.txt")), "falta a licença da fonte (fontes/OFL.txt)");
+    certo(ler("sw.js").includes("'./" + m[1] + "'"), "a fonte não está na lista do sw.js");
+    certo(/font-src 'self'/.test(html.match(/Content-Security-Policy" content="([^"]*)"/)[1]), "a política de segurança não libera fonte do próprio app");
+    certo(/"fontes"/.test(ler("scripts/preparar-www.mjs")), "a pasta fontes não vai para o app Android (preparar-www.mjs)");
+  },
+  "Títulos usam a Cinzel de verdade (carregada do próprio app, não a reserva do aparelho)": async (p) => {
+    const ok = await p.avaliar(async () => { await document.fonts.load('700 28px "Cinzel"'); return [...document.fonts].some((f) => f.family.replace(/"/g, "") === "Cinzel" && f.status === "loaded"); });
+    igual(ok, true, "Cinzel carregada");
+  },
   "Versão é a mesma em todo lugar": async () => {
     const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
     const versao = (ler("index.html").match(/const VERSION = '(\d+\.\d+\.\d+)';/) || [])[1];
@@ -2860,6 +2876,7 @@ const TESTES = {
       const pasta = await mkdtemp(join(tmpdir(), "caixinhas-www-"));
       try {
         for (const f of ["manifest.webmanifest", "privacy.html", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"]) await writeFile(join(pasta, f), "");
+        await mkdir(join(pasta, "fontes")); await writeFile(join(pasta, "fontes", "cinzel.woff2"), "");
         await writeFile(join(pasta, "index.html"), conteudo);
         const r = spawnSync(process.execPath, [join(RAIZ, "scripts", "preparar-www.mjs")], { cwd: pasta, encoding: "utf8", env: Object.assign({}, process.env, { CX_LOJA: loja ? "1" : "" }) });
         return { status: r.status, erro: (r.stderr || "").trim(), html: existsSync(join(pasta, "www", "index.html")) ? readFileSync(join(pasta, "www", "index.html"), "utf8") : "" };

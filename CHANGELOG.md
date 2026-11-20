@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 2.0.2
+- A fonte dos títulos (Cinzel) agora vem dentro do app: aparece igual em todo celular, mesmo sem internet. Antes, no Android, os títulos saíam numa fonte do próprio celular.
+
 ## 2.0.1
 
 - **Android:** o app não tem mais a permissão de alarme exato. Ela vinha junto com a parte que mostra os lembretes, mas o app nunca precisou de hora exata. Os lembretes de contas a vencer continuam iguais; o Android pode entregá-los alguns minutos depois da hora marcada.
