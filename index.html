@@ -106,16 +106,35 @@ function aplicarLeve(){ var r = document.documentElement; if (leveLigado()) r.se
    claro/escuro do sistema (não o tema). Aí vale "DEFAULT": o plugin escolhe os ícones pelo modo do sistema. Versão ilegível: como 140+. */
 var barraFeita = null, barrasPlugin;
 function webviewAntiga(){ var m = /Chrome\/(\d+)/.exec(navigator.userAgent || ''); return !!m && Number(m[1]) < 140; }
-function estiloBarras(t){
+/* Fundo da janela nativa (o mesmo conserto do Orolon Player 1.26.7): em WebView antiga o espaço das barras mostra esse fundo, que o
+   SystemBars repinta de cinza a cada setStyle e ao girar o celular. O app pinta com a cor do tema depois de cada repintura.
+   Plugin Caixinhas (corDaJanela); APK sem o método recusa e nada acontece. */
+var corJanela = '', janelaPlugin;
+function pintarJanela(){
   try {
-    var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
-    var estilo = webviewAntiga() ? 'DEFAULT' : escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) return;
-    if (barrasPlugin === undefined) barrasPlugin = (C.Plugins && C.Plugins.SystemBars) || (C.registerPlugin ? C.registerPlugin('SystemBars') : null) || null;
-    if (!barrasPlugin || typeof barrasPlugin.setStyle !== 'function') return;
-    var r = barrasPlugin.setStyle({ style: estilo }); barraFeita = estilo;
-    if (r && r.catch) r.catch(function(){ barraFeita = null; });
+    var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform() || !/^#[0-9A-Fa-f]{6}$/.test(corJanela)) return;
+    if (janelaPlugin === undefined) janelaPlugin = (C.Plugins && C.Plugins.Caixinhas) || (C.registerPlugin ? C.registerPlugin('Caixinhas') : null) || null;
+    if (!janelaPlugin || typeof janelaPlugin.corDaJanela !== 'function') return;
+    var r = janelaPlugin.corDaJanela({ cor: corJanela }); if (r && r.catch) r.catch(function(){});
   } catch (e) {}
 }
+function estiloBarras(t){
+  corJanela = (t && t.fundo) || '';
+  try {
+    var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
+    var estilo = webviewAntiga() ? 'DEFAULT' : escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) { pintarJanela(); return; }
+    if (barrasPlugin === undefined) barrasPlugin = (C.Plugins && C.Plugins.SystemBars) || (C.registerPlugin ? C.registerPlugin('SystemBars') : null) || null;
+    if (!barrasPlugin || typeof barrasPlugin.setStyle !== 'function') { pintarJanela(); return; }
+    var r = barrasPlugin.setStyle({ style: estilo }); barraFeita = estilo;
+    if (r && r.then) r.then(pintarJanela, function(){ barraFeita = null; pintarJanela(); }); else pintarJanela();
+  } catch (e) {}
+}
+(function(){
+  try {
+    var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
+    window.addEventListener('resize', function(){ setTimeout(pintarJanela, 150); }); // girar o celular repinta a janela
+  } catch (e) {}
+})();
 /* WebView antiga: o estilo pedido é sempre "DEFAULT", e o plugin guarda o estilo já resolvido pelo modo do sistema. Se o celular
    muda de modo com o app aberto, pede de novo (só no app e só nesse caso). Só o aparelho prova se a WebView avisa a mudança. */
 (function(){

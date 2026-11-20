@@ -4,6 +4,7 @@
 
 - **Android:** o app não tem mais a permissão de alarme exato. Ela vinha junto com a parte que mostra os lembretes, mas o app nunca precisou de hora exata. Os lembretes de contas a vencer continuam iguais; o Android pode entregá-los alguns minutos depois da hora marcada.
 - A montagem do app passa a falhar se alguma permissão de alarme exato voltar, como já fazia com a de internet.
+- **Android, faixas cinza:** em celulares com o navegador do sistema mais antigo, o espaço da barra de status e da barra de navegação ficava cinza. Agora ele fica na cor do fundo do tema, também ao trocar de tema e ao girar o celular. É o mesmo conserto do Orolon Player 1.26.7.
 
 ## 2.0.0 "Noite Orologia"
 

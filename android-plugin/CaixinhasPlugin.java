@@ -13,6 +13,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.provider.Settings;
@@ -39,6 +40,18 @@ import java.util.Collections;
 
 @CapacitorPlugin(name = "Caixinhas")
 public class CaixinhasPlugin extends Plugin {
+
+    // Fundo da janela por trás das barras do sistema (aparece em WebView antigo, onde a página não passa por trás delas).
+    // O mesmo conserto do Orolon Player 1.26.7: o SystemBars repinta esse fundo de cinza, e o app pinta com a cor do tema.
+    @PluginMethod
+    public void corDaJanela(PluginCall call) {
+        final String cor = call.getString("cor", "");
+        if (cor == null || !cor.matches("^#[0-9A-Fa-f]{6}$")) { call.reject("cor-invalida"); return; }
+        getActivity().runOnUiThread(() -> {
+            try { getActivity().getWindow().getDecorView().setBackgroundColor(Color.parseColor(cor)); } catch (Exception e) { /* janela indisponível */ }
+            call.resolve();
+        });
+    }
 
     // Marca deste aparelho (4 letras/números), tirada do identificador que o Android dá ao app neste aparelho.
     // Ela não vem junto quando o Android restaura os dados num celular novo; por isso cada aparelho tem a sua.

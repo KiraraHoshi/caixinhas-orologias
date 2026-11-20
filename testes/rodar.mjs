@@ -102,7 +102,7 @@ const calc = async (p, qual) => { await p.aba("calc"); await p.clicar('[data-cal
 // A "pasta" e a permissão ficam no localStorage para sobreviver a um recarregar.
 function capacitorFalso() {
   const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
-  const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [], barras: [] });
+  const N = (window.__nativo = { chamadas: [], voltar: null, urlAberta: null, minimizou: 0, pediu: 0, responder: "granted", agendadas: [], barras: [], ordem: [] });
   // "__launch" no localStorage = endereço com que o Android abriu o app (o toque no widget com o app fechado).
   // Como no Capacitor: getLaunchUrl devolve sempre o mesmo endereço (até num recarregar ou ao voltar de outra página), e o
   // appUrlOpen da abertura fica guardado até alguém ouvir e sai uma vez só por abertura do app. Uma abertura do app = uma
@@ -120,8 +120,10 @@ function capacitorFalso() {
       minimizeApp: async () => { N.minimizou++; },
     },
     // o plugin de barras do sistema do próprio Capacitor: anota cada estilo pedido (e se a página já estava à vista na hora)
-    SystemBars: { setStyle: async (o) => { N.barras.push({ style: o && o.style, bar: o && o.bar, corpo: !!document.body }); } },
+    // "ordem" junta o SystemBars e a cor da janela, para conferir quem veio por último
+    SystemBars: { setStyle: async (o) => { N.barras.push({ style: o && o.style, bar: o && o.bar, corpo: !!document.body }); N.ordem.push("barras:" + (o && o.style)); } },
     Caixinhas: {
+      corDaJanela: async (a) => { N.ordem.push("janela:" + (a && a.cor)); },
       widget: async (a) => { N.chamadas.push(["widget", JSON.parse(JSON.stringify(a))]); },
       compartilhar: async (a) => { N.chamadas.push(["compartilhar", a]); },
       aparelho: async () => ({ marca: "tst1" }),
@@ -1902,6 +1904,46 @@ const TESTES = {
     await p.injetar(ua("Navegador/1")); await p.recarregar();
     igual(await ultimo(), "LIGHT", "tema claro sem versão legível");
   } },
+  // Defeito do Orolon Player 1.26.7, confirmado no Caixinhas pelo Jo-ah (20/11/2026): em WebView anterior à 140 o espaço das barras
+  // mostra o fundo da janela nativa, que o SystemBars repinta de cinza a cada setStyle e ao girar o celular. O app pinta esse fundo
+  // com a cor do tema, sempre depois da repintura.
+  "Android: o fundo da janela atrás das barras ganha a cor do tema, depois de cada repintura (sem faixa cinza)": { nativo: true, fn: async (p) => {
+    const ua = (v) => `Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (Linux; Android 13; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 ${v} Mobile Safari/537.36" });`;
+    const estado = () => p.avaliar(() => {
+      const o = window.__nativo.ordem, i = o.map((x) => x.startsWith("janela:")).lastIndexOf(true), j = o.map((x) => x.startsWith("barras:")).lastIndexOf(true);
+      return { cor: i >= 0 ? o[i].slice(7) : null, depois: i > j, fundo: document.querySelector('meta[name="theme-color"]').content };
+    });
+    const esperarCor = async (rotulo) => {
+      let e; for (let k = 0; k < 40; k++) { e = await estado(); if (e.cor && e.cor.toLowerCase() === e.fundo.toLowerCase() && e.depois) return e; await p.espera(100); }
+      certo(false, rotulo + ": " + JSON.stringify(e));
+    };
+    await p.injetar(ua("Chrome/130.0.6723.107")); await p.recarregar();
+    await comExemplo(p);
+    await esperarCor("na abertura, a janela fica com o fundo do tema e depois do SystemBars");
+    // numa WebView 130 o estilo é sempre DEFAULT (o app não chama o SystemBars de novo), mas a cor da janela muda com o tema
+    await p.aba("ajustes/aparencia");
+    for (const id of ["dia", "g-lirio", "noite"]) {
+      await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]');
+      const e = await esperarCor("tema " + id);
+      certo(/^#[0-9a-f]{6}$/i.test(e.cor), "a cor vai como #RRGGBB: " + e.cor);
+    }
+    // girar o celular: o SystemBars repinta a janela; o app pinta de novo
+    await p.avaliar(() => { window.__nativo.ordem.push("barras:repintou"); dispatchEvent(new Event("resize")); });
+    await esperarCor("depois de girar o celular");
+    // WebView nova: continua pintando (não atrapalha: a página passa por trás das barras)
+    await p.injetar(ua("Chrome/140.0.7339.51")); await p.recarregar();
+    await esperarCor("numa WebView 140");
+  } },
+  "Android: o plugin pinta a janela atrás das barras só com cor válida (#RRGGBB), sem derrubar o app": async () => {
+    const j = readFileSync(join(RAIZ, "android-plugin", "CaixinhasPlugin.java"), "utf8");
+    const m = j.match(/public void corDaJanela\(PluginCall call\) \{[\s\S]*?\n    \}/);
+    certo(m, "existe o método corDaJanela");
+    certo(/\^#\[0-9A-Fa-f\]\{6\}\$/.test(m[0]), "confere o formato da cor");
+    certo(/getDecorView\(\)\.setBackgroundColor\(Color\.parseColor\(cor\)\)/.test(m[0]), "pinta o fundo da janela");
+    certo(/runOnUiThread/.test(m[0]) && /catch \(Exception/.test(m[0]), "na linha da tela, sem derrubar o app");
+    certo(/^import android\.graphics\.Color;/m.test(j), "importa Color");
+    certo(/@PluginMethod\s+public void corDaJanela/.test(j), "é um método do plugin");
+  },
   "Fundo de reserva sem color-mix na folha de lançar e no aviso": async (p) => {
     // com var() dentro, o color-mix é aceito ao ler o CSS e só cai ao calcular: o fundo vira transparente, não a declaração
     // anterior. A reserva precisa estar num @supports que nega o color-mix.
