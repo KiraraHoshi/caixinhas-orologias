@@ -103,6 +103,7 @@ jobs:
             echo "$PERMS" | sed 's/^/- `/; s/$/`/'
           } >> "$GITHUB_STEP_SUMMARY"
           if grep -q 'android.permission.INTERNET"' "$M"; then echo "::error title=Permissões::O app ficou com a permissão de internet"; exit 1; fi
+          if grep -q -E 'android.permission.(SCHEDULE_EXACT_ALARM|USE_EXACT_ALARM)"' "$M"; then echo "::error title=Permissões::O app ficou com permissão de alarme exato (a Play pede declaração; o app não usa)"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:

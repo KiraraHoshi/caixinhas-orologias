@@ -2,7 +2,7 @@
 // 1. copia o plugin "Caixinhas" e o widget "Lançar gasto" (android-plugin/) para o pacote do app;
 // 2. MainActivity: registra o plugin, faz o toque no widget valer uma vez e desenha de ponta a ponta (barras do sistema);
 // 3. copia os recursos de android-assets/res/ (widget, ícone da notificação) para res/;
-// 4. manifesto: registra o widget e tira a permissão de internet;
+// 4. manifesto: registra o widget e tira a permissão de internet e as de alarme exato;
 // 5. APK de teste (sem CX_LOJA=1): identificador com ".teste" e nome "Orolon Caixinhas (teste)", para conviver com o da loja.
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, cpSync } from "node:fs";
 import { join } from "node:path";
@@ -95,6 +95,15 @@ if (process.env.CX_COM_INTERNET !== "1") {
   xml = xml.replace(/\s*<uses-permission android:name="android\.permission\.INTERNET"\s*\/>/g, "");
   const tirarInternet = /<uses-permission android:name="android\.permission\.INTERNET" tools:node="remove"\s*\/>/;
   if (!tirarInternet.test(xml)) xml = xml.replace(/(\s*)<application/, `\n    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />\n$1<application`);
+}
+// os lembretes não precisam de hora exata: a biblioteca de notificações acrescenta o SCHEDULE_EXACT_ALARM,
+// que a Google Play trata como permissão sensível. Sem ele, a biblioteca agenda com o alarme comum
+// (setAndAllowWhileIdle), que pode chegar alguns minutos depois. O USE_EXACT_ALARM sai junto, se algum dia vier.
+if (!xml.includes("xmlns:tools")) xml = xml.replace("<manifest", '<manifest xmlns:tools="http://schemas.android.com/tools"');
+for (const nome of ["android.permission.SCHEDULE_EXACT_ALARM", "android.permission.USE_EXACT_ALARM"]) {
+  const esc = nome.replace(/\./g, "\\.");
+  xml = xml.replace(new RegExp(`\\s*<uses-permission android:name="${esc}"\\s*/>`, "g"), "");
+  if (!new RegExp(`<uses-permission android:name="${esc}" tools:node="remove"\\s*/>`).test(xml)) xml = xml.replace(/(\s*)<application/, `\n    <uses-permission android:name="${nome}" tools:node="remove" />\n$1<application`);
 }
 writeFileSync(arq, xml);
 

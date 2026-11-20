@@ -77,6 +77,7 @@ jobs:
             echo "$PERMS" | sed 's/^/- `/; s/$/`/'
           } >> "$GITHUB_STEP_SUMMARY"
           if grep -q 'android.permission.INTERNET"' "$M"; then echo "::error title=Permissões::O app ficou com a permissão de internet"; exit 1; fi
+          if grep -q -E 'android.permission.(SCHEDULE_EXACT_ALARM|USE_EXACT_ALARM)"' "$M"; then echo "::error title=Permissões::O app ficou com permissão de alarme exato (a Play pede declaração; o app não usa)"; exit 1; fi
           # o APK de teste convive com o da loja: o identificador precisa terminar em .teste
           case "$PACOTE" in *.teste) ;; *) echo "::error title=Identificador::O APK de teste ficou com o identificador $PACOTE (esperava terminar em .teste)"; exit 1;; esac
 

@@ -113,7 +113,8 @@ Conferir a lista final no resumo do workflow "App Android (loja)" (passo "Permis
 | `RECEIVE_BOOT_COMPLETED` e `WAKE_LOCK` | Do plugin de notificações: reagendar os lembretes depois que o celular reinicia. |
 
 - **Sem `INTERNET`:** a montagem falha se ela aparecer. Depois de publicado, conferir na página do app na Play que a lista de permissões não mostra acesso à rede (**a confirmar** como a Play mostra essa lista).
-- Se aparecer `SCHEDULE_EXACT_ALARM` ou `USE_EXACT_ALARM`, parar e avisar antes de publicar: o app não usa alarme exato, e essas permissões costumam pedir declaração própria na Play (**a confirmar** na Central de Ajuda do Play Console).
+- `SCHEDULE_EXACT_ALARM` e `USE_EXACT_ALARM` não podem aparecer: o app não usa alarme exato, e essas permissões costumam pedir declaração própria na Play (**a confirmar** na Central de Ajuda do Play Console). A biblioteca de notificações traz a `SCHEDULE_EXACT_ALARM` (apareceu no primeiro `.aab`, da 2.0.0, que não foi enviado); desde a 2.0.1 o script a retira do manifesto e os dois workflows falham se ela voltar.
+- Também pode aparecer `com.joah.caixinhas.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`: é uma permissão interna que o próprio Android acrescenta, só do app, e não aparece para a pessoa.
 - O app não tem serviço em primeiro plano, então não deve haver declaração de serviço a fazer (**a confirmar** no Console).
 
 ## Teste fechado

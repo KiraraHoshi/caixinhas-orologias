@@ -2026,7 +2026,10 @@ const TESTES = {
         certo(/android:exported="false"/.test(rec) && rec.includes('"android.appwidget.action.APPWIDGET_UPDATE"') && rec.includes('android:name="android.appwidget.provider"') && rec.includes('android:resource="@xml/widget_lancar"'), "receiver do widget completo: " + rec);
         certo(xml.indexOf(rec) > xml.indexOf("<application") && xml.indexOf(rec) < xml.indexOf("</application>"), "o receiver fica dentro do <application>");
         const perms = xml.match(/<uses-permission[^>]*>/g) || [];
-        certo(perms.length === 1 && perms[0].includes("android.permission.INTERNET") && perms[0].includes('tools:node="remove"'), "nenhuma permissão nova, e a de internet sai: " + perms.join(" "));
+        // só retiradas: internet e os alarmes exatos (a biblioteca de notificações põe o SCHEDULE_EXACT_ALARM; sem ele, ela usa o alarme comum)
+        const retirar = ["android.permission.INTERNET", "android.permission.SCHEDULE_EXACT_ALARM", "android.permission.USE_EXACT_ALARM"];
+        certo(perms.length === retirar.length && perms.every((p) => p.includes('tools:node="remove"')), "nenhuma permissão nova, só retiradas: " + perms.join(" "));
+        for (const nome of retirar) certo(perms.some((p) => p.includes(`android:name="${nome}"`)), "sai do manifesto: " + nome);
         // recursos copiados, e tudo o que eles e o Java citam existe (o PC não compila: aqui se pega o nome errado)
         const res = join(proj, "src/main/res");
         for (const f of ["layout/widget_lancar.xml", "xml/widget_lancar.xml", "drawable/ic_notif.xml"]) certo(existsSync(join(res, f)), "recurso copiado: " + f);
@@ -2835,6 +2838,7 @@ const TESTES = {
     certo(/applicationIdSuffix/.test(wl), "confere que o identificador não ficou com o .teste");
     certo(/node scripts\/chave-loja-android\.mjs/.test(wl) && /bundleRelease/.test(wl) && /\.aab/.test(wl), "gera o .aab assinado");
     certo(/android\.permission\.INTERNET"' "\$M"; then echo "::error/.test(wl), "falha se a permissão de internet voltar");
+    for (const [nome, w] of [["loja", wl], ["APK de teste", wt]]) certo(/grep -q -E 'android\.permission\.\(SCHEDULE_EXACT_ALARM\|USE_EXACT_ALARM\)"' "\$M"; then echo "::error/.test(w), "o workflow " + nome + " falha se um alarme exato voltar");
     const segredos = [...wl.matchAll(/secrets\.(\w+)/g)].map((x) => x[1]);
     certo(segredos.length >= 3 && segredos.every((s) => s.startsWith("CX_")), "segredos com o prefixo CX_: " + segredos.join(","));
     certo(!/chave-teste-android/.test(wl), "o pacote da loja não usa a chave de teste");
