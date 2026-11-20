@@ -26,6 +26,7 @@ App de finanças pessoais em que o dinheiro do mês fica dividido em **caixinhas
 - **14 temas** numa galeria com miniaturas, seis deles novos, e o **Visual leve** para aparelhos mais simples.
 - **Android:** widget "Lançar gasto" na tela inicial.
 - **Financiamento:** gráfico do saldo devedor no SAC e no PRICE, com o efeito da amortização extra.
+- **2.0.3:** a fonte do texto (Figtree) também vem dentro do app.
 - **2.0.2:** a fonte dos títulos (Cinzel) vem dentro do app e aparece igual em todo celular.
 - **2.0.1:** o app Android deixa de pedir a permissão de alarme exato (os lembretes continuam, com hora aproximada) e não mostra mais faixas cinza nas barras do sistema em celulares com o navegador do sistema mais antigo.
 

@@ -2851,6 +2851,18 @@ const TESTES = {
     const ok = await p.avaliar(async () => { await document.fonts.load('700 28px "Cinzel"'); return [...document.fonts].some((f) => f.family.replace(/"/g, "") === "Cinzel" && f.status === "loaded"); });
     igual(ok, true, "Cinzel carregada");
   },
+  "Fonte Figtree (texto) vem dentro do app, com licença e no cache do site": async () => {
+    const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
+    const m = ler("index.html").match(/@font-face\s*\{[^}]*font-family:\s*"Figtree"[^}]*url\(["']?([^"')]+)["']?\)/);
+    certo(m, "sem @font-face da Figtree no index.html");
+    igual(readFileSync(join(RAIZ, m[1])).subarray(0, 4).toString(), "wOF2", "arquivo da Figtree é woff2");
+    certo(existsSync(join(RAIZ, "fontes", "OFL-figtree.txt")), "falta a licença da Figtree");
+    certo(ler("sw.js").includes("'./" + m[1] + "'"), "a Figtree não está na lista do sw.js");
+  },
+  "Texto comum usa a Figtree de verdade (carregada do próprio app)": async (p) => {
+    const ok = await p.avaliar(async () => { await document.fonts.load('600 15px "Figtree"'); return [...document.fonts].some((f) => f.family.replace(/"/g, "") === "Figtree" && f.status === "loaded"); });
+    igual(ok, true, "Figtree carregada");
+  },
   "Versão é a mesma em todo lugar": async () => {
     const ler = (f) => readFileSync(join(RAIZ, f), "utf8");
     const versao = (ler("index.html").match(/const VERSION = '(\d+\.\d+\.\d+)';/) || [])[1];

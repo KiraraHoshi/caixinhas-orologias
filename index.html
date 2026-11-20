@@ -188,6 +188,8 @@ aplicar(atual()); aplicarLeve();
 <style>
 /* Cinzel (títulos do tema Orologia) vem dentro do app: sem internet e igual em todo aparelho. Licença: fontes/OFL.txt */
 @font-face{font-family:"Cinzel";src:url("fontes/cinzel.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap}
+/* Figtree (texto do tema Orologia). Licença: fontes/OFL-figtree.txt */
+@font-face{font-family:"Figtree";src:url("fontes/figtree.woff2") format("woff2");font-weight:300 900;font-style:normal;font-display:swap}
 /* Layout: coluna de bolso com barra de abas fixa embaixo — tema Orologia (noite violeta, lavanda e âmbar, títulos em Cinzel) */
 :root{
   --bg:#110E18; --surface:#1C1827; --surface2:#241F33; --deep:#0B0910; --line:#34304A; --track:#252136;
@@ -1605,7 +1607,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 <script>
 (function(){
 'use strict';
-const VERSION = '2.0.2';
+const VERSION = '2.0.3';
 // Pacote da Google Play: o scripts/preparar-www.mjs troca para true quando monta com CX_LOJA=1 (workflow android-loja.yml).
 // No site e no APK de teste fica false. Hoje nenhum texto do app depende disso (não há aviso de "versão nova" apontando para
 // o GitHub, como no Orolon Player); a marca existe para o que precisar ser diferente na versão da loja.

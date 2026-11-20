@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 2.0.3
+- A fonte do texto (Figtree) também vem dentro do app: todo o app aparece igual em qualquer celular, mesmo sem internet.
+
 ## 2.0.2
 - A fonte dos títulos (Cinzel) agora vem dentro do app: aparece igual em todo celular, mesmo sem internet. Antes, no Android, os títulos saíam numa fonte do próprio celular.
 
