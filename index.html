@@ -102,8 +102,9 @@ function aplicarLeve(){ var r = document.documentElement; if (leveLigado()) r.se
 /* No app Android a página passa por trás das barras do sistema: os ícones delas (relógio, bateria, navegação) seguem o tema.
    Plugin SystemBars do Capacitor: "DARK" = ícones claros (tema escuro), "LIGHT" = ícones escuros (tema claro); sem "bar", vale
    para as duas barras. Só no app; sem o plugin (site, versão antiga) não faz nada e nunca quebra. Repete só quando o estilo muda.
-   WebView anterior à 140: a página não passa por trás da barra, e a faixa mostra o fundo da janela nativa, que segue o modo
-   claro/escuro do sistema (não o tema). Aí vale "DEFAULT": o plugin escolhe os ícones pelo modo do sistema. Versão ilegível: como 140+. */
+   WebView anterior à 140: a página não passa por trás da barra e a faixa mostra o fundo da janela nativa; desde a 2.0.1 o app pinta
+   esse fundo com a cor do tema (pintarJanela), então os ícones seguem o tema também aí (antes era "DEFAULT", pelo modo do sistema,
+   e o tema claro com o celular em modo escuro ficava com ícones claros sobre a faixa clara). */
 var barraFeita = null, barrasPlugin;
 function webviewAntiga(){ var m = /Chrome\/(\d+)/.exec(navigator.userAgent || ''); return !!m && Number(m[1]) < 140; }
 /* Fundo da janela nativa (o mesmo conserto do Orolon Player 1.26.7): em WebView antiga o espaço das barras mostra esse fundo, que o
@@ -122,7 +123,7 @@ function estiloBarras(t){
   corJanela = (t && t.fundo) || '';
   try {
     var C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
-    var estilo = webviewAntiga() ? 'DEFAULT' : escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) { pintarJanela(); return; }
+    var estilo = escuro(t) ? 'DARK' : 'LIGHT'; if (estilo === barraFeita) { pintarJanela(); return; }
     if (barrasPlugin === undefined) barrasPlugin = (C.Plugins && C.Plugins.SystemBars) || (C.registerPlugin ? C.registerPlugin('SystemBars') : null) || null;
     if (!barrasPlugin || typeof barrasPlugin.setStyle !== 'function') { pintarJanela(); return; }
     var r = barrasPlugin.setStyle({ style: estilo }); barraFeita = estilo;
@@ -135,8 +136,8 @@ function estiloBarras(t){
     window.addEventListener('resize', function(){ setTimeout(pintarJanela, 150); }); // girar o celular repinta a janela
   } catch (e) {}
 })();
-/* WebView antiga: o estilo pedido é sempre "DEFAULT", e o plugin guarda o estilo já resolvido pelo modo do sistema. Se o celular
-   muda de modo com o app aberto, pede de novo (só no app e só nesse caso). Só o aparelho prova se a WebView avisa a mudança. */
+/* WebView antiga: se o celular muda de modo com o app aberto, o Android pode repintar as barras e o fundo da janela; o app pede
+   de novo o estilo do tema e pinta a janela (só no app e só nesse caso). Só o aparelho prova se a WebView avisa a mudança. */
 (function(){
   try {
     var C = window.Capacitor;

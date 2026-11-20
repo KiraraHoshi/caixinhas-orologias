@@ -1876,25 +1876,26 @@ const TESTES = {
     await p.clicar('#temaBox [data-tm="usar"][data-id="dia"]');
     igual(await p.avaliar(() => window.__barras.length), 0, "no site nenhum estilo de barra é pedido");
   },
-  // Em WebView anterior à 140 a página não passa por trás da barra: a faixa mostra o fundo da janela nativa, que segue o modo
-  // claro/escuro do sistema. Aí o app pede "DEFAULT" (o plugin escolhe os ícones pelo modo do sistema), não o estilo do tema.
-  "Android: em WebView anterior à 140 a barra segue o modo do sistema, não o tema": { nativo: true, fn: async (p) => {
+  // Em WebView anterior à 140 a página não passa por trás da barra: a faixa mostra o fundo da janela nativa. Desde a 2.0.1 o app
+  // pinta esse fundo com a cor do tema (corDaJanela), então os ícones seguem o tema também aí. Antes o app pedia "DEFAULT" (ícones
+  // pelo modo do sistema): no celular do Jo-ah, em modo escuro, o tema claro ficou com ícones claros sobre a faixa clara (20/11/2026).
+  "Android: em WebView anterior à 140 os ícones das barras seguem o tema (a faixa tem a cor do tema)": { nativo: true, fn: async (p) => {
     const ua = (v) => `Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 ${v} Mobile Safari/537.36" });`;
     const estilos = () => p.avaliar(() => window.__nativo.barras.map((b) => b.style));
     const ultimo = async () => (await estilos()).pop() || null;
     await p.injetar(ua("Chrome/130.0.6723.107")); await p.recarregar();
     await comExemplo(p);
-    igual(await ultimo(), "DEFAULT", "tema escuro numa WebView 130");
+    igual(await ultimo(), "DARK", "tema escuro numa WebView 130: ícones claros");
     await p.aba("ajustes/aparencia");
-    for (const id of ["dia", "g-lirio", "noite"]) { await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]'); igual(await ultimo(), "DEFAULT", "tema " + id + " numa WebView 130"); }
-    certo((await estilos()).every((s) => s === "DEFAULT"), "nada pede LIGHT/DARK numa WebView 130: " + JSON.stringify(await estilos()));
-    // o celular muda de modo com o app aberto: o plugin guardou o estilo já resolvido, então o app pede DEFAULT de novo
+    for (const [id, est] of [["dia", "LIGHT"], ["g-lirio", "LIGHT"], ["noite", "DARK"]]) { await p.clicar('#temaBox [data-tm="usar"][data-id="' + id + '"]'); igual(await ultimo(), est, "tema " + id + " numa WebView 130"); }
+    certo(!(await estilos()).includes("DEFAULT"), "nada pede DEFAULT: " + JSON.stringify(await estilos()));
+    // o celular muda de modo com o app aberto: o Android pode repintar as barras, então o app pede o estilo do tema de novo
     const agora = await p.avaliar(() => matchMedia("(prefers-color-scheme: dark)").matches); // o modo de partida depende do computador
     for (const escuro of [!agora, agora]) {
       const antes = (await estilos()).length;
       await p.modoSistema(escuro); await p.espera(200);
       const depois = await estilos();
-      certo(depois.length > antes && depois[depois.length - 1] === "DEFAULT", "mudar o modo do sistema para " + (escuro ? "escuro" : "claro") + " pede DEFAULT de novo: " + JSON.stringify(depois.slice(antes)));
+      certo(depois.length > antes && depois[depois.length - 1] === "DARK", "mudar o modo do sistema para " + (escuro ? "escuro" : "claro") + " pede de novo o estilo do tema (Noite): " + JSON.stringify(depois.slice(antes)));
     }
     // 140 ou mais: o estilo segue o tema, como antes
     await p.avaliar(() => localStorage.setItem("caixinhas-orologia-tema", JSON.stringify({ atual: "g-lirio", meus: [] })));
