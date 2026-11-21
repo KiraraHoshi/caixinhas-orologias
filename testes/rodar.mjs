@@ -821,6 +821,14 @@ const TESTES = {
     certo((await lerPC(p, [], await arqHoje(p)) || "").includes("Cinema"), "o arquivo do dia vai para a pasta escolhida");
     certo((await p.texto("#bkpBox")).includes("Gravando na pasta “escolhida”"), "nome mostrado sem subpasta: " + await p.texto("#bkpBox"));
   },
+  "Pasta do backup no PC: Salvar agora na pasta grava a cópia de hoje na hora": async (p) => {
+    await escolherPastaPC(p, []);
+    const nome = await arqHoje(p);
+    await criarPC(p, [SUBPASTA], nome, "velho"); // a cópia do dia já saiu antes; sem lançamento novo o app não grava sozinho
+    await p.clicar('[data-act="bkp-agora"]'); await p.espera(500);
+    certo((await lerPC(p, [SUBPASTA], nome) || "").includes("Cinema"), "o botão gravou a cópia de agora na pasta");
+    certo((await p.texto("#toast")).includes("Backup salvo na pasta"), "avisa que salvou: " + await p.texto("#toast"));
+  },
   "Pasta do backup no PC: a pasta escolhida antes desta versão continua recebendo os arquivos": async (p) => {
     await p.clicar('[data-act="onb-skip"]'); await lancar(p, 50, "Cinema");
     // como a 1.9 e a 2.0 de antes guardavam: só a pasta, sem o campo da subpasta
@@ -1617,6 +1625,22 @@ const TESTES = {
   } },
   // A escolha da subpasta no Android é do plugin (Java, só o aparelho prova). Aqui: o app passa a subpasta que o plugin devolve
   // em toda conta com a pasta, mostra o nome que ele dá e guarda a subpasta nova quando o plugin recria uma apagada.
+  "Android: Salvar agora na pasta grava na pasta escolhida, sem abrir o compartilhamento": { nativo: true, fn: async (p) => {
+    await p.avaliar(() => {
+      const d = new Date(), mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      localStorage.setItem("caixinhas-orologia-v1", JSON.stringify({ onboarded: true, guiaVisto: true, caixinhas: [{ id: "a", nome: "Tudo", cor: "#9C9BF5" }], limitesPadrao: { a: 500 },
+        meses: { [mes]: { gastos: [{ id: "g1", valor: 30, descricao: "Pão", caixinha: "a", forma: "Pix", data: mes + "-01" }] } } }));
+      localStorage.setItem("__escolha", JSON.stringify({ uri: "content://arvore", nome: "Backups/Orolon Caixinhas", sub: "doc-sub" }));
+    });
+    await p.recarregar(); await p.aba("ajustes/dados");
+    await p.clicar('[data-act="bkp-pasta"]'); await p.espera(400);
+    const conta = (qual) => p.avaliar((qual) => window.__nativo.chamadas.filter((x) => x[0] === qual).length, qual);
+    const antes = await conta("gravarBackup");
+    await p.clicar('[data-act="bkp-agora"]'); await p.espera(400);
+    igual(await conta("gravarBackup"), antes + 1, "o botão gravou uma cópia na pasta");
+    igual(await conta("compartilhar"), 0, "sem abrir o compartilhamento");
+    certo((await p.texto("#toast")).includes("Backup salvo na pasta “Backups/Orolon Caixinhas”"), "avisa onde salvou: " + await p.texto("#toast"));
+  } },
   "Android: a subpasta que o plugin devolve vale para conferir, gravar e listar": { nativo: true, fn: async (p) => {
     const outro = "caixinhas-backup-2026-01-01-zzzz.json";
     await p.avaliar((outro) => {

@@ -1607,7 +1607,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 <script>
 (function(){
 'use strict';
-const VERSION = '2.0.3';
+const VERSION = '2.0.4';
 // Pacote da Google Play: o scripts/preparar-www.mjs troca para true quando monta com CX_LOJA=1 (workflow android-loja.yml).
 // No site e no APK de teste fica false. Hoje nenhum texto do app depende disso (não há aviso de "versão nova" apontando para
 // o GitHub, como no Orolon Player); a marca existe para o que precisar ser diferente na versão da loja.
@@ -2062,7 +2062,7 @@ function renderBkp(){
   else if (!Bkp.pasta && NATIVO) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes deste aparelho. Se for uma pasta que sincroniza com a nuvem, o backup sai do celular sem precisar de conta no app.</p><p class="hint">O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (!Bkp.pasta) pasta = '<p class="hint">Escolha uma pasta e o app grava ali um arquivo por dia, sozinho, guardando os 7 mais recentes. Se for uma pasta que sincroniza com a nuvem (Google Drive, OneDrive), o backup sai do aparelho sem precisar de conta no app. O app cria uma pasta “Orolon Caixinhas” dentro do lugar escolhido e grava nela.</p><p class="hint" id="bkpDica">Crie a pasta “Orolon Caixinhas” dentro de Documentos e escolha ela: o app grava direto nela. O navegador recusa pastas principais do sistema, como a própria Documentos, a Área de Trabalho, Downloads e a raiz de um disco, e avisa que elas “contêm arquivos do sistema”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-pasta">Escolher a pasta do backup</button></div>';
   else if (Bkp.perm !== 'granted') pasta = `<p class="hint warn">O navegador pede a sua permissão de novo para gravar na pasta “${nome}”.</p><div class="btns"><button class="primary" type="button" data-act="bkp-perm">Permitir</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
-  else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p>${Bkp.lista ? (Bkp.lista.length ? listaPasta(Bkp.lista) : '<p class="hint">A pasta ainda não tem cópias.</p>') : ''}<div class="btns">${Bkp.pasta.nativa && !Bkp.lista ? '<button class="ghost" type="button" data-act="bkp-ver">Ver cópias da pasta</button>' : ''}<button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
+  else pasta = `<p class="hint ${Bkp.erro ? 'bad' : 'good'}">${Bkp.erro ? `Não deu para gravar na pasta “${nome}”. Confira se ela ainda existe.` : `Gravando na pasta “${nome}”.${Bkp.ultimo ? ' Último arquivo: ' + esc(bkpQuando(Bkp.ultimo)) + '.' : hasData(S) && !temExemplo() ? '' : ' O primeiro arquivo sai quando houver lançamentos seus.'}`}</p>${Bkp.lista ? (Bkp.lista.length ? listaPasta(Bkp.lista) : '<p class="hint">A pasta ainda não tem cópias.</p>') : ''}<div class="btns"><button class="ghost" type="button" data-act="bkp-agora">Salvar agora na pasta</button>${Bkp.pasta.nativa && !Bkp.lista ? '<button class="ghost" type="button" data-act="bkp-ver">Ver cópias da pasta</button>' : ''}<button class="ghost" type="button" data-act="bkp-pasta">Trocar a pasta</button><button class="ghost" type="button" data-act="bkp-parar">Parar de usar a pasta</button></div>`;
   const copias = !Bkp.ok ? '<p class="hint">Este navegador não deixa guardar cópias neste aparelho.</p>' : `<details class="plain" id="bkpCopias"${Bkp.aberto ? ' open' : ''}><summary>Cópias neste aparelho (${Bkp.copias.length})</summary><div class="inner">
       ${Bkp.copias.length ? Bkp.copias.map(c => `<div class="copia"><span>${esc(c.rotulo || 'Cópia do dia')}<small>${esc(bkpQuando(c.quando))}, ${c.n} ${c.n === 1 ? 'lançamento' : 'lançamentos'}</small></span>
         <span class="btns"><button class="link" type="button" data-act="bkp-rest" data-id="${esc(c.id)}">Restaurar</button><button class="link" type="button" data-act="bkp-baixar" data-id="${esc(c.id)}">Baixar</button></span></div>`).join('') : '<p class="hint">Nenhuma cópia ainda. A primeira aparece depois do seu primeiro lançamento.</p>'}
@@ -3455,6 +3455,10 @@ document.addEventListener('click', e => {
     })(); break;
     case 'bkp-perm': (async () => { await bkpPerm(true); const gravou = await bkpNaPasta(); renderBkp(); renderAll(); if (gravou) toast('Backup gravado na pasta'); })(); break;
     case 'bkp-usar': if (Bkp.pend) usarPastaNativa(Bkp.pend.pasta); break;
+    case 'bkp-agora': (async () => { // 2.0.4: a pessoa grava a cópia de hoje na pasta na hora, sem esperar o próximo lançamento
+      const ok = await bkpNaPasta(); renderBkp(); renderAll();
+      toast(ok ? 'Backup salvo na pasta “' + bkpNome(Bkp.pasta) + '”' : !hasData(S) || temExemplo() ? 'Ainda não há lançamentos seus para salvar.' : 'Não deu para gravar na pasta. Confira se ela ainda existe.');
+    })(); break;
     case 'bkp-desistir': Bkp.pend = null; renderBkp(); break;
     case 'bkp-ver': (async () => { try { Bkp.lista = soBackups(((await PLUG.Cx.listarBackups(argPasta(Bkp.pasta))) || {}).backups); } catch (e) { Bkp.lista = []; toast('Não deu para ler a pasta'); } renderBkp(); })(); break;
     case 'bkp-doc': (async () => {

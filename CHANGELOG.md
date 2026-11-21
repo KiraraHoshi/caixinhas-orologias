@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 2.0.4
+- **Salvar agora na pasta:** com a pasta do backup escolhida, um botão novo em Ajustes › Backup grava a cópia de hoje na pasta na hora, sem esperar o próximo lançamento.
+
 ## 2.0.3
 - A fonte do texto (Figtree) também vem dentro do app: todo o app aparece igual em qualquer celular, mesmo sem internet.
 
