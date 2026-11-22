@@ -1169,6 +1169,24 @@ const TESTES = {
     igual(await p.visivel("#fDia"), false, "o × tira o filtro do dia");
     igual(await p.avaliar(() => document.activeElement && document.activeElement.id), "mesLista", "o foco vai para a lista depois de tirar o filtro do dia");
   },
+  "Calendário: o Mês abre já na lista do dia, sem passar pelo topo": async (p) => {
+    // 2.0.5 (visto no celular do Jo-ah): o Mês aparecia no topo, com os números contando, e só depois pulava para a lista
+    await comExemplo(p); await p.aba("graficos");
+    const r = await p.avaliar(() => new Promise((ok) => {
+      const quadros = [];
+      const f = () => document.querySelector("#v-mes .filtros");
+      document.querySelector('#gDias .g-pt[data-dia="4"]').dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const t0 = performance.now();
+      const medir = () => {
+        if (!document.getElementById("v-mes").hidden && f()) quadros.push(Math.round(f().getBoundingClientRect().top));
+        if (performance.now() - t0 < 500) requestAnimationFrame(medir); else ok({ quadros, alto: innerHeight });
+      };
+      requestAnimationFrame(medir);
+    }));
+    certo(r.quadros.length > 0, "o Mês não abriu");
+    const longe = r.quadros.filter((t) => t > r.alto / 2 || t < -10);
+    certo(!longe.length, "a lista do dia devia estar no alto da tela desde o primeiro quadro; posições do filtro: " + r.quadros.join(", "));
+  },
   "Tocar num ponto mostra o valor": async (p) => {
     await comExemplo(p); await p.aba("graficos");
     const fechar = () => p.avaliar(() => document.querySelector("#v-graficos h2").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));

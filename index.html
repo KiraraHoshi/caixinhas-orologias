@@ -1607,7 +1607,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 <script>
 (function(){
 'use strict';
-const VERSION = '2.0.4';
+const VERSION = '2.0.5';
 // Pacote da Google Play: o scripts/preparar-www.mjs troca para true quando monta com CX_LOJA=1 (workflow android-loja.yml).
 // No site e no APK de teste fica false. Hoje nenhum texto do app depende disso (não há aviso de "versão nova" apontando para
 // o GitHub, como no Orolon Player); a marca existe para o que precisar ser diferente na versão da loja.
@@ -2228,8 +2228,10 @@ function irMes(k){ if (k !== UI.mes) UI.filtroDia = null; UI.mes = k; }
 function abrirDia(k, dia){
   UI.mes = k; UI.filtroDia = k + '-' + pad(dia); UI.listaToda = false;
   $('fBusca').value = ''; $('fCx').value = ''; $('fForma').value = ''; $('fTodos').checked = false;
-  renderMes(); go('mes');
-  setTimeout(() => { const f = document.querySelector('#v-mes .filtros'); if (f && !$('v-mes').hidden) f.scrollIntoView({ block: 'start' }); }, 120);
+  // 2.0.5: a troca de aba já rola até a lista do dia (antes ia ao topo e pulava 120 ms depois, no meio da animação de entrada).
+  // O pedido vale por um instante: o endereço novo chama a troca de aba de novo logo em seguida.
+  UI.rolarDia = true; renderMes(); go('mes');
+  setTimeout(() => { UI.rolarDia = false; }, 600);
 }
 function renderLista(k){
   const cxV = $('fCx').value, fV = $('fForma').value;
@@ -3947,7 +3949,8 @@ function route(){
   if (t === 'guia' && !S.guiaVisto) { S.guiaVisto = true; persist({ estado: true }); }
   if (t === 'ajustes') { if (trocou) UI.cxDraft = null; renderAjustes(); renderTema(); mostrarAjustes(); } // dentro dos Ajustes, a edição das caixinhas não se perde
   if (trocou) entrarNaTela(t);
-  window.scrollTo(0, 0);
+  const lista = t === 'mes' && UI.rolarDia ? document.querySelector('#v-mes .filtros') : null;
+  if (lista) lista.scrollIntoView({ block: 'start', behavior: 'instant' }); else { UI.rolarDia = false; window.scrollTo(0, 0); }
 }
 /* Movimento ao entrar numa tela (nada disso com "reduzir movimento"; anima() e tween() já respeitam):
    a passagem curta da tela inteira (≤ 180 ms), os números grandes contando até o valor real, as barras e a fita enchendo.

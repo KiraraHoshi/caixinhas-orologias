@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 2.0.5
+- **Dias do mês sem tranco:** ao tocar num dia do calendário dos Gráficos, o Mês abre direto na lista daquele dia. Antes ele mostrava o topo por um instante, com os números contando, e depois pulava para a lista.
+
 ## 2.0.4
 - **Salvar agora na pasta:** com a pasta do backup escolhida, um botão novo em Ajustes › Backup grava a cópia de hoje na pasta na hora, sem esperar o próximo lançamento.
 
