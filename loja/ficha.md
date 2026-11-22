@@ -88,10 +88,10 @@ Os cálculos são estimativas para ajudar a organizar o seu dinheiro. Confira im
 | Acesso ao app | Todas as funções estão disponíveis sem restrição | Não há login nem conta; nada fica atrás de senha (o PIN é opcional e criado pela própria pessoa) |
 | Anúncios | Não, o app não contém anúncios | Não há nenhuma biblioteca de anúncios, e o app nem tem acesso à internet |
 | Classificação de conteúdo | Categoria "Utilitário, produtividade, comunicação ou outro" (**a confirmar** o nome exato no questionário); "não" para violência, sexo, linguagem, drogas, jogos de azar, compra de itens digitais, compartilhamento de local e interação entre usuários. Resultado esperado: Livre (**a confirmar**) | O app só mostra números e textos que a própria pessoa digita; não há conteúdo de terceiros nem contato entre pessoas |
-| Público-alvo | 18 anos ou mais | É um app de finanças pessoais (contas, cartão, salário), feito para adultos; marcar faixas de crianças traria regras próprias para apps infantis, que não se aplicam (**a confirmar** na Central de Ajuda do Play Console) |
+| Público-alvo | 13 a 15, 16 a 17 e 18 anos ou mais (respondido assim em 22/11/2026) | Marcar só 18+ fazia o Console avisar de restrições extras de disponibilidade; nenhuma faixa abaixo de 13 foi marcada, então as regras de apps infantis não se aplicam. É o mesmo que o Orolon Player respondeu |
 | O app é atraente para crianças? | Não | Mesmo motivo |
 | App de notícias | Não | |
-| Recursos financeiros | **A confirmar no Console** qual opção cabe. O app é um controle de gastos pessoal: não tem conta, não movimenta dinheiro, não se conecta a banco, não oferece empréstimo, pagamento, câmbio, cripto nem recomendação de aplicação. Se a lista do Console tiver uma opção de orçamento ou controle de gastos pessoal, marcar essa; se não tiver, "O app não oferece nenhum recurso financeiro". Na dúvida, ler a descrição de cada opção na Central de Ajuda do Play Console antes de enviar | Até onde se sabe, a declaração existe para apps de banco, crédito, pagamento e afins (**a confirmar** na Central de Ajuda do Play Console); o Caixinhas só faz contas com o que a pessoa digita |
+| Recursos financeiros | "Meu app não oferece recursos financeiros" (respondido em 22/11/2026) | A lista do Console só tem serviços que movimentam dinheiro (empréstimo, banco, pagamento, transferência, cripto, ações, seguros, consultoria) e não tem opção de controle de gastos; "Outro" pediria descrever um serviço financeiro que o app não oferece. Se a revisão discordar, a resposta pode ser trocada depois |
 | Saúde | Nenhum recurso de saúde | |
 | App governamental | Não | |
 | ID de publicidade | O app não usa ID de publicidade | Não há biblioteca de anúncios nem de análise |
@@ -118,6 +118,8 @@ Conferir a lista final no resumo do workflow "App Android (loja)" (passo "Permis
 - O app não tem serviço em primeiro plano, então não deve haver declaração de serviço a fazer (**a confirmar** no Console).
 
 ## Teste fechado
+
+- Países: só o Brasil (as calculadoras são da CLT e o app só tem português; decisão do Jo-ah em 22/11/2026). Ficha só em Português (Brasil).
 
 - Conta pessoal nova: 12 testadores inscritos por 14 dias seguidos antes de pedir a produção (**a confirmar** os números atuais na página do teste fechado no Console).
 - Os testadores devem entrar por uma lista de e-mails (contas Google) ou por um Grupo do Google e, depois de adicionados, abrir o link de participação e instalar pela Play (como foi no Orolon Player; **a confirmar** na Central de Ajuda do Play Console).
