@@ -18,6 +18,13 @@ App de finanças pessoais em que o dinheiro do mês fica dividido em **caixinhas
 
 [Histórico de versões](CHANGELOG.md) · [Planos](ROADMAP.md) · [App Android](ANDROID.md)
 
+## Novidades da 2.1 "Pessoas e quem te deve"
+
+- **Pessoas:** cadastre quem usa o seu cartão, com nome e cor, e veja quanto cada uma te deve (faturas ainda não recebidas mais o que foi anotado fora do cartão).
+- **Compra dividida:** reparta uma compra entre você e outras pessoas, em partes iguais ou com o valor de cada uma.
+- **Editar compra:** mude qualquer coisa numa compra já lançada, inclusive de quem é.
+- **Dívidas fora do cartão:** anote Pix emprestado ou dinheiro adiantado, sem mexer nas caixinhas.
+
 ## Novidades da 2.0 "Noite Orologia"
 
 - **Visual novo:** fundo com brilho, cartões translúcidos e cada caixinha na sua cor. No Início, um **arco** com um pedaço por caixinha e o marcador de hoje, a sobra, o valor por dia e o **ritmo do mês** (acima ou abaixo do ideal).
@@ -26,7 +33,6 @@ App de finanças pessoais em que o dinheiro do mês fica dividido em **caixinhas
 - **14 temas** numa galeria com miniaturas, seis deles novos, e o **Visual leve** para aparelhos mais simples.
 - **Android:** widget "Lançar gasto" na tela inicial.
 - **Financiamento:** gráfico do saldo devedor no SAC e no PRICE, com o efeito da amortização extra.
-- **2.1.0:** pessoas cadastradas com cor, editar compra, compra dividida e dívidas fora do cartão.
 - **2.0.5:** tocar num dia do calendário abre a lista do dia sem pular.
 - **2.0.4:** botão "Salvar agora na pasta" no backup.
 - **2.0.3:** a fonte do texto (Figtree) também vem dentro do app.

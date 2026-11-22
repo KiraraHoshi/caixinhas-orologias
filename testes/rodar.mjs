@@ -628,6 +628,13 @@ const TESTES = {
     await p.clicar('.folha-topo [data-act="folha-fechar"]');
     await p.clicar("#mesLista .n-lanc"); await conferir("edição de um gasto");
     await p.clicar('.folha-topo [data-act="folha-fechar"]');
+    // 2.1: edição de pessoa, divisão de compra e edição da compra dividida, com o nome adulterado
+    await p.aba("cartao");
+    await p.avaliar(() => document.querySelector('[data-act="p-edit"]').click()); await conferir("edição de pessoa");
+    await p.avaliar(() => document.querySelector('[data-act="p-cancel"]').click());
+    await p.avaliar(() => { const e = document.querySelector("#cDono"); e.value = "__div"; e.dispatchEvent(new Event("change", { bubbles: true })); }); await conferir("divisão de compra");
+    await p.avaliar(() => document.querySelector('[data-act="compra-edit"][data-id="c3"]').click()); await conferir("edição de compra dividida");
+    await p.avaliar(() => document.querySelector('[data-act="compra-cancel"]').click());
     // e depois de abrir de novo (a limpeza vale também para o que já está guardado)
     await p.recarregar();
     for (const t of ["inicio", "mes", "cartao", "metas"]) { await p.aba(t); await conferir(t + " depois de reabrir"); }
@@ -3129,7 +3136,7 @@ const TESTES = {
   "Pessoas: nomes já usados em “De quem é” viram pessoas da lista": async (p) => {
     await comPessoas(p, { compras: [{ id: "c1", cartao: "k1", desc: "Fone", valorParcela: 50, parcelas: 2, inicio: mesAtual(), dono: "Irmã" }] });
     const ops = await p.avaliar(() => [...document.querySelectorAll("#cDono option")].map((o) => o.value));
-    certo(ops[0] === "" && ops.includes("Irmã") && ops.includes("__div") && ops.includes("__nova"), "opções de De quem é: " + JSON.stringify(ops));
+    certo(ops[0] === "" && ops.includes("p:Irmã") && ops.includes("__div") && ops.includes("__nova"), "opções de De quem é: " + JSON.stringify(ops));
     const l = await linhaPessoa(p, "Irmã");
     certo(l && l.includes("50,00"), "Irmã devia aparecer em Pessoas devendo 50,00: " + l);
   },
@@ -3145,7 +3152,7 @@ const TESTES = {
     certo((s.pessoas || []).some((x) => x.nome === "Ana"), "Ana devia virar pessoa cadastrada: " + JSON.stringify(s.pessoas));
     igual(await p.avaliar(() => document.querySelector("#cDono").value), "", "o formulário devia voltar para Minha");
     certo(!(await p.visivel("#cDonoNovo")), "o campo do nome novo devia sumir");
-    certo(await p.avaliar(() => [...document.querySelectorAll("#cDono option")].some((o) => o.value === "Ana")), "Ana devia estar na lista");
+    certo(await p.avaliar(() => [...document.querySelectorAll("#cDono option")].some((o) => o.value === "p:Ana")), "Ana devia estar na lista");
     // nome novo vazio não salva
     await lancarCompra(p, "Boné", "30"); await escolher(p, "#cDono", "__nova"); await enviar(p, "#fCompra");
     igual((await guardado(p)).compras.length, 1, "compra sem o nome da pessoa nova não devia salvar");
@@ -3161,7 +3168,7 @@ const TESTES = {
     igual(await p.avaliar(() => document.querySelector("#cDesc").value), "", "cancelar devia limpar o formulário");
     // editar e salvar
     await p.clicar('[data-act="compra-edit"][data-id="c1"]');
-    await escolher(p, "#cDono", "Ana"); await enviar(p, "#fCompra");
+    await escolher(p, "#cDono", "p:Ana"); await enviar(p, "#fCompra");
     const s = await guardado(p);
     igual(s.compras.length, 1, "editar não pode criar outra compra");
     const c = s.compras[0];
@@ -3254,7 +3261,7 @@ const TESTES = {
   },
   "Pessoas: dívida fora do cartão é só anotação e soma no que a pessoa deve": async (p) => {
     await comPessoas(p, { pessoas: [{ nome: "Ana", cor: "#C9A6F5" }] });
-    await escolher(p, "#dvPessoa", "Ana"); await p.digitar("#dvDesc", "Pix do almoço"); await p.digitar("#dvValor", "35,50");
+    await escolher(p, "#dvPessoa", "p:Ana"); await p.digitar("#dvDesc", "Pix do almoço"); await p.digitar("#dvValor", "35,50");
     igual(await p.avaliar(() => document.querySelector("#dvData").value), hojeIso(), "a data começa em hoje");
     await enviar(p, "#fDivida");
     let s = await guardado(p);
@@ -3271,7 +3278,7 @@ const TESTES = {
     await escolher(p, "#dvPessoa", "__nova"); certo(await p.visivel("#dvNovo"), "campo do nome novo na dívida");
     await p.digitar("#dvNovo", "Leo"); await p.digitar("#dvDesc", "Dinheiro"); await p.digitar("#dvValor", "10"); await enviar(p, "#fDivida");
     s = await guardado(p); igual(s.dividas.length, 2, "dívida da pessoa nova"); certo(s.pessoas.some((x) => x.nome === "Leo"), "Leo cadastrado pela dívida");
-    await escolher(p, "#dvPessoa", "Ana"); await p.digitar("#dvDesc", "Sem valor"); await p.digitar("#dvValor", ""); await enviar(p, "#fDivida");
+    await escolher(p, "#dvPessoa", "p:Ana"); await p.digitar("#dvDesc", "Sem valor"); await p.digitar("#dvValor", ""); await enviar(p, "#fDivida");
     igual((await guardado(p)).dividas.length, 2, "dívida sem valor não salva");
     // apagar pede dois toques
     await p.clicar(`[data-act="dv-del"][data-id="${d.id}"]`); igual((await guardado(p)).dividas.length, 2, "apagar pede um segundo toque");
@@ -3285,11 +3292,105 @@ const TESTES = {
     certo((await linhaPessoa(p, "Ana")).includes("120,00"), "devia somar 50 + 50 (faturas até hoje) + 20: " + await linhaPessoa(p, "Ana"));
     await p.clicar('[data-act="rec-toggle"][data-p="Ana"]');
     certo((await linhaPessoa(p, "Ana")).includes("70,00"), "com a fatura deste mês recebida, 70: " + await linhaPessoa(p, "Ana"));
-    await p.clicar('[data-act="p-tudo"][data-p="Ana"]');
+    await p.clicar('[data-act="p-tudo"][data-p="Ana"]'); await p.clicar('[data-act="p-tudo"][data-p="Ana"]');
     const s = await guardado(p);
     igual(s.recebidos[ant].Ana, true, "fatura do mês passado marcada"); certo(s.dividas.every((x) => x.recebido), "dívidas marcadas");
     certo(!s.recebidos[mesAtual(1)] || !s.recebidos[mesAtual(1)].Ana, "fatura futura não é marcada");
     certo(!/\d,\d\d/.test(await linhaPessoa(p, "Ana")), "sem nada em aberto: " + await linhaPessoa(p, "Ana"));
+  },
+  "Pessoas (revisão): juntar não dá como recebida a parte de quem não pagou": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { pessoas: [{ nome: "Ana", cor: "#C9A6F5" }, { nome: "Bia", cor: "#8FD3B4" }],
+      compras: [{ id: "c1", cartao: "k1", desc: "Livro", valorParcela: 30, parcelas: 1, inicio: cur, dono: "Ana" }, { id: "c2", cartao: "k1", desc: "Fone", valorParcela: 80, parcelas: 1, inicio: cur, dono: "Bia" }],
+      recebidos: { [cur]: { Ana: true } } });
+    await p.clicar('[data-act="p-edit"][data-p="Bia"]'); await p.digitar("#pNome", "Ana"); await p.clicar('[data-act="p-salvar"]'); await p.clicar('[data-act="p-salvar"]');
+    const s = await guardado(p);
+    igual(s.compras[1].dono, "Ana", "juntou");
+    igual(s.recebidos[cur].Ana, false, "a Bia não tinha pago: junto, a fatura fica a receber");
+    certo((await linhaPessoa(p, "Ana")).includes("110,00"), "Ana devia dever 30 + 80: " + await linhaPessoa(p, "Ana"));
+  },
+  "Pessoas (revisão): nomes estranhos não viram comando nem recebido": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { compras: [{ id: "c1", cartao: "k1", desc: "A", valorParcela: 10, parcelas: 1, inicio: cur, dono: "__div" },
+      { id: "c2", cartao: "k1", desc: "B", valorParcela: 20, parcelas: 1, inicio: cur, dono: "constructor" },
+      { id: "c3", cartao: "k1", desc: "C", valorParcela: 30, parcelas: 1, inicio: cur, dono: 'Zé "Aspas"]' }] });
+    igual(await p.avaliar(() => [...document.querySelectorAll("#cDono option")].filter((o) => o.value === "__div").length), 1, "uma opção Dividida só");
+    certo((await linhaPessoa(p, "constructor")).includes("20,00"), "constructor não pode parecer recebido: " + await linhaPessoa(p, "constructor"));
+    certo((await p.texto("#cartTerceiros")).includes("A receber"), "na fatura também");
+    await p.clicar('[data-act="compra-edit"][data-id="c1"]');
+    igual(await p.avaliar(() => document.querySelector("#cDono").value), "p:__div", "a compra do __div abre com a pessoa, não com a divisão");
+    certo(!(await p.visivel("#cPartes")), "a divisão não devia abrir");
+    await p.clicar('[data-act="compra-cancel"]');
+    // dividir com um nome que tem aspas
+    await lancarCompra(p, "D", "40"); await escolher(p, "#cDono", "__div");
+    await marcar(p, '#cPartes input[data-parte=""]'); await p.avaliar(() => { const i = [...document.querySelectorAll("#cPartes input[data-parte]")].find((x) => x.dataset.parte.startsWith("Zé")); i.checked = true; i.dispatchEvent(new Event("change", { bubbles: true })); });
+    await enviar(p, "#fCompra");
+    igual(canon((await guardado(p)).compras[3].partes), canon([{ p: "", v: 20 }, { p: 'Zé "Aspas"]', v: 20 }]), "partes com nome de aspas");
+    // "Minha" não vira pessoa
+    await p.digitar("#pNovo", "minha"); await enviar(p, "#fPessoa");
+    certo(!(await guardado(p)).pessoas.some((x) => x.nome.toLowerCase() === "minha"), "Minha não pode ser nome de pessoa");
+  },
+  "Pessoas (revisão): mudar só a cor não renomeia; juntar confirma o destino; Recebi tudo pede dois toques": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { pessoas: [{ nome: "Ana", cor: "#C9A6F5" }, { nome: "Leo", cor: "#8FB8F5" }, { nome: "Bia", cor: "#8FD3B4" }],
+      compras: [{ id: "c1", cartao: "k1", desc: "Fone", valorParcela: 50, parcelas: 1, inicio: cur, dono: "Ana  Maria" }] });
+    await p.clicar('[data-act="p-edit"][data-p="Ana  Maria"]'); await p.clicar('[data-act="p-cor"][data-cor="#F2A48A"]'); await p.clicar('[data-act="p-salvar"]');
+    let s = await guardado(p);
+    igual(s.compras[0].dono, "Ana  Maria", "só a cor mudou: o nome fica"); certo(s.pessoas.some((x) => x.nome === "Ana  Maria" && x.cor === "#F2A48A"), "cor salva: " + JSON.stringify(s.pessoas));
+    // armado para juntar com Ana, mas o nome muda para Leo: pede confirmação de novo
+    await p.clicar('[data-act="p-edit"][data-p="Bia"]'); await p.digitar("#pNome", "Ana"); await p.clicar('[data-act="p-salvar"]');
+    await p.digitar("#pNome", "Leo"); await p.clicar('[data-act="p-salvar"]');
+    certo((await guardado(p)).pessoas.some((x) => x.nome === "Bia"), "trocar o destino pede o segundo toque de novo");
+    await p.clicar('[data-act="p-cancel"]');
+    // Recebi tudo
+    await p.clicar('[data-act="p-tudo"][data-p="Ana  Maria"]');
+    certo(!((await guardado(p)).recebidos[cur] || {})["Ana  Maria"], "Recebi tudo pede um segundo toque");
+    await p.clicar('[data-act="p-tudo"][data-p="Ana  Maria"]');
+    igual((await guardado(p)).recebidos[cur]["Ana  Maria"], true, "Recebi tudo marcou");
+  },
+  "Pessoas (revisão): renomear durante a edição de uma compra mantém a pessoa escolhida": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { pessoas: [{ nome: "Bia", cor: "#8FD3B4" }, { nome: "Ana", cor: "#C9A6F5" }], compras: [{ id: "c1", cartao: "k1", desc: "Fone", valorParcela: 50, parcelas: 1, inicio: cur, dono: "Bia" }] });
+    await p.clicar('[data-act="compra-edit"][data-id="c1"]');
+    await escolher(p, "#dvPessoa", "p:Bia");
+    await p.clicar('[data-act="p-edit"][data-p="Bia"]'); await p.digitar("#pNome", "Beatriz"); await p.clicar('[data-act="p-salvar"]');
+    igual(await p.avaliar(() => document.querySelector("#cDono").value), "p:Beatriz", "De quem é segue o nome novo");
+    igual(await p.avaliar(() => document.querySelector("#dvPessoa").value), "p:Beatriz", "Quem te deve segue o nome novo");
+  },
+  "Pessoas (revisão): Enter em Outra pessoa inclui na divisão sem salvar; valores digitados ficam": async (p) => {
+    await comPessoas(p, { pessoas: [{ nome: "Leo", cor: "#8FB8F5" }] });
+    await lancarCompra(p, "Pizza", "90"); await escolher(p, "#cDono", "__div");
+    await marcar(p, '#cPartes input[data-parte=""]'); await marcar(p, '#cPartes input[data-parte="Leo"]');
+    await p.digitar('#cPartes input[data-parte-v=""]', "30"); await p.digitar('#cPartes input[data-parte-v="Leo"]', "60");
+    await p.digitar("#cParteNova", "Ana");
+    await p.avaliar(() => { const i = document.querySelector("#cParteNova"); const e = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }); if (i.dispatchEvent(e)) i.form.requestSubmit(); });
+    await p.espera(150);
+    igual((await guardado(p)).compras.length, 0, "Enter em Outra pessoa não salva a compra");
+    certo(await p.avaliar(() => document.querySelector('#cPartes input[data-parte="Ana"]').checked), "Ana entrou marcada");
+    igual(await p.avaliar(() => document.querySelector('#cPartes input[data-parte-v=""]').value + "|" + document.querySelector('#cPartes input[data-parte-v="Leo"]').value), "30|60", "os valores digitados ficam");
+  },
+  "Pessoas (revisão): editar compra dividida, trocar para assinatura e apagar a compra em edição": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { pessoas: [{ nome: "Ana", cor: "#C9A6F5" }],
+      compras: [{ id: "c1", cartao: "k1", desc: "Mercado", valorParcela: 20, parcelas: 2, inicio: cur, dono: "", partes: [{ p: "", v: 8 }, { p: "Ana", v: 12 }], ex: true },
+        { id: "c2", cartao: "k1", desc: "Rep", valorParcela: 10, parcelas: 1, inicio: cur, dono: "", partes: [{ p: "Ana", v: 4 }, { p: "Ana", v: 6 }] }] });
+    await p.clicar('[data-act="compra-edit"][data-id="c1"]');
+    igual((await partesNaTela(p)).join("|"), "8|12", "as partes da compra voltam ao formulário");
+    await marcar(p, "#cAss"); await enviar(p, "#fCompra");
+    let s = await guardado(p); const c = s.compras[0];
+    igual([c.parcelas, c.valorParcela, "ex" in c].join("|"), "0|20|false", "virou assinatura, sem a marca de exemplo");
+    igual(canon(c.partes), canon([{ p: "", v: 8 }, { p: "Ana", v: 12 }]), "as partes ficam");
+    // parte repetida (de backup) soma ao editar
+    await p.clicar('[data-act="compra-edit"][data-id="c2"]');
+    igual((await partesNaTela(p)).join("|"), "10", "partes repetidas da mesma pessoa somam");
+    // apagar a compra em edição limpa o formulário
+    await p.clicar('[data-act="del-compra"][data-id="c2"]'); await p.clicar('[data-act="del-compra"][data-id="c2"]');
+    igual(await p.avaliar(() => document.querySelector("#cBtn").textContent.trim() + "|" + document.querySelector("#cDesc").value), "Adicionar compra|", "formulário limpo");
+  },
+  "Pessoas (revisão): partes que não somam a parcela não mudam o total da fatura": async (p) => {
+    const cur = mesAtual();
+    await comPessoas(p, { compras: [{ id: "c1", cartao: "k1", desc: "Torta", valorParcela: 20, parcelas: 1, inicio: cur, dono: "", partes: [{ p: "", v: 0 }, { p: "Ana", v: 10 }] }] });
+    certo((await p.texto("#cartResumo")).includes("20,00"), "o total da fatura é a parcela: " + await p.texto("#cartResumo"));
   },
   "Pessoas: seção e divisão cabem no celular estreito e no PC (prints)": async (p) => {
     const cur = mesAtual();

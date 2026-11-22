@@ -2155,7 +2155,7 @@ function confirmarImport(o){
   const ng = Object.values(o.meses && typeof o.meses === 'object' ? o.meses : {}).reduce((a,m)=>a+n(m && m.gastos),0);
   $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${n(o.compras)} compras e ${n(o.metas)} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
 }
-const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, editC: null, editP: null, pCor: null, pRasc: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
+const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, editC: null, editP: null, pCor: null, pRasc: null, ren: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
 /* ---------- Armazenamento: tudo fica neste aparelho ---------- */
 function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; $('sync').title = txt; }
@@ -2465,7 +2465,7 @@ function fatura(k){
   const itens = [];
   S.compras.forEach(c => { const p = parcelaNoMes(c, k); if (p) itens.push(Object.assign({ c }, p)); });
   let eu = 0, terc = 0;
-  itens.forEach(i => partesDe(i.c).forEach(x => { if (x.p) terc += x.v; else eu += x.v; }));
+  itens.forEach(i => { const outros = partesDe(i.c).reduce((a, x) => a + (x.p ? x.v : 0), 0); terc += outros; eu += i.valor - outros; });
   eu = r2(eu); terc = r2(terc);
   return { itens, eu, terc, total: r2(eu + terc) };
 }
@@ -2485,12 +2485,16 @@ const mesmoNome = (a, b) => limpaNome(a).toLocaleLowerCase('pt-BR') === limpaNom
 const achaPessoa = n => pessoasTodas().find(x => mesmoNome(x, n));
 /* cadastra (ou acha, sem diferença de maiúscula) e devolve o nome; null se o nome não serve */
 function cadastraPessoa(v){
-  const nome = limpaNome(v); if (!nome || nome.startsWith('__')) return null;
+  const nome = limpaNome(v); if (!nome || nome.startsWith('__') || RESERVADOS.includes(nome.toLocaleLowerCase('pt-BR'))) return null;
   const ja = achaPessoa(nome) || nome;
   if (!S.pessoas.some(x => x.nome === ja)) S.pessoas.push({ nome: ja, cor: PALETA[(S.pessoas.length + 1) % PALETA.length] });
   return ja;
 }
 const temParte = (c, n) => partesDe(c).some(x => x.p === n);
+const recebeu = (k, n) => !!S.recebidos[k] && Object.prototype.hasOwnProperty.call(S.recebidos[k], n) && S.recebidos[k][n] === true;
+const RESERVADOS = ['minha', 'você', 'voce', 'eu'];
+/* valor das opções: "p:" + nome, para nenhum nome virar "Dividida" ou "Nova pessoa" */
+const valPessoa = n => 'p:' + n, nomeDoVal = v => v && v.startsWith('p:') ? v.slice(2) : '';
 /* meses de fatura de uma compra até o mês atual (o que já venceu ou vence agora) */
 function mesesAteHoje(c){
   const ate = thisMonth(), fim = c.parcelas ? addMonths(c.inicio, c.parcelas - 1) : (c.fim || ate), r = [];
@@ -2500,19 +2504,21 @@ function mesesAteHoje(c){
 /* o que a pessoa te deve: a parte dela nas faturas até hoje ainda não marcadas como recebidas + dívidas fora do cartão em aberto */
 function emAberto(n){
   let fat = 0;
-  S.compras.forEach(c => { const v = partesDe(c).filter(x => x.p === n).reduce((a, x) => a + x.v, 0); if (v) mesesAteHoje(c).forEach(k => { if (!(S.recebidos[k] && S.recebidos[k][n])) fat += v; }); });
+  S.compras.forEach(c => { const v = partesDe(c).filter(x => x.p === n).reduce((a, x) => a + x.v, 0); if (v) mesesAteHoje(c).forEach(k => { if (!recebeu(k, n)) fat += v; }); });
   const av = S.dividas.filter(d => d.pessoa === n && !d.recebido).reduce((a, d) => a + d.valor, 0);
   return { fat: r2(fat), av: r2(av), total: r2(fat + av) };
 }
 /* troca o nome em tudo; se "para" já existe, junta as duas (a fatura só fica recebida se as duas partes estavam recebidas) */
 function renomearPessoa(de, para){
   if (de === para) return;
-  const existia = pessoasTodas().includes(para);
-  Object.keys(S.recebidos).forEach(k => {
-    const r = S.recebidos[k]; if (!(de in r)) return;
-    const a = !!r[de]; delete r[de];
-    const tinha = existia && S.compras.some(c => temParte(c, para) && parcelaNoMes(c, k));
-    r[para] = tinha ? a && !!r[para] : a;
+  const existia = pessoasTodas().includes(para), meses = new Set(Object.keys(S.recebidos).filter(k => Object.prototype.hasOwnProperty.call(S.recebidos[k], de)));
+  S.compras.forEach(c => { if (temParte(c, de)) mesesAteHoje(c).forEach(k => meses.add(k)); });
+  meses.forEach(k => {
+    const tinhaDe = S.compras.some(c => temParte(c, de) && parcelaNoMes(c, k)), tinhaPara = existia && S.compras.some(c => temParte(c, para) && parcelaNoMes(c, k));
+    const a = recebeu(k, de), b = recebeu(k, para), r = S.recebidos[k] = S.recebidos[k] || {};
+    delete r[de];
+    const v = tinhaDe && tinhaPara ? a && b : tinhaDe ? a : b;
+    if (v || Object.prototype.hasOwnProperty.call(r, para) || tinhaDe) r[para] = v;
   });
   S.compras.forEach(c => {
     if (c.dono === de) c.dono = para;
@@ -2522,22 +2528,28 @@ function renomearPessoa(de, para){
   const ed = S.pessoas.find(x => x.nome === de), ep = S.pessoas.find(x => x.nome === para);
   if (ed && ep) S.pessoas = S.pessoas.filter(x => x !== ed); else if (ed) ed.nome = para;
 }
-const opcoesPessoas = (atual, extras) => pessoasTodas().map(n => `<option value="${esc(n)}" ${n === atual ? 'selected' : ''}>${esc(n)}</option>`).join('') + extras.map(([v, t]) => `<option value="${v}" ${v === atual ? 'selected' : ''}>${t}</option>`).join('');
+const opcoesPessoas = (atual, extras) => pessoasTodas().map(n => `<option value="${esc(valPessoa(n))}" ${valPessoa(n) === atual ? 'selected' : ''}>${esc(n)}</option>`).join('') + extras.map(([v, t]) => `<option value="${v}" ${v === atual ? 'selected' : ''}>${t}</option>`).join('');
 /* as partes da compra dividida: você e cada pessoa, com o valor ao lado (do mesmo tipo do valor digitado: total ou parcela) */
-function renderPartes(marc){
+function renderPartes(marc, manual){
   const box = $('cPartes'); if (box.hidden) return;
   const lista = pessoasTodas().join('|');
   if (!marc && box.dataset.quem === lista) return; // redesenho do Cartão sem pessoa nova: não mexe no que está sendo digitado
-  marc = marc || lerMarcadas(); box.dataset.quem = lista;
+  marc = Object.assign(Object.create(null), marc || lerMarcadas()); box.dataset.quem = lista;
   const quem = [''].concat(pessoasTodas()).concat(Object.keys(marc).filter(p => p && !pessoasTodas().includes(p)));
   box.innerHTML = `<p class="hint" style="margin:0">Marque quem divide. O app reparte em partes iguais; você pode mudar o valor de cada um.</p>` +
-    quem.map(p => { const v = marc[p]; return `<div class="n-parte"><label class="check"><input type="checkbox" data-parte="${esc(p)}" ${v != null ? 'checked' : ''}> ${p ? esc(p) : 'Você'}</label><input data-parte-v="${esc(p)}" inputmode="decimal" aria-label="Parte de ${p ? esc(p) : 'você'}" value="${v != null ? esc(v) : ''}" ${v != null ? '' : 'disabled'}></div>`; }).join('') +
+    quem.map(p => { const v = marc[p]; return `<div class="n-parte"><label class="check"><input type="checkbox" data-parte="${esc(p)}" ${v != null ? 'checked' : ''}> ${p ? esc(p) : 'Você'}</label><input data-parte-v="${esc(p)}" inputmode="decimal" aria-label="Parte de ${p ? esc(p) : 'você'}" value="${v != null ? esc(v) : ''}" ${v != null ? '' : 'disabled'} ${v != null && v !== '' && manual ? 'data-manual' : ''}></div>`; }).join('') +
     `<div class="n-parte-nova"><input id="cParteNova" maxlength="30" placeholder="Outra pessoa" aria-label="Nome de outra pessoa para dividir"><button class="ghost" type="button" data-act="parte-nova">Incluir</button></div><p class="hint" id="cPartesSoma" style="margin:0"></p>`;
   somaPartes();
 }
-function lerMarcadas(){ const m = {}; document.querySelectorAll('#cPartes input[data-parte]').forEach(i => { if (i.checked) m[i.dataset.parte] = (document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`) || {}).value || ''; }); return m; }
-function partesIguais(){
+const algumManual = () => !!document.querySelector('#cPartes input[data-parte-v][data-manual]');
+function lerMarcadas(){ const m = Object.create(null); document.querySelectorAll('#cPartes input[data-parte]').forEach(i => { if (i.checked) m[i.dataset.parte] = (document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`) || {}).value || ''; }); return m; }
+function partesIguais(forcar){
   const v = parseNum($('cValor').value), ins = [...document.querySelectorAll('#cPartes input[data-parte]')];
+  if (forcar) document.querySelectorAll('#cPartes input[data-parte-v][data-manual]').forEach(c => { delete c.dataset.manual; });
+  if (!forcar && document.querySelector('#cPartes input[data-parte-v][data-manual]')) { // valores mexidos à mão ficam; só liga ou desliga o campo
+    ins.forEach(i => { const c = document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`); c.disabled = !i.checked; if (!i.checked) { c.value = ''; delete c.dataset.manual; } });
+    return somaPartes();
+  }
   const marc = ins.filter(i => i.checked);
   ins.forEach(i => { const c = document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`); c.disabled = !i.checked; if (!i.checked) c.value = ''; });
   if (Number.isFinite(v) && v > 0 && marc.length) {
@@ -2564,6 +2576,11 @@ function lerPartes(v, parc, fator){
   const ult = partes[partes.length - 1]; ult.v = r2(ult.v + parc - partes.reduce((a, x) => a + x.v, 0));
   return { partes };
 }
+function incluirParte(){
+  const n = cadastraPessoa($('cParteNova').value); if (!n) { toast('Escreva o nome da pessoa'); $('cParteNova').focus(); return; }
+  const man = algumManual(), m = lerMarcadas(); if (!(n in m)) m[n] = '';
+  persist({ estado: true }); renderCartao(); renderPartes(m, man); partesIguais(); $('cParteNova').focus();
+}
 function donoMudou(){
   const d = $('cDono').value;
   $('cDonoNovoL').hidden = d !== '__nova';
@@ -2576,14 +2593,14 @@ function resetCompraForm(){
   delete $('cInicio').dataset.manual; $('cBtn').textContent = 'Adicionar compra'; $('cCancel').hidden = true; donoMudou();
 }
 function renderPessoas(){
-  const ps = pessoasTodas();
+  const ps = pessoasTodas(), foco = document.activeElement && document.activeElement.id === 'pNome' ? [$('pNome').selectionStart, $('pNome').selectionEnd] : null;
   $('pessoasLista').innerHTML = ps.length ? ps.map(n => {
     if (UI.editP === n) {
       const cor = UI.pCor || corPessoa(n), nome = UI.pRasc != null ? UI.pRasc : n, outro = ps.find(x => x !== n && mesmoNome(x, nome));
       return `<div class="item n-pessoa-edit" data-pessoa="${esc(n)}">
         <label>Nome<input id="pNome" maxlength="30" value="${esc(nome)}"></label>
         <div class="swatches" role="group" aria-label="Cor de ${esc(n)}">${PALETA.map(p => `<button type="button" data-act="p-cor" data-cor="${p}" aria-pressed="${p === cor}" aria-label="Cor ${p}" style="background:${p}"></button>`).join('')}</div>
-        <div class="n-botoes"><button class="primary ${UI.armed === 'pj:' + n ? 'armed' : ''}" type="button" data-act="p-salvar">${UI.armed === 'pj:' + n && outro ? 'Toque de novo para juntar com ' + esc(outro) : 'Salvar'}</button><button class="ghost" type="button" data-act="p-cancel">Cancelar</button><button class="link ${UI.armed === 'pd:' + n ? 'armed' : ''}" type="button" data-act="p-del">${UI.armed === 'pd:' + n ? 'Toque de novo para apagar' : 'Apagar'}</button></div>
+        <div class="n-botoes"><button class="primary ${outro && UI.armed === 'pj:' + n + '>' + outro ? 'armed' : ''}" type="button" data-act="p-salvar">${outro && UI.armed === 'pj:' + n + '>' + outro ? 'Toque de novo para juntar com ' + esc(outro) : 'Salvar'}</button><button class="ghost" type="button" data-act="p-cancel">Cancelar</button><button class="link ${UI.armed === 'pd:' + n ? 'armed' : ''}" type="button" data-act="p-del">${UI.armed === 'pd:' + n ? 'Toque de novo para apagar' : 'Apagar'}</button></div>
       </div>`;
     }
     const a = emAberto(n);
@@ -2592,10 +2609,10 @@ function renderPessoas(){
       <span class="desc">${esc(n)}</span>
       <span class="val num">${a.total > 0 ? fmt(a.total) : ''}</span>
       <span class="sub">${a.total > 0 ? [a.fat ? 'faturas ' + fmt(a.fat) : '', a.av ? 'fora do cartão ' + fmt(a.av) : ''].filter(Boolean).join(' · ') : 'nada em aberto'}</span>
-      <span class="act">${a.total > 0 ? `<button class="link" type="button" data-act="p-tudo" data-p="${esc(n)}">Recebi tudo</button>` : ''}<button class="link" type="button" data-act="p-edit" data-p="${esc(n)}">Editar</button></span>
+      <span class="act">${a.total > 0 ? `<button class="link ${UI.armed === 'pt:' + n ? 'armed' : ''}" type="button" data-act="p-tudo" data-p="${esc(n)}">${UI.armed === 'pt:' + n ? 'Toque de novo' : 'Recebi tudo'}</button>` : ''}<button class="link" type="button" data-act="p-edit" data-p="${esc(n)}">Editar</button></span>
     </div>`;
   }).join('') : '<p class="empty">Nenhuma pessoa ainda. Cadastre aqui ou escolha “+ Nova pessoa” ao lançar uma compra.</p>';
-  const dv = $('dvPessoa').value || (ps.length ? ps[0] : '__nova');
+  const dv = $('dvPessoa').value || (ps.length ? valPessoa(ps[0]) : '__nova');
   $('dvPessoa').innerHTML = opcoesPessoas(dv, [['__nova', '+ Nova pessoa…']]);
   $('dvNovoL').hidden = $('dvPessoa').value !== '__nova';
   if (!$('dvData').value) $('dvData').value = today();
@@ -2607,6 +2624,7 @@ function renderPessoas(){
       <span class="sub">${esc(d.pessoa || 'Sem pessoa')} · ${esc(d.data.slice(8, 10) + '/' + d.data.slice(5, 7) + '/' + d.data.slice(2, 4))} · ${d.recebido ? '<span style="color:var(--ok)">Recebido</span>' : 'A receber'}</span>
       <span class="act"><button class="link" type="button" data-act="dv-rec" data-id="${esc(d.id)}">${d.recebido ? 'Desmarcar' : 'Marcar recebido'}</button><button class="link ${UI.armed === 'dv:' + d.id ? 'armed' : ''}" type="button" data-act="dv-del" data-id="${esc(d.id)}">${UI.armed === 'dv:' + d.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`).join('') : '<p class="empty">Nenhuma dívida anotada fora do cartão.</p>';
+  if (foco && $('pNome')) { $('pNome').focus({ preventScroll: true }); try { $('pNome').setSelectionRange(foco[0], foco[1]); } catch (e) {} }
 }
 /* Contas dos próximos dias: a fatura de cada cartão (com o total das compras cadastradas, se houver) e os gastos fixos.
    Fixo no crédito fica de fora (é pago junto com a fatura), e também o fixo apagado naquele mês. A mesma lista alimenta os lembretes. */
@@ -2667,10 +2685,10 @@ function renderCartao(){
     }).join('');
   }
   // terceiros
-  const porPessoa = {};
+  const porPessoa = Object.create(null);
   F.itens.forEach(i => partesDe(i.c).forEach(x => { if (x.p) porPessoa[x.p] = r2((porPessoa[x.p] || 0) + x.v); }));
   const pessoas = Object.keys(porPessoa).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const rec = S.recebidos[k] || {};
+  const rec = {}; pessoas.forEach(p => { rec[p] = recebeu(k, p); });
   const falta = pessoas.filter(p => !rec[p]).reduce((a,p)=>a+porPessoa[p],0);
   $('cartTerceiros').innerHTML = `<div class="vhead"><h3>Quem te deve nesta fatura</h3>${qm('terceiros')}${pessoas.length ? `<span class="hint">falta receber <b class="num" style="color:var(--fg)">${fmt(falta)}</b></span>` : ''}</div>` +
     (pessoas.length ? `<div class="list">${pessoas.map(p => `<div class="item">
@@ -2691,7 +2709,11 @@ function renderCartao(){
   // selects e listas
   const cSel = $('cCartao').value;
   $('cCartao').innerHTML = S.cartoes.length ? S.cartoes.map(c => `<option value="${esc(c.id)}" ${c.id === cSel ? 'selected' : ''}>${esc(c.nome)}</option>`).join('') : '<option value="">Cadastre um cartão</option>';
-  const dSel = $('cDono').value;
+  const ren = v => UI.ren && nomeDoVal(v) === UI.ren[0] ? valPessoa(UI.ren[1]) : v;
+  const dSel = ren($('cDono').value);
+  if (UI.ren && !$('cPartes').hidden) { const m = lerMarcadas(), [de, para] = UI.ren; if (de in m) { m[para] = m[de]; delete m[de]; } $('cPartes').hidden = true; $('cDono').value = '__div'; $('cPartes').hidden = false; renderPartes(m, algumManual()); }
+  if (UI.ren) { const dv = ren($('dvPessoa').value); $('dvPessoa').innerHTML = opcoesPessoas(dv, [['__nova', '+ Nova pessoa…']]); }
+  UI.ren = null;
   $('cDono').innerHTML = `<option value="">Minha</option>` + opcoesPessoas(dSel, [['__div', 'Dividida…'], ['__nova', '+ Nova pessoa…']]);
   if ($('cDono').value !== dSel) $('cDono').value = ''; // a pessoa escolhida sumiu
   donoMudou(); renderPartes();
@@ -3563,7 +3585,7 @@ document.addEventListener('click', e => {
       ensureMes(k).gastos.push({ id: uid(), valor: v, descricao: 'Não identificado (ajuste ao saldo real)', caixinha: c, forma: 'Pix', data: k === thisMonth() ? today() : k + '-' + pad(daysInMonth(k)), criado: Date.now() });
       persist({ meses: [k] }); renderMes(); toast('Diferença lançada'); break;
     }
-    case 'rec-toggle': { const k = UI.cart, p = b.dataset.p; S.recebidos[k] = S.recebidos[k] || {}; S.recebidos[k][p] = !S.recebidos[k][p]; persist({ estado: true }); renderCartao(); break; }
+    case 'rec-toggle': { const k = UI.cart, p = b.dataset.p; const v = !recebeu(k, p); S.recebidos[k] = S.recebidos[k] || {}; S.recebidos[k][p] = v; persist({ estado: true }); renderCartao(); break; }
     case 'del-cartao': {
       if (UI.armed !== 'k:' + id) { arm('k:' + id); renderCartao(); break; }
       disarm(); S.cartoes = S.cartoes.filter(c => c.id !== id); S.compras = S.compras.filter(c => c.cartao !== id); persist({ estado: true }); renderCartao(); toast('Cartão e compras dele apagados'); break;
@@ -3574,26 +3596,24 @@ document.addEventListener('click', e => {
       $('cAss').checked = !c.parcelas; $('cParc').value = String(c.parcelas || 1); $('cTipo').value = 'parcela'; $('cData').value = '';
       $('cInicio').value = c.inicio; $('cInicio').dataset.manual = '1';
       const div = !!(c.partes && c.partes.length);
-      $('cDono').value = div ? '__div' : (c.dono || ''); $('cDonoNovo').value = ''; $('cPartes').hidden = true; donoMudou();
-      if (div) { const m = {}; c.partes.forEach(x => { m[x.p] = numStr(x.v); }); renderPartes(m); }
+      $('cDono').value = div ? '__div' : c.dono ? valPessoa(c.dono) : ''; $('cDonoNovo').value = ''; $('cPartes').hidden = true; donoMudou();
+      if (div) { const t = Object.create(null); c.partes.forEach(x => { t[x.p] = r2((t[x.p] || 0) + x.v); }); const m = Object.create(null); Object.keys(t).forEach(p => { m[p] = numStr(t[p]); }); renderPartes(m, true); }
       $('cBtn').textContent = 'Salvar compra'; $('cCancel').hidden = false; previewCompra();
       $('fCompra').scrollIntoView({ block: 'start', behavior: 'instant' }); $('cDesc').focus({ preventScroll: true }); break;
     }
     case 'compra-cancel': resetCompraForm(); previewCompra(); break;
-    case 'parte-nova': {
-      const n = cadastraPessoa($('cParteNova').value); if (!n) { toast('Escreva o nome da pessoa'); $('cParteNova').focus(); break; }
-      const m = lerMarcadas(); m[n] = ''; persist({ estado: true }); renderCartao(); renderPartes(m); partesIguais(); break;
-    }
+    case 'parte-nova': incluirParte(); break;
     case 'p-edit': UI.editP = b.dataset.p; UI.pCor = null; UI.pRasc = null; disarm(); renderPessoas(); $('pNome').focus(); break;
     case 'p-cancel': UI.editP = null; disarm(); renderPessoas(); break;
     case 'p-cor': UI.pCor = b.dataset.cor; UI.pRasc = $('pNome').value; renderPessoas(); break;
     case 'p-salvar': {
-      const de = UI.editP, nome = limpaNome($('pNome').value); UI.pRasc = $('pNome').value;
+      const de = UI.editP, bruto = $('pNome').value, nome = bruto === de ? de : limpaNome(bruto); UI.pRasc = bruto;
       if (!de) break;
-      if (!nome || nome.startsWith('__')) { toast('Escreva um nome'); break; }
-      const outro = pessoasTodas().find(x => x !== de && mesmoNome(x, nome));
-      if (outro && UI.armed !== 'pj:' + de) { arm('pj:' + de); renderPessoas(); break; }
+      if (!nome || nome.startsWith('__') || RESERVADOS.includes(nome.toLocaleLowerCase('pt-BR'))) { toast('Escreva um nome (Minha e Você já são você)'); break; }
+      const outro = nome === de ? null : pessoasTodas().find(x => x !== de && mesmoNome(x, nome));
+      if (outro && UI.armed !== 'pj:' + de + '>' + outro) { arm('pj:' + de + '>' + outro); renderPessoas(); break; }
       disarm(); const para = outro || nome;
+      if (para !== de) UI.ren = [de, para];
       renomearPessoa(de, para);
       if (UI.pCor || !S.pessoas.some(x => x.nome === para)) { const e = S.pessoas.find(x => x.nome === para); if (e) e.cor = UI.pCor || e.cor || corPessoa(para); else S.pessoas.push({ nome: para, cor: UI.pCor || PALETA[(S.pessoas.length + 1) % PALETA.length] }); }
       UI.editP = null; UI.pCor = null; UI.pRasc = null;
@@ -3607,6 +3627,8 @@ document.addEventListener('click', e => {
     }
     case 'p-tudo': {
       const n = b.dataset.p;
+      if (UI.armed !== 'pt:' + n) { arm('pt:' + n); renderPessoas(); break; }
+      disarm();
       S.compras.forEach(c => { if (temParte(c, n)) mesesAteHoje(c).forEach(k => { S.recebidos[k] = S.recebidos[k] || {}; S.recebidos[k][n] = true; }); });
       S.dividas.forEach(d => { if (d.pessoa === n) d.recebido = true; });
       persist({ estado: true }); renderCartao(); toast(`Tudo de ${n} marcado como recebido`); break;
@@ -3886,8 +3908,8 @@ $('fCompra').addEventListener('submit', e => {
   const parc = r2(ass ? v : ($('cTipo').value === 'total' ? v / n : v));
   const d = $('cDono').value; let dono = '', partes = null;
   if (d === '__div') { const r = lerPartes(v, parc, ass || $('cTipo').value === 'parcela' ? 1 : 1 / n); if (r.erro) { toast(r.erro); return; } partes = r.partes; }
-  else if (d === '__nova') { dono = cadastraPessoa($('cDonoNovo').value); if (!dono) { toast('Escreva o nome da pessoa'); $('cDonoNovo').focus(); return; } }
-  else dono = d;
+  else if (d === '__nova') { dono = cadastraPessoa($('cDonoNovo').value); if (!dono) { toast('Escreva o nome da pessoa (Minha e Você já são você)'); $('cDonoNovo').focus(); return; } }
+  else dono = nomeDoVal(d);
   const o = { cartao: ct, desc, valorParcela: parc, parcelas: n, inicio: $('cInicio').value || addMonths(thisMonth(), 1), dono };
   const ed = UI.editC && S.compras.find(c => c.id === UI.editC);
   if (ed) { Object.assign(ed, o); delete ed.ex; if (n) delete ed.fim; if (partes) ed.partes = partes; else delete ed.partes; }
@@ -3897,26 +3919,29 @@ $('fCompra').addEventListener('submit', e => {
   renderCartao(); toast(ed ? 'Compra salva' : 'Compra adicionada');
 });
 ['cValor','cParc','cTipo','cAss','cCartao','cData'].forEach(id => $(id).addEventListener('input', previewCompra));
-['cValor','cTipo','cAss'].forEach(id => $(id).addEventListener('input', () => { if (!$('cPartes').hidden) partesIguais(); }));
+// valor novo da compra reparte de novo em partes iguais; trocar o tipo ou a assinatura mantém o que foi digitado
+['cValor','cTipo','cAss'].forEach(id => $(id).addEventListener('input', () => { if (!$('cPartes').hidden) partesIguais(id === 'cValor'); }));
 $('cDono').addEventListener('change', donoMudou);
 $('cPartes').addEventListener('change', e => { if (e.target.matches('input[data-parte]')) partesIguais(); });
-$('cPartes').addEventListener('input', e => { if (e.target.matches('input[data-parte-v]')) somaPartes(); });
+$('cPartes').addEventListener('input', e => { if (e.target.matches('input[data-parte-v]')) { e.target.dataset.manual = '1'; somaPartes(); } });
+// 2: Enter em "Outra pessoa" inclui a pessoa na divisão em vez de salvar a compra
+$('cPartes').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'cParteNova') { e.preventDefault(); incluirParte(); } });
 $('pessoasLista').addEventListener('input', e => { if (e.target.id === 'pNome') UI.pRasc = e.target.value; });
 $('dvPessoa').addEventListener('change', () => { $('dvNovoL').hidden = $('dvPessoa').value !== '__nova'; });
 $('fPessoa').addEventListener('submit', e => {
   e.preventDefault();
   const ja = achaPessoa($('pNovo').value), n = cadastraPessoa($('pNovo').value);
-  if (!n) { toast('Escreva o nome da pessoa'); return; }
+  if (!n) { toast('Escreva o nome da pessoa (Minha e Você já são você)'); return; }
   $('pNovo').value = ''; persist({ estado: true }); renderCartao(); toast(ja ? `${ja} já está na lista` : 'Pessoa adicionada');
 });
 $('fDivida').addEventListener('submit', e => {
   e.preventDefault();
   const v = parseNum($('dvValor').value);
   if (!Number.isFinite(v) || v <= 0) { toast('Digite o valor'); $('dvValor').focus(); return; }
-  let p = $('dvPessoa').value;
-  if (p === '__nova' || !p) { p = cadastraPessoa($('dvNovo').value); if (!p) { toast('Escreva o nome da pessoa'); $('dvNovo').focus(); return; } }
+  let p = nomeDoVal($('dvPessoa').value);
+  if (!p) { p = cadastraPessoa($('dvNovo').value); if (!p) { toast('Escreva o nome da pessoa'); $('dvNovo').focus(); return; } }
   S.dividas.push({ id: uid(), pessoa: p, desc: $('dvDesc').value.trim(), valor: r2(v), data: DATA_RE.test($('dvData').value) ? $('dvData').value : today(), recebido: false });
-  persist({ estado: true }); $('dvDesc').value = ''; $('dvValor').value = ''; $('dvNovo').value = ''; $('dvPessoa').value = p;
+  persist({ estado: true }); $('dvDesc').value = ''; $('dvValor').value = ''; $('dvNovo').value = ''; renderCartao(); $('dvPessoa').value = valPessoa(p);
   renderCartao(); toast('Dívida anotada');
 });
 $('cInicio').addEventListener('input', () => { $('cInicio').dataset.manual = '1'; previewCompra(); });
