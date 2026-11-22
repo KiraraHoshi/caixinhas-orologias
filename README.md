@@ -26,6 +26,7 @@ App de finanças pessoais em que o dinheiro do mês fica dividido em **caixinhas
 - **14 temas** numa galeria com miniaturas, seis deles novos, e o **Visual leve** para aparelhos mais simples.
 - **Android:** widget "Lançar gasto" na tela inicial.
 - **Financiamento:** gráfico do saldo devedor no SAC e no PRICE, com o efeito da amortização extra.
+- **2.1.0:** pessoas cadastradas com cor, editar compra, compra dividida e dívidas fora do cartão.
 - **2.0.5:** tocar num dia do calendário abre a lista do dia sem pular.
 - **2.0.4:** botão "Salvar agora na pasta" no backup.
 - **2.0.3:** a fonte do texto (Figtree) também vem dentro do app.

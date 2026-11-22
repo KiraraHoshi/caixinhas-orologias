@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 2.1.0
+- **Pessoas e quem te deve:** seção nova no Cartão. Cadastre as pessoas uma vez, com nome e cor, e veja quanto cada uma te deve: a parte dela nas faturas até este mês que você ainda não marcou como recebidas, mais o que foi anotado fora do cartão. "Recebi tudo" marca de uma vez.
+- **"De quem é" virou uma lista:** escolha Minha, uma pessoa, "Dividida" ou "+ Nova pessoa". Os nomes que você já usava viram pessoas sozinhos.
+- **Compra dividida:** marque quem divide e o app reparte em partes iguais; dá para mudar o valor de cada parte. A fatura mostra só a sua parte como sua.
+- **Editar compra:** toque em Editar numa compra para mudar qualquer coisa nela, inclusive de quem é.
+- **Renomear junta:** trocar o nome de uma pessoa muda em todas as compras e dívidas; se o nome já existe, as duas viram uma só.
+- **Dívidas fora do cartão:** anote Pix emprestado, dinheiro adiantado ou conta paga por alguém. É só anotação: não entra nas caixinhas nem nas entradas.
+- Backups antigos abrem normalmente. Um backup feito nesta versão, aberto numa versão antiga, perde a divisão das compras e as dívidas fora do cartão.
+
 ## 2.0.5
 - **Dias do mês sem tranco:** ao tocar num dia do calendário dos Gráficos, o Mês abre direto na lista daquele dia. Antes ele mostrava o topo por um instante, com os números contando, e depois pulava para a lista.
 

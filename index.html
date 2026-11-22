@@ -453,6 +453,15 @@ html[data-trava] body{overflow:hidden}
 .fab:active{transform:scale(.95)}
 .folha{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .folha[hidden]{display:none}
+/* 2.1: divisão de compra e seção Pessoas */
+.n-partes{display:grid;gap:6px;margin:4px 0 8px}
+.n-parte{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;align-items:center}
+.n-parte .check{margin:0;min-width:0;overflow-wrap:anywhere}
+.n-parte-nova{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.n-botoes{display:flex;gap:8px;flex-wrap:wrap}
+.n-sub{margin:14px 0 6px;font-size:.95rem}
+.n-pessoa-edit{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px 0}
+.n-pessoa-edit .n-botoes{justify-content:flex-start}
 .folha-fundo{position:absolute;inset:0;background:rgba(5,4,9,.62);border:0;padding:0;width:100%;height:100%;animation:fl-fundo .18s ease-out}
 .folha-caixa{position:relative;width:100%;max-width:640px;max-height:92dvh;overflow:auto;border:1px solid;border-bottom:0;padding:8px 16px calc(16px + var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(0,0,0,.5)}
 .folha-caixa::before{content:"";align-self:center;width:38px;height:4px;border-radius:2px;background:var(--line)}
@@ -1005,7 +1014,8 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
           <li>Em <b>Cartão → Meus cartões</b>, cadastre o cartão com o dia de fechamento e o de vencimento.</li>
           <li>Em <b>Nova compra no cartão</b>, informe o valor e as parcelas. Para algo que cobra todo mês, marque “Assinatura”.</li>
           <li>O app calcula em qual fatura cada parcela cai. Você pode ajustar a “Primeira fatura”.</li>
-          <li>Se a compra é de outra pessoa, preencha “De quem é”. Em “Quem te deve nesta fatura” você marca o que já recebeu.</li>
+          <li>Se a compra é de outra pessoa, escolha quem em “De quem é” (ou “Dividida” para repartir). Em “Quem te deve nesta fatura” você marca o que já recebeu.</li>
+          <li>Em <b>Pessoas e quem te deve</b> você cadastra as pessoas, muda nome e cor, anota dívidas fora do cartão e vê quanto cada uma te deve.</li>
         </ol>
       </div>
     </details>
@@ -1248,12 +1258,40 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
       <div class="row">
         <label>Data da compra<input id="cData" type="date"></label>
         <label>Primeira fatura<input id="cInicio" type="month"></label>
-        <label>De quem é<input id="cDono" list="donos" placeholder="Minha (deixe vazio)"></label>
+        <label>De quem é<select id="cDono"></select></label>
       </div>
-      <datalist id="donos"></datalist>
+      <label id="cDonoNovoL" hidden>Nome da pessoa<input id="cDonoNovo" maxlength="30" placeholder="Ex.: Ana"></label>
+      <div id="cPartes" class="n-partes" hidden></div>
       <p class="hint" id="cPrev"></p>
-      <button class="primary" type="submit">Adicionar compra</button>
+      <div class="n-botoes"><button class="primary" type="submit" id="cBtn">Adicionar compra</button><button class="ghost" type="button" id="cCancel" data-act="compra-cancel" hidden>Cancelar</button></div>
     </form>
+
+    <details id="dPessoas">
+      <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14c1.8.7 3 2.6 3.5 5.5"/></svg></span>Pessoas e quem te deve</summary>
+      <div class="inner">
+        <div class="vhead qh"><h4 class="n-sub">Pessoas</h4><button class="qm" type="button" data-act="qm" data-id="pessoas" aria-expanded="false" aria-label="Ajuda sobre esta seção">?</button></div>
+        <div class="list" id="pessoasLista"></div>
+        <form class="row tight" id="fPessoa" autocomplete="off">
+          <label>Nova pessoa<input id="pNovo" placeholder="Ex.: Ana" maxlength="30" required></label>
+          <button class="primary" type="submit" style="align-self:end">Adicionar</button>
+        </form>
+        <h4 class="n-sub">Fora do cartão</h4>
+        <p class="hint">Dinheiro emprestado, Pix adiantado, conta que você pagou por alguém. Fica só anotado: não entra nas caixinhas nem nas entradas do mês.</p>
+        <form id="fDivida" autocomplete="off">
+          <div class="row">
+            <label>Quem te deve<select id="dvPessoa"></select></label>
+            <label id="dvNovoL" hidden>Nome da pessoa<input id="dvNovo" maxlength="30" placeholder="Ex.: Ana"></label>
+            <label>O que foi<input id="dvDesc" placeholder="Ex.: Pix do almoço" maxlength="60"></label>
+          </div>
+          <div class="row tight">
+            <label>Valor (R$)<input id="dvValor" inputmode="decimal" placeholder="0,00"></label>
+            <label>Data<input id="dvData" type="date"></label>
+            <button class="primary" type="submit" style="align-self:end">Anotar</button>
+          </div>
+        </form>
+        <div class="list" id="dividasLista"></div>
+      </div>
+    </details>
 
     <details id="dCartoes">
       <summary><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg></span>Meus cartões</summary>
@@ -1607,7 +1645,7 @@ input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--fg)
 <script>
 (function(){
 'use strict';
-const VERSION = '2.0.5';
+const VERSION = '2.1.0';
 // Pacote da Google Play: o scripts/preparar-www.mjs troca para true quando monta com CX_LOJA=1 (workflow android-loja.yml).
 // No site e no APK de teste fica false. Hoje nenhum texto do app depende disso (não há aviso de "versão nova" apontando para
 // o GitHub, como no Orolon Player); a marca existe para o que precisar ser diferente na versão da loja.
@@ -1623,8 +1661,9 @@ const AJUDAS = {
   atencao: 'Caixinhas que já usaram 80% ou mais do limite, ou que já estouraram.',
   fatura: 'Soma das parcelas e assinaturas que caem na fatura deste mês. “Sua parte” não inclui o que é de outras pessoas no seu cartão.',
   proximas: 'Quanto deve vir nas próximas faturas, com as parcelas e assinaturas que você já cadastrou.',
-  compra: 'Parcelada: informe o valor, o número de parcelas e se o valor é o total ou o da parcela. Assinatura: marque a caixa e ela cobra todo mês até você remover. Se a compra é de outra pessoa, preencha “De quem é” para acompanhar quem te deve.',
+  compra: 'Parcelada: informe o valor, o número de parcelas e se o valor é o total ou o da parcela. Assinatura: marque a caixa e ela cobra todo mês até você remover. Se a compra é de outra pessoa, escolha quem em “De quem é”; para repartir, escolha “Dividida”. Toque em Editar numa compra para mudar qualquer coisa nela, inclusive de quem é.',
   terceiros: 'Compras no seu cartão que são de outras pessoas. Marque como recebido quando a pessoa te pagar.',
+  pessoas: 'Quem te deve: a parte de cada pessoa nas faturas até este mês que você ainda não marcou como recebidas, mais as dívidas anotadas fora do cartão. Em Editar você muda o nome (ele muda em todas as compras) e a cor. Dívida fora do cartão é só anotação: não mexe nas caixinhas.',
   juros: 'Mostra quanto um valor cresce com rendimento e aportes mensais, com opção de IR regressivo e de descontar a inflação. É uma estimativa, não uma promessa de ganho.',
   guardar: 'Calcula quanto guardar por mês para chegar a um valor em certo prazo, com o rendimento que você informar.',
   vencer: 'Faturas dos cartões cadastrados e gastos fixos que vencem de hoje até 7 dias. O valor da fatura soma as compras da aba Cartão. Gasto fixo pago no crédito não aparece sozinho: ele vence junto com a fatura. O item some quando o dia passa.',
@@ -1763,7 +1802,7 @@ function defaults(){
     ],
     limitesPadrao: { lazer:700, diaadia:500, objetivos:300 },
     formas: ['Pix','Débito','Crédito','Dinheiro'],
-    cartoes: [], compras: [], recebidos: {}, fixos: [],
+    cartoes: [], compras: [], recebidos: {}, fixos: [], pessoas: [], dividas: [],
     metas: [], taxaRef: 13.75,
     tabelas: clone(T2026),
     meses: {}
@@ -1809,7 +1848,23 @@ function normalize(o){
     c.valorParcela = numero(c.valorParcela, 0); c.parcelas = Math.min(1200, Math.max(0, Math.round(numero(c.parcelas, 0))));
     if (!MES_RE.test(c.inicio)) c.inicio = thisMonth();
     if ('fim' in c && !MES_RE.test(c.fim)) delete c.fim;
+    if ('partes' in c) { // 2.1: compra dividida ([{ p: pessoa ('' = você), v: valor por parcela }])
+      const ps = (Array.isArray(c.partes) ? c.partes : []).filter(ehObj).map(x => { x = semProto(x); textos(x, ['p']); if (typeof x.p !== 'string') x.p = ''; x.v = numero(x.v, 0); return x; });
+      if (ps.length) c.partes = ps; else delete c.partes;
+    }
     return c;
+  });
+  // 2.1: pessoas (nome e cor) e dívidas fora do cartão; a pessoa é guardada pelo nome, como o "dono" das compras
+  const nomes = new Set();
+  s.pessoas = (Array.isArray(s.pessoas) ? s.pessoas : []).filter(ehObj).map(x => {
+    x = semProto(x); textos(x, ['nome']);
+    if ('cor' in x && !(typeof x.cor === 'string' && COR_RE.test(x.cor))) delete x.cor;
+    return x;
+  }).filter(x => typeof x.nome === 'string' && x.nome !== '' && !nomes.has(x.nome) && nomes.add(x.nome));
+  s.dividas = (Array.isArray(s.dividas) ? s.dividas : []).filter(ehObj).map(d => {
+    d = semProto(d); d.id = ident(d.id); textos(d, ['pessoa', 'desc']); if (typeof d.pessoa !== 'string') d.pessoa = '';
+    d.valor = numero(d.valor, 0); if (!DATA_RE.test(d.data)) d.data = today(); d.recebido = d.recebido === true;
+    return d;
   });
   s.fixos = (Array.isArray(s.fixos) ? s.fixos : []).filter(ehObj).map(f => {
     f = semProto(f); f.id = ident(f.id); textos(f, ['desc', 'caixinha', 'forma']); f.valor = numero(f.valor, 0); f.dia = diaDoMes(f.dia, 1);
@@ -2100,7 +2155,7 @@ function confirmarImport(o){
   const ng = Object.values(o.meses && typeof o.meses === 'object' ? o.meses : {}).reduce((a,m)=>a+n(m && m.gastos),0);
   $('impConfirm').innerHTML = `<div class="banner"><span>Backup com ${ng} gastos, ${n(o.compras)} compras e ${n(o.metas)} metas. Importar substitui tudo o que está aqui.</span><span class="btns"><button class="primary" type="button" data-act="imp-ok">Substituir</button><button class="ghost" type="button" data-act="imp-no">Cancelar</button></span></div>`;
 }
-const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
+const UI = { mes: thisMonth(), cart: thisMonth(), armed: null, armedT: null, editMeta: null, editC: null, editP: null, pCor: null, pRasc: null, calc: 'liq', cxDraft: null, imp: null, editG: null, onb: 0, onbVals: null, onbReplay: false, onbCx: null, cxMoves: {}, cxPend: null };
 
 /* ---------- Armazenamento: tudo fica neste aparelho ---------- */
 function setSync(state, txt){ $('sync').dataset.s = state; $('syncTxt').textContent = txt; $('sync').title = txt; }
@@ -2113,7 +2168,7 @@ function persistAll(oldKeys){
   lsSet(LS_KEY, S); bkpAgendar(); lembAgendar(); mandarWidget();
   setSync('ok', 'Salvo no aparelho');
 }
-function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length || (m.entradas||[]).length) || s.compras.length || s.metas.length || (s.fixos||[]).length; }
+function hasData(s){ return Object.values(s.meses).some(m => (m.gastos||[]).length || (m.entradas||[]).length) || s.compras.length || s.metas.length || (s.fixos||[]).length || (s.dividas||[]).length; }
 
 /* ---------- Regras do mês ---------- */
 function limites(k){ return Object.assign({}, S.limitesPadrao, (S.meses[k] && S.meses[k].limites) || {}); }
@@ -2409,9 +2464,149 @@ function parcelaNoMes(c, k){
 function fatura(k){
   const itens = [];
   S.compras.forEach(c => { const p = parcelaNoMes(c, k); if (p) itens.push(Object.assign({ c }, p)); });
-  const eu = r2(itens.filter(i => !i.c.dono).reduce((a,i)=>a+i.valor,0));
-  const terc = r2(itens.filter(i => i.c.dono).reduce((a,i)=>a+i.valor,0));
+  let eu = 0, terc = 0;
+  itens.forEach(i => partesDe(i.c).forEach(x => { if (x.p) terc += x.v; else eu += x.v; }));
+  eu = r2(eu); terc = r2(terc);
   return { itens, eu, terc, total: r2(eu + terc) };
+}
+/* ---------- Pessoas (2.1) ----------
+   A pessoa é guardada pelo nome (como o "dono" das compras desde a 1.x): S.pessoas guarda só a cor e quem ainda não tem compra.
+   Nomes que aparecem nas compras e dívidas contam como pessoas mesmo sem cadastro. Parte com p = '' é a sua. */
+const COR_PESSOA = 'var(--gold)';
+function partesDe(c){ return c.partes && c.partes.length ? c.partes : [{ p: c.dono || '', v: c.valorParcela }]; }
+function pessoasTodas(){
+  const n = new Set(); const add = x => { if (x) n.add(x); };
+  S.pessoas.forEach(x => add(x.nome)); S.compras.forEach(c => partesDe(c).forEach(x => add(x.p))); S.dividas.forEach(d => add(d.pessoa));
+  return [...n].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+function corPessoa(n){ const x = S.pessoas.find(x => x.nome === n); return x && x.cor ? x.cor : COR_PESSOA; }
+const limpaNome = v => String(v || '').trim().replace(/\s+/g, ' ').slice(0, 30);
+const mesmoNome = (a, b) => limpaNome(a).toLocaleLowerCase('pt-BR') === limpaNome(b).toLocaleLowerCase('pt-BR');
+const achaPessoa = n => pessoasTodas().find(x => mesmoNome(x, n));
+/* cadastra (ou acha, sem diferença de maiúscula) e devolve o nome; null se o nome não serve */
+function cadastraPessoa(v){
+  const nome = limpaNome(v); if (!nome || nome.startsWith('__')) return null;
+  const ja = achaPessoa(nome) || nome;
+  if (!S.pessoas.some(x => x.nome === ja)) S.pessoas.push({ nome: ja, cor: PALETA[(S.pessoas.length + 1) % PALETA.length] });
+  return ja;
+}
+const temParte = (c, n) => partesDe(c).some(x => x.p === n);
+/* meses de fatura de uma compra até o mês atual (o que já venceu ou vence agora) */
+function mesesAteHoje(c){
+  const ate = thisMonth(), fim = c.parcelas ? addMonths(c.inicio, c.parcelas - 1) : (c.fim || ate), r = [];
+  for (let k = c.inicio; k <= ate && k <= fim; k = addMonths(k, 1)) r.push(k);
+  return r;
+}
+/* o que a pessoa te deve: a parte dela nas faturas até hoje ainda não marcadas como recebidas + dívidas fora do cartão em aberto */
+function emAberto(n){
+  let fat = 0;
+  S.compras.forEach(c => { const v = partesDe(c).filter(x => x.p === n).reduce((a, x) => a + x.v, 0); if (v) mesesAteHoje(c).forEach(k => { if (!(S.recebidos[k] && S.recebidos[k][n])) fat += v; }); });
+  const av = S.dividas.filter(d => d.pessoa === n && !d.recebido).reduce((a, d) => a + d.valor, 0);
+  return { fat: r2(fat), av: r2(av), total: r2(fat + av) };
+}
+/* troca o nome em tudo; se "para" já existe, junta as duas (a fatura só fica recebida se as duas partes estavam recebidas) */
+function renomearPessoa(de, para){
+  if (de === para) return;
+  const existia = pessoasTodas().includes(para);
+  Object.keys(S.recebidos).forEach(k => {
+    const r = S.recebidos[k]; if (!(de in r)) return;
+    const a = !!r[de]; delete r[de];
+    const tinha = existia && S.compras.some(c => temParte(c, para) && parcelaNoMes(c, k));
+    r[para] = tinha ? a && !!r[para] : a;
+  });
+  S.compras.forEach(c => {
+    if (c.dono === de) c.dono = para;
+    if (c.partes) { const m = []; c.partes.forEach(x => { if (x.p === de) x.p = para; const j = m.find(y => y.p === x.p); if (j) j.v = r2(j.v + x.v); else m.push(x); }); c.partes = m; }
+  });
+  S.dividas.forEach(d => { if (d.pessoa === de) d.pessoa = para; });
+  const ed = S.pessoas.find(x => x.nome === de), ep = S.pessoas.find(x => x.nome === para);
+  if (ed && ep) S.pessoas = S.pessoas.filter(x => x !== ed); else if (ed) ed.nome = para;
+}
+const opcoesPessoas = (atual, extras) => pessoasTodas().map(n => `<option value="${esc(n)}" ${n === atual ? 'selected' : ''}>${esc(n)}</option>`).join('') + extras.map(([v, t]) => `<option value="${v}" ${v === atual ? 'selected' : ''}>${t}</option>`).join('');
+/* as partes da compra dividida: você e cada pessoa, com o valor ao lado (do mesmo tipo do valor digitado: total ou parcela) */
+function renderPartes(marc){
+  const box = $('cPartes'); if (box.hidden) return;
+  const lista = pessoasTodas().join('|');
+  if (!marc && box.dataset.quem === lista) return; // redesenho do Cartão sem pessoa nova: não mexe no que está sendo digitado
+  marc = marc || lerMarcadas(); box.dataset.quem = lista;
+  const quem = [''].concat(pessoasTodas()).concat(Object.keys(marc).filter(p => p && !pessoasTodas().includes(p)));
+  box.innerHTML = `<p class="hint" style="margin:0">Marque quem divide. O app reparte em partes iguais; você pode mudar o valor de cada um.</p>` +
+    quem.map(p => { const v = marc[p]; return `<div class="n-parte"><label class="check"><input type="checkbox" data-parte="${esc(p)}" ${v != null ? 'checked' : ''}> ${p ? esc(p) : 'Você'}</label><input data-parte-v="${esc(p)}" inputmode="decimal" aria-label="Parte de ${p ? esc(p) : 'você'}" value="${v != null ? esc(v) : ''}" ${v != null ? '' : 'disabled'}></div>`; }).join('') +
+    `<div class="n-parte-nova"><input id="cParteNova" maxlength="30" placeholder="Outra pessoa" aria-label="Nome de outra pessoa para dividir"><button class="ghost" type="button" data-act="parte-nova">Incluir</button></div><p class="hint" id="cPartesSoma" style="margin:0"></p>`;
+  somaPartes();
+}
+function lerMarcadas(){ const m = {}; document.querySelectorAll('#cPartes input[data-parte]').forEach(i => { if (i.checked) m[i.dataset.parte] = (document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`) || {}).value || ''; }); return m; }
+function partesIguais(){
+  const v = parseNum($('cValor').value), ins = [...document.querySelectorAll('#cPartes input[data-parte]')];
+  const marc = ins.filter(i => i.checked);
+  ins.forEach(i => { const c = document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`); c.disabled = !i.checked; if (!i.checked) c.value = ''; });
+  if (Number.isFinite(v) && v > 0 && marc.length) {
+    const cent = Math.round(v * 100), base = Math.floor(cent / marc.length), sobra = cent - base * marc.length;
+    marc.forEach((i, n) => { document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(i.dataset.parte)}"]`).value = numStr((base + (n < sobra ? 1 : 0)) / 100); });
+  }
+  somaPartes();
+}
+function somaPartes(){
+  const el = $('cPartesSoma'); if (!el) return;
+  const v = parseNum($('cValor').value), vs = [...document.querySelectorAll('#cPartes input[data-parte-v]')].filter(i => !i.disabled).map(i => parseNum(i.value));
+  const soma = r2(vs.reduce((a, x) => a + (Number.isFinite(x) ? x : 0), 0));
+  el.textContent = Number.isFinite(v) && v > 0 && vs.length ? `As partes somam ${fmt(soma)} de ${fmt(v)}${$('cAss').checked || $('cTipo').value === 'parcela' ? ' por mês' : ''}.` : '';
+}
+/* lê as partes do formulário e devolve o valor por parcela de cada uma (a última acerta o centavo) */
+function lerPartes(v, parc, fator){
+  const marc = [...document.querySelectorAll('#cPartes input[data-parte]')].filter(i => i.checked).map(i => i.dataset.parte);
+  if (marc.length < 2) return { erro: 'Marque pelo menos duas pessoas para dividir' };
+  const vals = marc.map(p => parseNum(document.querySelector(`#cPartes input[data-parte-v="${CSS.escape(p)}"]`).value));
+  if (vals.some(x => !Number.isFinite(x) || x < 0)) return { erro: 'Preencha o valor de cada parte' };
+  const soma = r2(vals.reduce((a, x) => a + x, 0));
+  if (Math.abs(soma - v) > 0.009) return { erro: `As partes somam ${fmt(soma)}, mas a compra é de ${fmt(v)}` };
+  const partes = marc.map((p, i) => ({ p, v: r2(vals[i] * fator) }));
+  const ult = partes[partes.length - 1]; ult.v = r2(ult.v + parc - partes.reduce((a, x) => a + x.v, 0));
+  return { partes };
+}
+function donoMudou(){
+  const d = $('cDono').value;
+  $('cDonoNovoL').hidden = d !== '__nova';
+  const div = d === '__div', box = $('cPartes');
+  if (div && box.hidden) { box.hidden = false; renderPartes({}); } else if (!div) { box.hidden = true; box.innerHTML = ''; delete box.dataset.quem; }
+}
+function resetCompraForm(){
+  UI.editC = null;
+  ['cDesc','cValor','cDonoNovo'].forEach(id => $(id).value = ''); $('cParc').value = '1'; $('cAss').checked = false; $('cTipo').value = 'total'; $('cDono').value = '';
+  delete $('cInicio').dataset.manual; $('cBtn').textContent = 'Adicionar compra'; $('cCancel').hidden = true; donoMudou();
+}
+function renderPessoas(){
+  const ps = pessoasTodas();
+  $('pessoasLista').innerHTML = ps.length ? ps.map(n => {
+    if (UI.editP === n) {
+      const cor = UI.pCor || corPessoa(n), nome = UI.pRasc != null ? UI.pRasc : n, outro = ps.find(x => x !== n && mesmoNome(x, nome));
+      return `<div class="item n-pessoa-edit" data-pessoa="${esc(n)}">
+        <label>Nome<input id="pNome" maxlength="30" value="${esc(nome)}"></label>
+        <div class="swatches" role="group" aria-label="Cor de ${esc(n)}">${PALETA.map(p => `<button type="button" data-act="p-cor" data-cor="${p}" aria-pressed="${p === cor}" aria-label="Cor ${p}" style="background:${p}"></button>`).join('')}</div>
+        <div class="n-botoes"><button class="primary ${UI.armed === 'pj:' + n ? 'armed' : ''}" type="button" data-act="p-salvar">${UI.armed === 'pj:' + n && outro ? 'Toque de novo para juntar com ' + esc(outro) : 'Salvar'}</button><button class="ghost" type="button" data-act="p-cancel">Cancelar</button><button class="link ${UI.armed === 'pd:' + n ? 'armed' : ''}" type="button" data-act="p-del">${UI.armed === 'pd:' + n ? 'Toque de novo para apagar' : 'Apagar'}</button></div>
+      </div>`;
+    }
+    const a = emAberto(n);
+    return `<div class="item" data-pessoa="${esc(n)}">
+      <span class="dot" style="background:${esc(corPessoa(n))}"></span>
+      <span class="desc">${esc(n)}</span>
+      <span class="val num">${a.total > 0 ? fmt(a.total) : ''}</span>
+      <span class="sub">${a.total > 0 ? [a.fat ? 'faturas ' + fmt(a.fat) : '', a.av ? 'fora do cartão ' + fmt(a.av) : ''].filter(Boolean).join(' · ') : 'nada em aberto'}</span>
+      <span class="act">${a.total > 0 ? `<button class="link" type="button" data-act="p-tudo" data-p="${esc(n)}">Recebi tudo</button>` : ''}<button class="link" type="button" data-act="p-edit" data-p="${esc(n)}">Editar</button></span>
+    </div>`;
+  }).join('') : '<p class="empty">Nenhuma pessoa ainda. Cadastre aqui ou escolha “+ Nova pessoa” ao lançar uma compra.</p>';
+  const dv = $('dvPessoa').value || (ps.length ? ps[0] : '__nova');
+  $('dvPessoa').innerHTML = opcoesPessoas(dv, [['__nova', '+ Nova pessoa…']]);
+  $('dvNovoL').hidden = $('dvPessoa').value !== '__nova';
+  if (!$('dvData').value) $('dvData').value = today();
+  const ds = S.dividas.slice().sort((a, b) => (a.recebido - b.recebido) || b.data.localeCompare(a.data));
+  $('dividasLista').innerHTML = ds.length ? ds.map(d => `<div class="item">
+      <span class="dot" style="background:${esc(corPessoa(d.pessoa))}"></span>
+      <span class="desc">${esc(d.desc || 'Sem descrição')}</span>
+      <span class="val num">${fmt(d.valor)}</span>
+      <span class="sub">${esc(d.pessoa || 'Sem pessoa')} · ${esc(d.data.slice(8, 10) + '/' + d.data.slice(5, 7) + '/' + d.data.slice(2, 4))} · ${d.recebido ? '<span style="color:var(--ok)">Recebido</span>' : 'A receber'}</span>
+      <span class="act"><button class="link" type="button" data-act="dv-rec" data-id="${esc(d.id)}">${d.recebido ? 'Desmarcar' : 'Marcar recebido'}</button><button class="link ${UI.armed === 'dv:' + d.id ? 'armed' : ''}" type="button" data-act="dv-del" data-id="${esc(d.id)}">${UI.armed === 'dv:' + d.id ? 'Toque de novo' : 'Apagar'}</button></span>
+    </div>`).join('') : '<p class="empty">Nenhuma dívida anotada fora do cartão.</p>';
 }
 /* Contas dos próximos dias: a fatura de cada cartão (com o total das compras cadastradas, se houver) e os gastos fixos.
    Fixo no crédito fica de fora (é pago junto com a fatura), e também o fixo apagado naquele mês. A mesma lista alimenta os lembretes. */
@@ -2443,6 +2638,9 @@ function faturaDefault(dataIso, cartao){
   if (d >= fecha) fechKey = addMonths(fechKey, 1);
   return vence > fecha ? fechKey : addMonths(fechKey, 1);
 }
+/* cor e texto de quem paga: sua (destaque), de uma pessoa (a cor dela) ou dividida (as partes) */
+const corCompra = c => c.partes && c.partes.length ? COR_PESSOA : c.dono ? corPessoa(c.dono) : 'var(--accent)';
+const quemTxt = c => c.partes && c.partes.length ? ' · dividida: ' + c.partes.map(x => (x.p ? esc(x.p) : 'você') + ' ' + fmt(x.v)).join(', ') : c.dono ? ' · de ' + esc(c.dono) : '';
 function renderCartao(){
   const k = UI.cart, F = fatura(k);
   $('cartLabel').textContent = monthLabel(k);
@@ -2461,27 +2659,27 @@ function renderCartao(){
       const tot = its.reduce((a,i)=>a+i.valor,0);
       return `<section class="n-vidro n-fatura"><div class="n-sec"><h3><span class="n-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/></svg></span><span>${esc(ct.nome)}</span></h3><span class="n-chip num">${fmt(tot)}</span></div>
         <div class="list">${its.length ? its.map(i => `<div class="item">
-          <span class="dot" style="background:${i.c.dono ? 'var(--gold)' : 'var(--accent)'}"></span>
+          <span class="dot" style="background:${esc(corCompra(i.c))}"></span>
           <span class="desc">${esc(i.c.desc)}${i.c.ex ? '<span class="ex">exemplo</span>' : ''}</span>
           <span class="val num">${fmt(i.valor)}</span>
-          <span class="sub">${i.N ? `parcela ${Number(i.n)}/${Number(i.N)}` : 'assinatura'}${i.c.dono ? ` · de ${esc(i.c.dono)}` : ''}</span>
+          <span class="sub">${i.N ? `parcela ${Number(i.n)}/${Number(i.N)}` : 'assinatura'}${quemTxt(i.c)}</span>
         </div>`).join('') : `<p class="empty">Nada nesta fatura.</p>`}</div></section>`;
     }).join('');
   }
   // terceiros
   const porPessoa = {};
-  F.itens.filter(i => i.c.dono).forEach(i => { porPessoa[i.c.dono] = r2((porPessoa[i.c.dono] || 0) + i.valor); });
-  const pessoas = Object.keys(porPessoa).sort();
+  F.itens.forEach(i => partesDe(i.c).forEach(x => { if (x.p) porPessoa[x.p] = r2((porPessoa[x.p] || 0) + x.v); }));
+  const pessoas = Object.keys(porPessoa).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const rec = S.recebidos[k] || {};
   const falta = pessoas.filter(p => !rec[p]).reduce((a,p)=>a+porPessoa[p],0);
   $('cartTerceiros').innerHTML = `<div class="vhead"><h3>Quem te deve nesta fatura</h3>${qm('terceiros')}${pessoas.length ? `<span class="hint">falta receber <b class="num" style="color:var(--fg)">${fmt(falta)}</b></span>` : ''}</div>` +
     (pessoas.length ? `<div class="list">${pessoas.map(p => `<div class="item">
-        <span class="dot" style="background:var(--gold)"></span>
+        <span class="dot" style="background:${esc(corPessoa(p))}"></span>
         <span class="desc">${esc(p)}</span>
         <span class="val num">${fmt(porPessoa[p])}</span>
         <span class="sub">${rec[p] ? '<span style="color:var(--ok)">Recebido</span>' : 'A receber'}</span>
         <span class="act"><button class="link" type="button" data-act="rec-toggle" data-p="${esc(p)}">${rec[p] ? 'Desmarcar' : 'Marcar recebido'}</button></span>
-      </div>`).join('')}</div>` : `<p class="empty">Nenhuma compra de outra pessoa nesta fatura. Preencha “De quem é” ao lançar uma compra que não é sua.</p>`);
+      </div>`).join('')}</div>` : `<p class="empty">Nenhuma compra de outra pessoa nesta fatura. Escolha em “De quem é” ao lançar uma compra que não é sua.</p>`);
   // projeção
   const meses = Array.from({length:6}, (_,i) => addMonths(k, i));
   const vals = meses.map(m => fatura(m));
@@ -2493,8 +2691,11 @@ function renderCartao(){
   // selects e listas
   const cSel = $('cCartao').value;
   $('cCartao').innerHTML = S.cartoes.length ? S.cartoes.map(c => `<option value="${esc(c.id)}" ${c.id === cSel ? 'selected' : ''}>${esc(c.nome)}</option>`).join('') : '<option value="">Cadastre um cartão</option>';
-  const donos = [...new Set(S.compras.map(c => c.dono).filter(Boolean))].sort();
-  $('donos').innerHTML = donos.map(d => `<option value="${esc(d)}">`).join('');
+  const dSel = $('cDono').value;
+  $('cDono').innerHTML = `<option value="">Minha</option>` + opcoesPessoas(dSel, [['__div', 'Dividida…'], ['__nova', '+ Nova pessoa…']]);
+  if ($('cDono').value !== dSel) $('cDono').value = ''; // a pessoa escolhida sumiu
+  donoMudou(); renderPartes();
+  renderPessoas();
   $('cartList').innerHTML = S.cartoes.length ? S.cartoes.map(c => `<div class="item">
       <span class="dot" style="background:var(--accent)"></span>
       <span class="desc">${esc(c.nome)}</span><span class="val"></span>
@@ -2508,11 +2709,11 @@ function renderCartao(){
     const ativa = c.parcelas ? ultima >= thisMonth() : true;
     const ct = S.cartoes.find(x => x.id === c.cartao);
     return `<div class="item">
-      <span class="dot" style="background:${c.dono ? 'var(--gold)' : 'var(--accent)'}"></span>
+      <span class="dot" style="background:${esc(corCompra(c))}"></span>
       <span class="desc">${esc(c.desc)}${c.ex ? '<span class="ex">exemplo</span>' : ''}</span>
       <span class="val num">${fmt(c.valorParcela)}${c.parcelas ? ` × ${Number(c.parcelas)}` : '/mês'}</span>
-      <span class="sub">${ct ? esc(ct.nome) + ' · ' : ''}${c.parcelas ? `${esc(monthLabel(c.inicio, true))} a ${esc(monthLabel(ultima, true))}/${ultima.slice(2,4)}` : `assinatura desde ${esc(monthLabel(c.inicio, true))}`}${c.dono ? ' · de ' + esc(c.dono) : ''}${ativa ? '' : ' · quitada'}</span>
-      <span class="act">${!c.parcelas ? `<button class="link" type="button" data-act="ass-end" data-id="${esc(c.id)}">${c.fim ? 'Reativar' : 'Encerrar'}</button>` : ''}<button class="link ${UI.armed === 'c:' + c.id ? 'armed' : ''}" type="button" data-act="del-compra" data-id="${esc(c.id)}">${UI.armed === 'c:' + c.id ? 'Toque de novo' : 'Apagar'}</button></span>
+      <span class="sub">${ct ? esc(ct.nome) + ' · ' : ''}${c.parcelas ? `${esc(monthLabel(c.inicio, true))} a ${esc(monthLabel(ultima, true))}/${ultima.slice(2,4)}` : `assinatura desde ${esc(monthLabel(c.inicio, true))}`}${quemTxt(c)}${ativa ? '' : ' · quitada'}</span>
+      <span class="act"><button class="link" type="button" data-act="compra-edit" data-id="${esc(c.id)}">Editar</button>${!c.parcelas ? `<button class="link" type="button" data-act="ass-end" data-id="${esc(c.id)}">${c.fim ? 'Reativar' : 'Encerrar'}</button>` : ''}<button class="link ${UI.armed === 'c:' + c.id ? 'armed' : ''}" type="button" data-act="del-compra" data-id="${esc(c.id)}">${UI.armed === 'c:' + c.id ? 'Toque de novo' : 'Apagar'}</button></span>
     </div>`;
   }).join('') : '<p class="empty">Nenhuma compra cadastrada.</p>';
   previewCompra();
@@ -3367,9 +3568,57 @@ document.addEventListener('click', e => {
       if (UI.armed !== 'k:' + id) { arm('k:' + id); renderCartao(); break; }
       disarm(); S.cartoes = S.cartoes.filter(c => c.id !== id); S.compras = S.compras.filter(c => c.cartao !== id); persist({ estado: true }); renderCartao(); toast('Cartão e compras dele apagados'); break;
     }
+    case 'compra-edit': {
+      const c = S.compras.find(c => c.id === id); if (!c) break;
+      UI.editC = id; $('cDesc').value = c.desc; $('cCartao').value = c.cartao; $('cValor').value = numStr(c.valorParcela);
+      $('cAss').checked = !c.parcelas; $('cParc').value = String(c.parcelas || 1); $('cTipo').value = 'parcela'; $('cData').value = '';
+      $('cInicio').value = c.inicio; $('cInicio').dataset.manual = '1';
+      const div = !!(c.partes && c.partes.length);
+      $('cDono').value = div ? '__div' : (c.dono || ''); $('cDonoNovo').value = ''; $('cPartes').hidden = true; donoMudou();
+      if (div) { const m = {}; c.partes.forEach(x => { m[x.p] = numStr(x.v); }); renderPartes(m); }
+      $('cBtn').textContent = 'Salvar compra'; $('cCancel').hidden = false; previewCompra();
+      $('fCompra').scrollIntoView({ block: 'start', behavior: 'instant' }); $('cDesc').focus({ preventScroll: true }); break;
+    }
+    case 'compra-cancel': resetCompraForm(); previewCompra(); break;
+    case 'parte-nova': {
+      const n = cadastraPessoa($('cParteNova').value); if (!n) { toast('Escreva o nome da pessoa'); $('cParteNova').focus(); break; }
+      const m = lerMarcadas(); m[n] = ''; persist({ estado: true }); renderCartao(); renderPartes(m); partesIguais(); break;
+    }
+    case 'p-edit': UI.editP = b.dataset.p; UI.pCor = null; UI.pRasc = null; disarm(); renderPessoas(); $('pNome').focus(); break;
+    case 'p-cancel': UI.editP = null; disarm(); renderPessoas(); break;
+    case 'p-cor': UI.pCor = b.dataset.cor; UI.pRasc = $('pNome').value; renderPessoas(); break;
+    case 'p-salvar': {
+      const de = UI.editP, nome = limpaNome($('pNome').value); UI.pRasc = $('pNome').value;
+      if (!de) break;
+      if (!nome || nome.startsWith('__')) { toast('Escreva um nome'); break; }
+      const outro = pessoasTodas().find(x => x !== de && mesmoNome(x, nome));
+      if (outro && UI.armed !== 'pj:' + de) { arm('pj:' + de); renderPessoas(); break; }
+      disarm(); const para = outro || nome;
+      renomearPessoa(de, para);
+      if (UI.pCor || !S.pessoas.some(x => x.nome === para)) { const e = S.pessoas.find(x => x.nome === para); if (e) e.cor = UI.pCor || e.cor || corPessoa(para); else S.pessoas.push({ nome: para, cor: UI.pCor || PALETA[(S.pessoas.length + 1) % PALETA.length] }); }
+      UI.editP = null; UI.pCor = null; UI.pRasc = null;
+      persist({ estado: true }); renderCartao(); toast(outro ? `Juntado com ${outro}` : 'Pessoa salva'); break;
+    }
+    case 'p-del': {
+      const n = UI.editP; if (!n) break;
+      if (S.compras.some(c => temParte(c, n)) || S.dividas.some(d => d.pessoa === n)) { toast(`${n} ainda tem compras ou dívidas. Mude o dono delas ou apague antes.`); break; }
+      if (UI.armed !== 'pd:' + n) { UI.pRasc = $('pNome').value; arm('pd:' + n); renderPessoas(); break; }
+      disarm(); S.pessoas = S.pessoas.filter(x => x.nome !== n); UI.editP = null; persist({ estado: true }); renderCartao(); toast('Pessoa apagada'); break;
+    }
+    case 'p-tudo': {
+      const n = b.dataset.p;
+      S.compras.forEach(c => { if (temParte(c, n)) mesesAteHoje(c).forEach(k => { S.recebidos[k] = S.recebidos[k] || {}; S.recebidos[k][n] = true; }); });
+      S.dividas.forEach(d => { if (d.pessoa === n) d.recebido = true; });
+      persist({ estado: true }); renderCartao(); toast(`Tudo de ${n} marcado como recebido`); break;
+    }
+    case 'dv-rec': { const d = S.dividas.find(d => d.id === id); if (d) { d.recebido = !d.recebido; persist({ estado: true }); renderCartao(); } break; }
+    case 'dv-del': {
+      if (UI.armed !== 'dv:' + id) { arm('dv:' + id); renderPessoas(); break; }
+      disarm(); S.dividas = S.dividas.filter(d => d.id !== id); persist({ estado: true }); renderCartao(); toast('Dívida apagada'); break;
+    }
     case 'del-compra': {
       if (UI.armed !== 'c:' + id) { arm('c:' + id); renderCartao(); break; }
-      disarm(); S.compras = S.compras.filter(c => c.id !== id); persist({ estado: true }); renderCartao(); toast('Compra apagada'); break;
+      disarm(); S.compras = S.compras.filter(c => c.id !== id); if (UI.editC === id) resetCompraForm(); persist({ estado: true }); renderCartao(); toast('Compra apagada'); break;
     }
     case 'ass-end': { const c = S.compras.find(c => c.id === id); if (c) { c.fim = c.fim ? null : addMonths(UI.cart, -1); persist({ estado: true }); renderCartao(); toast(c.fim ? 'Assinatura encerrada a partir desta fatura' : 'Assinatura reativada'); } break; }
     case 'meta-aportar': case 'meta-retirar': {
@@ -3634,13 +3883,42 @@ $('fCompra').addEventListener('submit', e => {
   const desc = $('cDesc').value.trim(), v = parseNum($('cValor').value), ass = $('cAss').checked;
   if (!desc || !Number.isFinite(v) || v <= 0) { toast('Preencha o que foi e o valor'); return; }
   const n = ass ? 0 : Math.max(1, Math.round(numOr($('cParc').value, 1)));
-  const parc = ass ? v : ($('cTipo').value === 'total' ? v / n : v);
-  S.compras.push({ id: uid(), cartao: ct, desc, valorParcela: r2(parc), parcelas: n, inicio: $('cInicio').value || addMonths(thisMonth(), 1), dono: $('cDono').value.trim(), criado: Date.now() });
+  const parc = r2(ass ? v : ($('cTipo').value === 'total' ? v / n : v));
+  const d = $('cDono').value; let dono = '', partes = null;
+  if (d === '__div') { const r = lerPartes(v, parc, ass || $('cTipo').value === 'parcela' ? 1 : 1 / n); if (r.erro) { toast(r.erro); return; } partes = r.partes; }
+  else if (d === '__nova') { dono = cadastraPessoa($('cDonoNovo').value); if (!dono) { toast('Escreva o nome da pessoa'); $('cDonoNovo').focus(); return; } }
+  else dono = d;
+  const o = { cartao: ct, desc, valorParcela: parc, parcelas: n, inicio: $('cInicio').value || addMonths(thisMonth(), 1), dono };
+  const ed = UI.editC && S.compras.find(c => c.id === UI.editC);
+  if (ed) { Object.assign(ed, o); delete ed.ex; if (n) delete ed.fim; if (partes) ed.partes = partes; else delete ed.partes; }
+  else { const c = Object.assign({ id: uid() }, o, { criado: Date.now() }); if (partes) c.partes = partes; S.compras.push(c); }
   persist({ estado: true });
-  ['cDesc','cValor','cDono'].forEach(id => $(id).value = ''); $('cParc').value = '1'; $('cAss').checked = false; delete $('cInicio').dataset.manual;
-  renderCartao(); toast('Compra adicionada');
+  resetCompraForm();
+  renderCartao(); toast(ed ? 'Compra salva' : 'Compra adicionada');
 });
 ['cValor','cParc','cTipo','cAss','cCartao','cData'].forEach(id => $(id).addEventListener('input', previewCompra));
+['cValor','cTipo','cAss'].forEach(id => $(id).addEventListener('input', () => { if (!$('cPartes').hidden) partesIguais(); }));
+$('cDono').addEventListener('change', donoMudou);
+$('cPartes').addEventListener('change', e => { if (e.target.matches('input[data-parte]')) partesIguais(); });
+$('cPartes').addEventListener('input', e => { if (e.target.matches('input[data-parte-v]')) somaPartes(); });
+$('pessoasLista').addEventListener('input', e => { if (e.target.id === 'pNome') UI.pRasc = e.target.value; });
+$('dvPessoa').addEventListener('change', () => { $('dvNovoL').hidden = $('dvPessoa').value !== '__nova'; });
+$('fPessoa').addEventListener('submit', e => {
+  e.preventDefault();
+  const ja = achaPessoa($('pNovo').value), n = cadastraPessoa($('pNovo').value);
+  if (!n) { toast('Escreva o nome da pessoa'); return; }
+  $('pNovo').value = ''; persist({ estado: true }); renderCartao(); toast(ja ? `${ja} já está na lista` : 'Pessoa adicionada');
+});
+$('fDivida').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum($('dvValor').value);
+  if (!Number.isFinite(v) || v <= 0) { toast('Digite o valor'); $('dvValor').focus(); return; }
+  let p = $('dvPessoa').value;
+  if (p === '__nova' || !p) { p = cadastraPessoa($('dvNovo').value); if (!p) { toast('Escreva o nome da pessoa'); $('dvNovo').focus(); return; } }
+  S.dividas.push({ id: uid(), pessoa: p, desc: $('dvDesc').value.trim(), valor: r2(v), data: DATA_RE.test($('dvData').value) ? $('dvData').value : today(), recebido: false });
+  persist({ estado: true }); $('dvDesc').value = ''; $('dvValor').value = ''; $('dvNovo').value = ''; $('dvPessoa').value = p;
+  renderCartao(); toast('Dívida anotada');
+});
 $('cInicio').addEventListener('input', () => { $('cInicio').dataset.manual = '1'; previewCompra(); });
 $('fCartao').addEventListener('submit', e => {
   e.preventDefault();
